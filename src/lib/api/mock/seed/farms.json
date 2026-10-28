@@ -1,0 +1,13 @@
+[
+  { "id": "aw01", "code": "AW-01", "name": "AW-01", "type": "breeder", "sheds": 4 },
+  { "id": "aw02", "code": "AW-02", "name": "AW-02 Patoki Farm", "type": "breeder", "sheds": 4 },
+  { "id": "aw04", "code": "AW-04", "name": "AW-04", "type": "breeder", "sheds": 3 },
+  { "id": "aw05", "code": "AW-05", "name": "AW-05", "type": "breeder", "sheds": 3 },
+  { "id": "aw06", "code": "AW-06", "name": "AW-06", "type": "breeder", "sheds": 5 },
+  { "id": "aw3a", "code": "AW-3A", "name": "AW-3A", "type": "breeder", "sheds": 3 },
+  { "id": "aw3b", "code": "AW-3B", "name": "AW-3B", "type": "breeder", "sheds": 3 },
+  { "id": "awhatchery", "code": "AW-Hatchery", "name": "AW-Hatchery", "type": "hatchery", "sheds": 3 },
+  { "id": "layer01", "code": "AW Layer-01", "name": "AW Layer-01 Jagoki", "type": "layer", "sheds": 6 },
+  { "id": "layer03", "code": "AW Layer-03", "name": "AW Layer-03 Imran Bhullar", "type": "layer", "sheds": 5 },
+  { "id": "layer04", "code": "Layer-04", "name": "Layer-04 Khan", "type": "layer", "sheds": 4 }
+]

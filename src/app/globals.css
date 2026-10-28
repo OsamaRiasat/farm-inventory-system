@@ -1,0 +1,268 @@
+@import "tailwindcss";
+
+/* Design tokens — docs/kb/04-design-system.md. Light mode only. */
+@theme {
+  --color-primary: #1f6b4a;
+  --color-primary-soft: #e6f0eb;
+  --color-igp: #2e7d32;
+  --color-ogp: #c2571a;
+  --color-sis: #1e5aa8;
+  --color-warning: #b7791f;
+  --color-warning-bg: #fdf4e3;
+  --color-danger: #c62828;
+  --color-danger-bg: #fdecec;
+  --color-success-bg: #e8f3ec;
+  --color-ink: #1a1d1f;
+  --color-muted: #5b6166;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f6f4;
+  --color-line: #e1e4e0;
+  /* Input borders need 3:1 against white, so they get a darker line. */
+  --color-line-strong: #8a9089;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-urdu: var(--font-nastaliq), serif;
+}
+
+html {
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  /* Keeps a focused field clear of the sticky Save bar when moving with Enter / Tab. */
+  scroll-padding-bottom: 140px;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Urdu: Nastaliq is tall — never put it in a fixed-height box. */
+[lang="ur"] {
+  font-family: var(--font-urdu);
+  line-height: 2;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+/* C5 bilingual label. Order follows <html data-lang-order>. */
+.bi {
+  display: inline-flex;
+  flex-direction: column;
+  text-align: left;
+}
+.bi > [lang="ur"] {
+  font-size: 1.15em;
+  text-align: left;
+}
+.bi-inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.5em;
+}
+html[data-lang-order="ur"] .bi {
+  flex-direction: column-reverse;
+}
+html[data-lang-order="ur"] .bi-inline {
+  flex-direction: row-reverse;
+}
+}
+
+/* Base component styles live in the components layer, so Tailwind utilities (w-28, min-h-10 …) override them. */
+@layer components {
+/* Form controls */
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+.input:read-only {
+  background: var(--color-surface-2);
+}
+.input-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.input-wrap {
+  position: relative;
+}
+.input-wrap > .input {
+  padding-right: 3.5rem;
+}
+.input-suffix {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 4px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-surface);
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+.btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.btn-lg {
+  min-height: 56px;
+  font-size: 18px;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+kbd {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-line-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+}
+
+/* C9 summary sheet: bottom sheet on phone, centred dialog from 640px. */
+dialog.sheet {
+  width: 100%;
+  max-width: 32rem;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+@media (min-width: 640px) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 12px;
+  }
+}
+
+@layer components {
+/* Admin tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: bottom;
+}
+.table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-line);
+}
+}
+
+/* C12 print frame: the paper size on screen, and only the frame (or a report's .print-area) on paper. */
+.print-frame[data-size="A5"] {
+  width: 148mm;
+  min-height: 210mm;
+}
+.print-frame[data-size="A4"] {
+  width: 210mm;
+  min-height: 297mm;
+}
+.print-frame[data-size="screen"] {
+  width: 100%;
+  /* Keeps the paper layout readable on a phone; the page scrolls sideways instead of squeezing columns. */
+  min-width: 34rem;
+}
+@media screen {
+  .print-body tr.slip-short td {
+    background: var(--color-warning-bg);
+  }
+}
+.print-body table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.print-body th,
+.print-body td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  text-align: left;
+}
+@page a5 {
+  size: A5 portrait;
+  margin: 0;
+}
+@page a4 {
+  size: A4 portrait;
+  margin: 0;
+}
+@media print {
+  html,
+  body {
+    background: #fff;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-frame,
+  .print-frame *,
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-frame,
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-shadow: none !important;
+  }
+  .print-frame[data-size="A5"] {
+    page: a5;
+  }
+  .print-frame[data-size="A4"] {
+    page: a4;
+  }
+}
