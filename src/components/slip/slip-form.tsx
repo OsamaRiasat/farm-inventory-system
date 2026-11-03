@@ -4,24 +4,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { CircleCheck, LoaderCircle, TriangleAlert } from "lucide-react";
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
 import { useCurrentFarm } from "@/components/layout/farm-gate";
 import { isBlank, newIdempotencyKey, readSlipForm } from "@/features/form-data";
 import { ApiError } from "@/lib/api";
 import { useApiMutation, useItemMap, useStock } from "@/lib/api/queries";
-import { today } from "@/lib/dates";
 import { fmtQty, parseQty } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { enterToNext, focusables } from "@/lib/keyboard/focus";
 import { useSaveShortcut } from "@/lib/keyboard/use-shortcut";
 import { setDirty } from "@/lib/leave-guard";
-import type { FieldError } from "@/lib/validation";
+import { slipNo } from "@/lib/slips";
+import { paperNoOf, type FieldError } from "@/lib/validation";
 import type { Item, Slip, SlipType } from "@/types/domain";
 import { SlipErrorsContext, toFormErrors } from "./slip-errors";
 
 export type SlipFormData = ReturnType<typeof readSlipForm>;
-export type BaseInput = { farmId: string; date: string; time: string; preparedBy: string; idempotencyKey: string };
+export type BaseInput = { farmId: string; paperNo: string; date: string; time: string; preparedBy: string; idempotencyKey: string };
 /** The API input, plus which screen row each input line / shed row came from. */
 export type BuiltInput = { input: unknown; lineRows: number[]; shedRows?: number[] };
 
@@ -31,7 +31,9 @@ type Summary = { rows: { item: Item; before: number; used: number }[]; mortMale:
  * Wraps a slip's fields: Enter moves to the next field, Ctrl/⌘+S saves, sticky Save + Prepared by,
  * the C9 summary sheet (SIS), and the saved / not saved / field-error states.
  * After saving: "next" clears the form for another slip, "print" opens the print view (OGP),
- * "detail" opens the saved slip (receive transfer).
+ * "detail" opens the saved slip (receive transfer). Those two replace the form in the browser history,
+ * so Back from them goes where the form came from, not to a filled-in form.
+ * Next.js keeps a page you leave alive (hidden), so the form starts empty again whenever it is hidden.
  */
 export function SlipForm({
   slipType,
@@ -78,6 +80,18 @@ export function SlipForm({
     return () => setDirty(false);
   }, []);
 
+  // Hidden by a navigation (Next.js keeps the page alive): come back to an empty slip.
+  useLayoutEffect(() => {
+    return () => {
+      setSaved(null);
+      setProblem(null);
+      setErrors([]);
+      setSummary(null);
+      setFormKey((k) => k + 1);
+      idempotencyKey.current = newIdempotencyKey();
+    };
+  }, []);
+
   useEffect(() => {
     if (saved || problem) bannerRef.current?.focus();
   }, [saved, problem]);
@@ -106,7 +120,8 @@ export function SlipForm({
     const form = readSlipForm(data);
     const base: BaseInput = {
       farmId: farm.id,
-      date: today(),
+      paperNo: paperNoOf(slipType, form.fields.paperNo),
+      date: form.fields.date ?? "",
       time: form.fields.time,
       preparedBy,
       idempotencyKey: idempotencyKey.current,
@@ -118,8 +133,8 @@ export function SlipForm({
       const slip = await mutation.mutateAsync(input);
       setDirty(false);
       idempotencyKey.current = newIdempotencyKey();
-      if (afterSave === "print") return router.push(`/print/${encodeURIComponent(slip.id)}?saved=1`);
-      if (afterSave === "detail") return router.push(`/farm/slips/${encodeURIComponent(slip.id)}?saved=1`);
+      if (afterSave === "print") return router.replace(`/print/${encodeURIComponent(slip.id)}?saved=1`);
+      if (afterSave === "detail") return router.replace(`/farm/slips/${encodeURIComponent(slip.id)}?saved=1`);
       setSaved(slip);
       setFormKey((k) => k + 1);
       window.scrollTo({ top: 0 });
@@ -153,7 +168,7 @@ export function SlipForm({
         >
           <span className="flex items-center gap-2 font-medium">
             <CircleCheck className="shrink-0 text-primary" aria-hidden />
-            <Bi id="slip.saved" values={{ type: slipType, no: saved.no }} />
+            <Bi id="slip.saved" values={{ type: slipType, no: slipNo(saved) }} />
           </span>
           <span className="flex flex-wrap gap-2">
             <Link href={`/print/${encodeURIComponent(saved.id)}`} className="btn min-h-10">

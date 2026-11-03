@@ -36,11 +36,16 @@ export interface Item {
 
 export interface SlipBase {
   id: string;
-  no: string; // AW02-IGP-1663
+  no: string; // AW02-IGP-1663 — the system's number, unique across farms
+  /** The number on the farm's paper slip book, typed by the farm ("IGP-0123"). Shown to farms instead of `no`. */
+  paperNo: string;
   type: SlipType;
   farmId: string;
-  date: string; // ISO date
+  /** ISO date the goods came in (IGP) / went out (OGP) / were used (SIS). Up to 30 days back, never future. */
+  date: string;
   time: string; // HH:mm
+  /** Local date-time the slip was saved ("posted"), automatic. */
+  postedAt: string;
   preparedBy: string;
   status: SlipStatus;
   correctionOf?: string;
@@ -71,8 +76,10 @@ export interface OGP extends SlipBase {
 
 export interface SIS extends SlipBase {
   type: "SIS";
+  /** Feed & mortality per shed. No longer entered (client, 30 Oct 2026): feed is a normal item line. Kept for old slips. */
   shedRows: { shedId: string; feedItemId: string; feedKg: number; mortMale: number; mortFemale: number }[];
-  lines: { itemId: string; qty: number; purpose?: string; shedId?: string }[];
+  /** ledgerFolio: the page in the farm storekeeper's own ledger, typed per line. */
+  lines: { itemId: string; qty: number; ledgerFolio?: string; purpose?: string; shedId?: string }[];
 }
 
 export type Slip = IGP | OGP | SIS;

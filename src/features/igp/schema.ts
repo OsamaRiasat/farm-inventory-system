@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fmtQty } from "@/lib/format";
-import { checkItemAndUnit, optionalText, positiveQty, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
+import { checkItemAndUnit, checkSlipBase, optionalText, positiveQty, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
 
 const igpLine = z.object({
   itemId: z.string(),
@@ -27,6 +27,7 @@ export function igpSchema(rules: RuleContext) {
       lines: z.array(igpLine).min(1, "err.noLines"),
     })
     .superRefine((v, ctx) => {
+      checkSlipBase(rules, "IGP", v, ctx);
       v.lines.forEach((l, i) => checkItemAndUnit(rules, l.itemId, [l.qtyChallan, l.qtyReceived], ["lines", i], ctx));
     });
 }
@@ -43,6 +44,7 @@ export function receiveSchema(rules: RuleContext, sent: { itemId: string; qty: n
         .length(sent.length, "err.required"),
     })
     .superRefine((v, ctx) => {
+      checkSlipBase(rules, "IGP", v, ctx);
       v.lines.forEach((l, i) => {
         const line = sent[i];
         if (!line) return;

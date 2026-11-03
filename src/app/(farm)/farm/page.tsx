@@ -6,6 +6,7 @@ import { slipTypeStyle } from "@/components/layout/type-chip";
 import type { SlipType } from "@/types/domain";
 import { TodaySlips, WaitingToReceive } from "./home-lists";
 import { HomeShortcuts } from "./home-shortcuts";
+import { HomeExport, HomeFind } from "./home-tools";
 
 const slipButtons: { type: SlipType; href: string; key: string }[] = [
   { type: "IGP", href: "/farm/igp/new", key: "1" },
@@ -13,11 +14,12 @@ const slipButtons: { type: SlipType; href: string; key: string }[] = [
   { type: "SIS", href: "/farm/sis/new", key: "3" },
 ];
 
-// F1 — Farm home: three slip buttons, waiting to receive, today's slips.
+// F1 — Farm home: find, three slip buttons, waiting to receive, today's slips, export.
 export default function FarmHomePage() {
   return (
     <FarmShell active="home">
       <HomeShortcuts />
+      <HomeFind />
 
       <nav className="grid gap-3">
         {slipButtons.map(({ type, href, key }) => {
@@ -41,6 +43,7 @@ export default function FarmHomePage() {
 
       <WaitingToReceive />
       <TodaySlips />
+      <HomeExport />
     </FarmShell>
   );
 }

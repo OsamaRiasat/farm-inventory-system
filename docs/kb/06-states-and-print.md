@@ -7,7 +7,7 @@ Every screen designs its empty, loading and error states, not only the filled on
 | Loading | Any list or slip | Skeleton rows in the content's shape, never blank |
 | Empty | Lists, waiting to receive, search | One line + next action: "No slips today. Start with the buttons above." |
 | Saving | Save button | Spinner, disabled — second tap does nothing |
-| Saved | After any slip | Green banner "IGP AW02-IGP-1663 saved" + Print / Share / New slip. Form clears |
+| Saved | After any slip | Green banner "IGP-0123 saved" (the paper No.) + Print / View / New slip. Form clears. OGP: the print view's banner has New slip |
 | Not saved | Connection lost | Red banner "Not saved. Check internet and tap Save again." Everything typed stays |
 | Field error | Under a field | Red text: "Only 6 in stock", "Enter Qty Actual Received" |
 | Shortfall | IGP line, transfer | Amber row + "Short by 3". Not an error — slip can be saved |
@@ -15,11 +15,12 @@ Every screen designs its empty, loading and error states, not only the filled on
 | Corrected / Cancelled | Slip detail | Top banner: date, by whom, reason, link to correction |
 | Not allowed | Admin-only action, wrong farm | **Hidden**, not disabled, for the Farm User |
 
-Half-filled slip draft is kept in `sessionStorage` while the tab is open, so a reload doesn't lose it.
+A slip left without saving is **not** kept: coming back opens an empty slip (client, 30 Oct 2026). The "Leave without saving?" question protects it instead.
 
 ## Print layouts (S2 / C12)
 Copy the paper slip so gate staff and drivers recognise it.
-- **Header:** "SUTLEJ FEEDS BREEDERS" / "SUTLEJ FEEDS LAYER" (by farm type), slip title in a box, farm code in the top-right box, No., Date, Time.
+- **Header:** "SUTLEJ FEEDS BREEDERS" / "SUTLEJ FEEDS LAYER" (by farm type), slip title in a box, farm code in the top-right box, No. (the **paper** No., never the system number), the slip's date labelled Arrival date / Dispatch date / Issue date, Time, and a small "Posted on" stamp.
+- **SIS Ledger Folio** column prints what the farm typed.
 - **Body:** same fields and columns in the same order as paper. Empty rows not printed.
 - **Footer:** Prepared by (name), blank signature line for Project Manager (gate passes) or Approved By (SIS). No copy-colour footer.
 - **QR code** top right → opens the slip; on an OGP to another farm it opens F3 at the receiving farm.

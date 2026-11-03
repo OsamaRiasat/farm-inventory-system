@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { registerLeavePrompt, requestLeave } from "@/lib/leave-guard";
+import { goUp } from "@/lib/nav-history";
 import { Bi } from "./bi";
 import { useCurrentFarm } from "./farm-gate";
 import { LangOrderToggle } from "./lang-order-toggle";
@@ -35,7 +36,7 @@ export function SlipScreen({ children, backHref = "/farm" }: { children: ReactNo
             className="-ml-2 flex min-h-12 items-center gap-1 px-2 text-primary"
             onClick={(e) => {
               e.preventDefault();
-              requestLeave(() => router.push(backHref));
+              requestLeave(() => goUp(router, backHref));
             }}
           >
             <ChevronLeft size={22} aria-hidden />

@@ -1,11 +1,12 @@
 import { clsx } from "clsx";
 import type { ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
-import { fmtDate } from "@/lib/dates";
+import { fmtDate, fmtStamp } from "@/lib/dates";
 import type { Farm, SlipStatus, SlipType } from "@/types/domain";
 
 /**
- * C12 print frame: the paper slip's layout — company name, title box, farm code box, No. / Date / Time,
+ * C12 print frame: the paper slip's layout — company name, title box, farm code box, No. / the slip's date / Time,
+ * Posted on (when it was saved),
  * the slip's table, Prepared by and a blank signature line. A5 portrait by default, A4 option,
  * black and white. "Corrected" / "Cancelled" stamp across the page. The QR code goes in `qr`.
  */
@@ -15,6 +16,7 @@ export function PrintFrame({
   no,
   date,
   time,
+  postedAt,
   preparedBy,
   status = "saved",
   size = "A5",
@@ -23,9 +25,11 @@ export function PrintFrame({
 }: {
   farm: Pick<Farm, "code" | "type">;
   type: SlipType;
+  /** The paper slip's number (see slipNo). */
   no: string;
   date: string;
   time: string;
+  postedAt?: string;
   preparedBy: string;
   status?: SlipStatus;
   /** "screen" = full width, for showing the slip on F7 / A3. */
@@ -64,13 +68,23 @@ export function PrintFrame({
           <dd className="inline">{no}</dd>
         </div>
         <div>
-          <dt className="inline font-semibold">Date: </dt>
+          <dt className="inline font-semibold">
+            <Bi id={`slip.date${type}`} inline />:{" "}
+          </dt>
           <dd className="inline">{fmtDate(date)}</dd>
         </div>
         <div>
           <dt className="inline font-semibold">Time: </dt>
           <dd className="inline">{time}</dd>
         </div>
+        {postedAt && (
+          <div className="col-span-3 text-xs">
+            <dt className="inline font-semibold">
+              <Bi id="slip.postedOn" inline />:{" "}
+            </dt>
+            <dd className="inline">{fmtStamp(postedAt)}</dd>
+          </div>
+        )}
       </dl>
 
       <div className="print-body text-sm">{children}</div>

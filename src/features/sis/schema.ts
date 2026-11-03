@@ -1,29 +1,38 @@
 import { z } from "zod";
-import { checkItemAndUnit, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
+import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
 
 const count = z.number({ error: "err.required" }).int("err.wholeNumber").min(0, "err.required");
 
 /**
- * F5 New SIS. Feed and items go down; mortality is recorded, not stock.
- * The form drops empty shed rows before saving.
+ * F5 New SIS. Items used go down. Feed is an item line like any other.
+ * shedRows (feed & mortality per shed) are no longer entered; old slips and the API still accept them.
  */
 export function sisSchema(rules: RuleContext) {
   return slipBase
     .extend({
-      shedRows: z.array(
-        z.object({
-          shedId: z.string().min(1),
-          feedItemId: z.string(),
-          feedKg: z.number({ error: "err.required" }).min(0, "err.required"),
-          mortMale: count,
-          mortFemale: count,
-        }),
-      ),
+      shedRows: z
+        .array(
+          z.object({
+            shedId: z.string().min(1),
+            feedItemId: z.string(),
+            feedKg: z.number({ error: "err.required" }).min(0, "err.required"),
+            mortMale: count,
+            mortFemale: count,
+          }),
+        )
+        .default([]),
       lines: z.array(
-        z.object({ itemId: z.string(), qty: positiveQty, purpose: optionalText, shedId: z.string().optional() }),
+        z.object({
+          itemId: z.string(),
+          qty: positiveQty,
+          ledgerFolio: optionalText,
+          purpose: optionalText,
+          shedId: z.string().optional(),
+        }),
       ),
     })
     .superRefine((v, ctx) => {
+      checkSlipBase(rules, "SIS", v, ctx);
       if (v.shedRows.length === 0 && v.lines.length === 0) {
         ctx.addIssue({ code: "custom", message: "err.noLines", path: ["lines"] });
       }

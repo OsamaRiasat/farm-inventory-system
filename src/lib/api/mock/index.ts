@@ -3,6 +3,7 @@
 
 import { daysBetween, today } from "@/lib/dates";
 import { createItemSearch } from "@/lib/item-search";
+import { slipNo } from "@/lib/slips";
 import { allBalances, farmBalances, stockCard } from "@/lib/stock";
 import type { OGP, IGP, Slip } from "@/types/domain";
 import { ApiError } from "../errors";
@@ -88,7 +89,7 @@ function matches(slip: Slip, f: SlipFilters) {
   if (f.status && slip.status !== f.status) return false;
   if (f.from && slip.date < f.from) return false;
   if (f.to && slip.date > f.to) return false;
-  if (f.no && !slip.no.toLowerCase().includes(f.no.trim().toLowerCase())) return false;
+  if (f.no && !`${slip.no} ${slip.paperNo}`.toLowerCase().includes(f.no.trim().toLowerCase())) return false;
   if (f.itemId) {
     const inLines = slip.lines.some((l) => l.itemId === f.itemId);
     const inFeed = slip.type === "SIS" && slip.shedRows.some((r) => r.feedItemId === f.itemId);
@@ -136,7 +137,7 @@ export const mockApi = {
         const count = slip ? undefined : s.stockCounts.find((c) => c.id === m.slipId);
         return {
           ...m,
-          ref: slip?.no ?? count?.no ?? "Opening balance",
+          ref: slip ? slipNo(slip) : (count?.no ?? "Opening balance"),
           kind: slip?.type ?? (count ? "COUNT" : "OPENING"),
         };
       }),

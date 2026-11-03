@@ -12,6 +12,7 @@ import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useAudit, useCorrectionRequests, useFarms, useItemMap, useSlip } from "@/lib/api/queries";
 import { fmtStamp } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
+import { slipNo } from "@/lib/slips";
 import type { MsgId, MsgValues } from "@/lib/i18n";
 import { CancelDialog } from "./cancel-dialog";
 import { CorrectPanel } from "./correct-panel";
@@ -72,7 +73,8 @@ export function SlipDetail({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <TypeChip type={s.type} />
-        <h1 className="num text-xl font-semibold">{s.no}</h1>
+        <h1 className="num text-xl font-semibold">{slipNo(s)}</h1>
+        {mode === "admin" && <span className="num text-sm text-muted">{s.no}</span>}
         <StatusChip status={s.status} />
         <span className="flex-1" />
         <Link href={`/print/${encodeURIComponent(s.id)}`} className="btn">
@@ -91,7 +93,7 @@ export function SlipDetail({
 
       {justSaved && (
         <Banner tone="ok">
-          <Bi id="slip.saved" values={{ type: s.type, no: s.no }} />
+          <Bi id="slip.saved" values={{ type: s.type, no: slipNo(s) }} />
         </Banner>
       )}
       {notice && (
@@ -107,7 +109,7 @@ export function SlipDetail({
           />
           {s.correctedBy && (
             <Link href={slipHref(mode, s.correctedBy)} className="font-semibold underline">
-              <Bi id="detail.viewCorrection" values={{ no: s.correctedBy }} inline />
+              <Bi id="detail.viewCorrection" values={{ no: slipNo({ no: s.correctedBy, paperNo: s.paperNo }) }} inline />
             </Link>
           )}
         </Banner>
@@ -122,9 +124,9 @@ export function SlipDetail({
       )}
       {s.correctionOf && (
         <Banner tone="info">
-          <Bi id="detail.correctionOf" values={{ no: s.correctionOf }} />
+          <Bi id="detail.correctionOf" values={{ no: slipNo({ no: s.correctionOf, paperNo: s.paperNo }) }} />
           <Link href={slipHref(mode, s.correctionOf)} className="font-semibold underline">
-            <Bi id="detail.openOriginal" values={{ no: s.correctionOf }} inline />
+            <Bi id="detail.openOriginal" values={{ no: slipNo({ no: s.correctionOf, paperNo: s.paperNo }) }} inline />
           </Link>
         </Banner>
       )}
@@ -155,7 +157,17 @@ export function SlipDetail({
 
       {farm && (
         <div className="overflow-x-auto rounded-lg border border-line">
-          <PrintFrame farm={farm} type={s.type} no={s.no} date={s.date} time={s.time} preparedBy={s.preparedBy} status={s.status} size="screen">
+          <PrintFrame
+            farm={farm}
+            type={s.type}
+            no={slipNo(s)}
+            date={s.date}
+            time={s.time}
+            postedAt={s.postedAt}
+            preparedBy={s.preparedBy}
+            status={s.status}
+            size="screen"
+          >
             <SlipBody slip={s} items={items} farms={farms} />
           </PrintFrame>
         </div>

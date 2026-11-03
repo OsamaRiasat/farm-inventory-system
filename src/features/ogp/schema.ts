@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItemAndUnit, checkStock, optionalText, positiveQty, slipBase, text, type RuleContext } from "@/lib/validation";
+import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, text, type RuleContext } from "@/lib/validation";
 
 const destination = z.discriminatedUnion(
   "kind",
@@ -26,6 +26,7 @@ export function ogpSchema(rules: RuleContext) {
         .min(1, "err.noLines"),
     })
     .superRefine((v, ctx) => {
+      checkSlipBase(rules, "OGP", v, ctx);
       if (v.to.kind === "farm" && v.to.farmId === v.farmId) {
         ctx.addIssue({ code: "custom", message: "err.sameFarm", path: ["to", "farmId"] });
       }

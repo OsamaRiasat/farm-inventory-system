@@ -46,10 +46,10 @@ type Props = {
   receivedAll?: boolean;
 };
 
-const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text"]);
+const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "folio"]);
 
 /**
- * C3 slip lines: card per line on phone, table row from 640px.
+ * C3 slip lines: card per line on phone, table row from 768px (wide quantity columns need the room).
  * Keys: Enter on a line's last field adds a line; Enter in an empty new line jumps to Save;
  * Alt+N adds, Alt+Backspace removes.
  */
@@ -136,7 +136,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
       </div>
 
       <div style={{ "--line-cols": gridCols } as CSSProperties}>
-        <div className="hidden gap-2 border-b border-line px-2 pb-2 text-xs text-muted sm:grid sm:[grid-template-columns:var(--line-cols)]">
+        <div className="hidden gap-2 border-b border-line px-2 pb-2 text-xs text-muted md:grid md:[grid-template-columns:var(--line-cols)]">
           <Bi id="line.srNo" />
           {cols.map((c) => (
             <span key={c.key} className={clsx("flex gap-1", (c.kind === "qty" || c.kind === "weight") && "justify-end")}>
@@ -150,7 +150,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
           ))}
         </div>
 
-        <ol className="flex flex-col gap-3 sm:gap-0">
+        <ol className="flex flex-col gap-3 md:gap-0">
           {rows.map((row, index) => {
             const item = items.get(row.itemId) ?? null;
             // Same item on several lines: the stock rule counts them together, like the save does.
@@ -175,11 +175,11 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
                 onKeyDown={(e) => onRowKeyDown(e, index)}
                 className={clsx(
                   "relative grid grid-cols-2 items-end gap-x-3 gap-y-2 rounded-lg border border-line p-3",
-                  "sm:items-start sm:gap-2 sm:rounded-none sm:border-0 sm:border-b sm:px-2 sm:[grid-template-columns:var(--line-cols)]",
+                  "md:items-start md:gap-2 md:rounded-none md:border-0 md:border-b md:px-2 md:[grid-template-columns:var(--line-cols)]",
                   check.warn && "bg-warning-bg",
                 )}
               >
-                <div className="num col-span-2 font-semibold sm:col-span-1 sm:pt-3">{index + 1}</div>
+                <div className="num col-span-2 font-semibold md:col-span-1 md:pt-3">{index + 1}</div>
                 {cols.map((c) => (
                   <Cell
                     key={c.key}
@@ -204,7 +204,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
                     title={tInline("line.remove")}
                     disabled={rows.length === 1}
                     onClick={() => removeLine(index)}
-                    className="absolute top-1 right-1 flex size-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2 disabled:opacity-30 sm:static sm:mt-1"
+                    className="absolute top-1 right-1 flex size-10 items-center justify-center rounded-lg text-muted hover:bg-surface-2 disabled:opacity-30 md:static md:mt-1"
                   >
                     <X size={20} aria-hidden />
                   </button>
@@ -266,7 +266,7 @@ function Cell({
   onValue: (value: string) => void;
 }) {
   const phoneLabel = (
-    <span id={labelId} className="mb-1 block text-sm font-medium sm:hidden">
+    <span id={labelId} className="mb-1 block text-sm font-medium md:hidden">
       <Bi id={col.label} />
     </span>
   );
@@ -276,10 +276,10 @@ function Cell({
   switch (col.kind) {
     case "item":
       return (
-        <div className="col-span-2 sm:col-span-1">
+        <div className="col-span-2 md:col-span-1">
           {phoneLabel}
           {col.readOnly ? (
-            <div className="sm:pt-3" aria-labelledby={labelId}>
+            <div className="md:pt-3" aria-labelledby={labelId}>
               <div className="font-medium">{item?.name}</div>
               <div lang="ur" dir="rtl" className="text-left text-sm text-muted">
                 {item?.nameUr}
@@ -292,12 +292,24 @@ function Cell({
         </div>
       );
     case "unit":
-      return <div className="hidden pt-3 sm:block">{item ? <Bi id={`unit.${item.unit}`} /> : "—"}</div>;
+      return <div className="hidden pt-3 md:block">{item ? <Bi id={`unit.${item.unit}`} /> : "—"}</div>;
     case "folio":
+      // The page in the farm storekeeper's own ledger.
       return (
         <div>
           {phoneLabel}
-          <div className="num min-h-12 pt-3 text-muted sm:text-right">{item?.number ?? "—"}</div>
+          <input
+            type="text"
+            name={name}
+            inputMode="numeric"
+            autoComplete="off"
+            enterKeyHint="next"
+            className="input num"
+            value={value}
+            onChange={(e) => onValue(e.target.value)}
+            aria-labelledby={labelId}
+            {...lastProps}
+          />
         </div>
       );
     case "qty":
@@ -328,7 +340,7 @@ function Cell({
       );
     case "text":
       return (
-        <div className="col-span-2 sm:col-span-1">
+        <div className="col-span-2 md:col-span-1">
           {phoneLabel}
           <input
             type="text"

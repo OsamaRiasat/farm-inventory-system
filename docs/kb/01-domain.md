@@ -12,16 +12,20 @@ The app: the farm's one data-entry person fills in **the same three slips** on p
 | --- | --- |
 | **Inward Gate Pass (IGP)** | Goods coming into a farm. Stock **up** by Qty Actual Received |
 | **Outward Gate Pass (OGP)** | Goods leaving a farm (to another farm or an outside party). Stock **down** |
-| **Stock Issue Slip (SIS)** | Items used at the farm, plus Feed & Mortality per shed. Stock **down** |
+| **Stock Issue Slip (SIS)** | Items used at the farm (feed is an item line like any other). Stock **down**. Feed & Mortality per shed was removed at the client's request (30 Oct 2026) |
 | **Farm / Hatchery** | A site (11). Holds its own stock |
-| **Shed** | Belongs to a farm. Only for feed used + mortality. Holds no stock |
+| **Shed** | Belongs to a farm. Holds no stock. (Was used for SIS feed + mortality; now only on old slips) |
 | **M/s** | The party name (supplier, sender, receiver) |
 | **Bilty No.** | Transport receipt number |
 | **Delivery Challan (D. Challan)** | Sender's delivery note. "Qty As Per Delivery Challan" |
 | **Qty Actual Received** | What really arrived. Required |
-| **Ledger Folio** | The item's number; opens the item stock card |
+| **Ledger Folio** | On an SIS line: the page number in the farm storekeeper's own ledger, typed by the farm (client, 30 Oct 2026). Not the item number — that is **Item No.** |
+| **No. (paper slip No.)** | The number printed in the farm's paper slip book, typed on every slip as `IGP-0123` / `OGP-0123` / `SIS-0123`. What the farm sees everywhere |
+| **System No.** | `AW02-IGP-1663`, automatic, unique across farms. Admin screens show it under the paper No.; farm screens and prints don't |
+| **Arrival / Dispatch / Issue date** | The slip's own date: when goods came in (IGP), went out (OGP) or were used (SIS). Today by default, changeable |
+| **Posted on** | When the slip was saved in the app, automatic |
 | **Purpose of Use** | Free text (Urdu or English) on SIS lines |
-| **Mort Male / Mort Female** | Mortality counts per shed per day. Does not affect stock |
+| **Mort Male / Mort Female** | Mortality counts per shed per day, on old SIS slips only. Never affected stock |
 | **In transit** | Left on an OGP to another farm, not yet received. Belongs to neither farm |
 | **Out for repair** | Left on an OGP to outside party (repair) until back on an IGP |
 | **Prepared by** | The logged-in user's name, automatic |
@@ -43,8 +47,9 @@ Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses
 1. **No review step.** Save = final; stock changes immediately.
 2. **Stock never below zero.** Issue/OGP qty > on-hand → blocked with "Only 6 in stock".
 3. **Balances are calculated from movements**, never typed.
-4. **Slip numbers automatic, per farm**: `AW05-SIS-0484`, `AW02-IGP-1663`, `AW02-OGP-1367`.
-5. Every slip has farm, date, time, number, preparedBy.
+4. **System numbers automatic, per farm**: `AW05-SIS-0484`, `AW02-IGP-1663`, `AW02-OGP-1367`. The farm also types the **paper slip No.** (required); it is unique per farm and slip type ("No. IGP-0123 is already saved. Check the number."). Farm screens and prints show the paper No.
+5. Every slip has farm, paper No., date, time, posted-on stamp, system number, preparedBy.
+5a. **Slip date** (arrival / dispatch / issue) is today by default and can be changed: **never after today** ("Date can't be after today"), **at most 30 days back** ("Date can be at most 30 days back"). The stock check is against today's stock, whatever the date.
 6. **Unit comes from the item** and cannot be changed on a line.
 7. **Nothing is deleted.** Corrections point to the original; cancel reverses stock with a reason.
 8. An OGP whose transfer is already received **cannot be cancelled**.
@@ -63,4 +68,4 @@ AW-01, AW-02 Patoki Farm, AW-04, AW-05, AW-06, AW-3A, AW-3B, AW-Hatchery, AW Lay
 `KG | LTR | QTY | BG | ROLL | VIAL`. Urdu on slips: عدد (pieces), کلو, لیٹر, گڈی. Decimals only for KG and LTR.
 
 ## Out of scope (v1)
-Money/prices, data migration, approval step, low-stock alerts, POs, egg/bird sales, flock records beyond feed + mortality, HR, offline mode, native app, QuickBooks sync.
+Money/prices, data migration, approval step, low-stock alerts, POs, egg/bird sales, flock records (incl. mortality — removed from the SIS, 30 Oct 2026), HR, offline mode, native app, QuickBooks sync.

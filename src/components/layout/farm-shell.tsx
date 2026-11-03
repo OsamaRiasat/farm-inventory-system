@@ -22,7 +22,7 @@ export function FarmShell({ active, children }: { active?: Tab; children: ReactN
   const { farm, userName } = useCurrentFarm();
   return (
     <>
-      <header className="border-b border-line bg-surface">
+      <header className="border-b border-line bg-surface print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2">
           <div>
             <div className="font-semibold">{farm.name}</div>

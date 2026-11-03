@@ -6,6 +6,7 @@ import { Bi } from "@/components/layout/bi";
 import { api, ApiError } from "@/lib/api";
 import { useApiMutation } from "@/lib/api/queries";
 import type { MsgId, MsgValues } from "@/lib/i18n";
+import { slipNo } from "@/lib/slips";
 import type { Slip } from "@/types/domain";
 
 /** A3 Cancel: reverses the slip's effect on stock, with a required reason. Focus starts on "Keep it". */
@@ -51,7 +52,7 @@ export function CancelDialog({ slip, onCancelled }: { slip: Slip; onCancelled: (
           }}
         >
           <h2 id={titleId} className="text-lg font-semibold">
-            <Bi id="detail.cancelTitle" values={{ no: slip.no }} />
+            <Bi id="detail.cancelTitle" values={{ no: slipNo(slip) }} />
           </h2>
           <p className="text-sm">
             <Bi id="detail.cancelHint" />

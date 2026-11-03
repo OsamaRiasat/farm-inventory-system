@@ -8,8 +8,8 @@ import { StatusChip } from "@/components/layout/status-chip";
 import { TypeChip } from "@/components/layout/type-chip";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useFarms, useItemMap, useSlips, useWaitingTransfers } from "@/lib/api/queries";
-import { fmtDate, today } from "@/lib/dates";
-import { slipItemIds } from "@/lib/slips";
+import { addDays, fmtDate, today } from "@/lib/dates";
+import { slipItemIds, slipNo } from "@/lib/slips";
 
 /** F1 "Waiting to receive": transfers sent to this farm. Hidden when empty. */
 export function WaitingToReceive() {
@@ -33,7 +33,7 @@ export function WaitingToReceive() {
               <Truck size={24} className="shrink-0 text-igp" aria-hidden />
               <div className="flex-1">
                 <div className="font-medium">
-                  {farms.find((f) => f.id === transfer.fromFarmId)?.name} · <span className="num">{ogp.no}</span>
+                  {farms.find((f) => f.id === transfer.fromFarmId)?.name} · <span className="num">{slipNo(ogp)}</span>
                 </div>
                 <div className="text-sm text-muted">
                   <Bi id="home.waitingRow" values={{ n: ogp.lines.length, date: fmtDate(ogp.date) }} inline />
@@ -48,12 +48,18 @@ export function WaitingToReceive() {
   );
 }
 
-/** F1 "Today's slips": No., type chip, time, first item + "and N more". */
+/**
+ * F1 "Today's slips": slips posted today (whatever date they are for) — No., type chip, time, first item + "and N more".
+ * Each opens the slip.
+ */
 export function TodaySlips() {
   const { farm } = useCurrentFarm();
   const day = today();
-  const slips = useSlips({ farmId: farm.id, from: day, to: day });
+  const slips = useSlips({ farmId: farm.id, from: addDays(day, -31) });
   const items = useItemMap();
+  const posted = slips.data
+    ?.filter((s) => s.postedAt.startsWith(day))
+    .sort((a, b) => b.postedAt.localeCompare(a.postedAt));
 
   return (
     <section className="mt-6">
@@ -62,35 +68,37 @@ export function TodaySlips() {
       </h2>
       {slips.isError ? (
         <LoadError onRetry={() => slips.refetch()} />
-      ) : !slips.data ? (
+      ) : !posted ? (
         <SkeletonRows rows={3} />
-      ) : slips.data.length === 0 ? (
+      ) : posted.length === 0 ? (
         <p className="card p-4 text-muted">
           <Bi id="home.todayEmpty" />
         </p>
       ) : (
         <ul className="card divide-y divide-line">
-          {slips.data.map((s) => {
+          {posted.map((s) => {
             const ids = slipItemIds(s);
             const first = ids[0];
             const more = Math.max(ids.length - 1, 0);
             return (
-              <li key={s.id} className="flex items-center gap-3 px-4 py-3">
-                <TypeChip type={s.type} />
-                <div className="flex-1">
-                  <div className="num font-medium">{s.no}</div>
-                  <div className="text-sm text-muted">
-                    {first ? items.get(first)?.name : null}
-                    {more > 0 && (
-                      <>
-                        {" "}
-                        <Bi id="home.andMore" values={{ n: more }} inline />
-                      </>
-                    )}
+              <li key={s.id}>
+                <Link href={`/farm/slips/${encodeURIComponent(s.id)}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
+                  <TypeChip type={s.type} />
+                  <div className="flex-1">
+                    <div className="num font-medium">{slipNo(s)}</div>
+                    <div className="text-sm text-muted">
+                      {first ? items.get(first)?.name : null}
+                      {more > 0 && (
+                        <>
+                          {" "}
+                          <Bi id="home.andMore" values={{ n: more }} inline />
+                        </>
+                      )}
+                    </div>
+                    {s.status !== "saved" && <StatusChip status={s.status} className="mt-1" />}
                   </div>
-                  {s.status !== "saved" && <StatusChip status={s.status} className="mt-1" />}
-                </div>
-                <span className="num text-sm text-muted">{s.time}</span>
+                  <span className="num text-sm text-muted">{s.postedAt.slice(11, 16)}</span>
+                </Link>
               </li>
             );
           })}

@@ -34,7 +34,7 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 - **Field errors**: an `ApiError` from the save appears under the right field (e.g. a second tab used the stock first → "Only 6 in stock" on that line).
 - **Not saved**: with "fail every save" on (`/dev`), the red banner shows, everything typed stays, and saving again works once the toggle is off.
 - **Double save**: two fast Enters / clicks → one slip (check the count through `listSlips`).
-- **Draft**: reload a half-filled slip → restored; Back with changes → "Leave without saving?" with focus on Stay.
+- **Leaving**: Back with changes → "Leave without saving?" with focus on Stay; coming back later opens an empty slip (no drafts, client 30 Oct 2026).
 - Rules: SIS with only Feed & Mortality saves; empty shed rows are skipped; mortality doesn't change stock.
 
 ### Week 4 — OGP, transfers end to end, history, print
@@ -85,8 +85,10 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 1 | Save is final, stock changes at once | IGP raises stock | IGP / SIS save journeys | ✓ |
 | 2 | Stock never below zero, "Only n in stock" | OGP/SIS over stock; same item on two lines | OGP keyboard test | ✓ |
 | 3 | Balances from movements only | Seed invariants | A4 All Farms = sum of farms | ✓ |
-| 4 | Automatic numbers per farm (`AW02-IGP-1663`) | IGP number format; real slip numbers in the seed | Saved banner shows `AW02-IGP-nnnn` | ✓ |
-| 5 | Farm, date, time, number, Prepared by on every slip | Schemas require them | Week 3 | Partly |
+| 4 | Automatic numbers per farm (`AW02-IGP-1663`) | IGP number format; real slip numbers in the seed | Admin tables show it under the paper No. | ✓ |
+| 4 | Paper slip No. required, unique per farm + type | Paper No. test (required, case/space-insensitive, other farm / type ok, seed's SIS-0203 taken) | Saved banner + print show the paper No., not `AW02-…`; "already saved" under the No. box | ✓ |
+| 5 | Farm, date, time, number, Prepared by on every slip | Schemas require them | Missing No. listed in the save errors | ✓ |
+| 5a | Slip date: today − 30 … today; posted-on stamp automatic | Date window test (future, 31 days, 30 days ok, postedAt = today) | Future date refused; 2 days back saves; print shows Arrival date + Posted on | ✓ |
 | 6 | Unit comes from the item, not editable | — | Week 3: Unit never focused or editable | Todo |
 | 7 | Nothing deleted; corrections point to the original | Correction keeps the original | Request → approve → original "Corrected" | ✓ |
 | 8 | Received transfer's OGP can't be cancelled | Transfer test | Week 5 A3 | Engine ✓ |
@@ -95,9 +97,14 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 11 | In transit > 2 days flagged | — | Admin dashboard test | Screen ✓ |
 | 12 | Double save → one slip | Idempotency test | Save button disabled while saving; key per slip | Engine ✓ |
 | — | Whole numbers only for Qty items | Whole-number test | Week 3 | Engine ✓ |
+| — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
+| — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
+| — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), CSV downloads, Last 7 days opening balance | ✓ |
 
 ## Coverage today (all screens built, before the backend)
-45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 rules · 10 search · 6 keyboard · 6 data · 2 phone (no sideways scroll on all 9 farm routes) · 13 journeys (IGP/SIS save + stock change, save errors, Not saved, leave prompt, transfer end to end in two tabs incl. QR target, correction request → approve, cancel, stock count, my slips search, A4 totals, reports + chart, setup + audit).
+55 tests after the client's issue list (3 Nov 2026), all passing, 3 runs (55 + 110/110). Added: 3 rules (slip date window, paper No., SIS without feed + folio) and `e2e/farm-flow.spec.ts` (7: empty slip on return, Back to Home ×2, Home Find, Excel exports, slip date on screen, paper No. already used).
+
+Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 rules · 10 search · 6 keyboard · 6 data · 2 phone (no sideways scroll on all 9 farm routes) · 13 journeys (IGP/SIS save + stock change, save errors, Not saved, leave prompt, transfer end to end in two tabs incl. QR target, correction request → approve, cancel, stock count, my slips search, A4 totals, reports + chart, setup + audit).
 
 Still to add: print/PDF page checks (`page.pdf()`), screenshot baselines, axe accessibility, performance budget, fixed test clock.
 

@@ -1,5 +1,15 @@
 import type { Farm, Slip } from "@/types/domain";
 
+/**
+ * The number the farm knows the slip by: its paper slip number ("IGP-0123"), plus "-C1" on a correction.
+ * Falls back to the system number for slips saved without one.
+ */
+export function slipNo(slip: Pick<Slip, "no" | "paperNo">) {
+  if (!slip.paperNo) return slip.no;
+  const suffix = /-C\d+$/.exec(slip.no)?.[0] ?? "";
+  return slip.paperNo + suffix;
+}
+
 /** Every item on a slip, in order (SIS feed first, as on the paper), without repeats. */
 export function slipItemIds(slip: Slip) {
   const ids = [...(slip.type === "SIS" ? slip.shedRows.map((r) => r.feedItemId) : []), ...slip.lines.map((l) => l.itemId)];

@@ -223,7 +223,7 @@ function SisBody({ slip, items, farms }: { slip: SIS } & Ctx) {
                 <td className="num text-right">
                   {fmtQty(l.qty)} {unitOf(item)}
                 </td>
-                <td className="num">{item?.number}</td>
+                <td className="num">{l.ledgerFolio}</td>
                 <td dir="auto">
                   {l.purpose}
                   {l.shedId && <span className="ml-1">({shedName(l.shedId)})</span>}

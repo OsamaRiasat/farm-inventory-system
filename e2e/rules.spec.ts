@@ -3,10 +3,12 @@ import { expect, test } from "@playwright/test";
 import { ApiError } from "@/lib/api/errors";
 import * as engine from "@/lib/api/mock/engine";
 import { buildSeed } from "@/lib/api/mock/seed";
+import { addDays, today } from "@/lib/dates";
 import { farmBalances } from "@/lib/stock";
 
 const now = new Date(2026, 9, 27, 12, 0);
-const base = { date: "2026-10-27", time: "12:00", preparedBy: "Test" };
+// Saves without a seed time happen "now", so the slip date is today (the date rule allows 30 days back).
+const base = { date: today(), time: "12:00", preparedBy: "Test" };
 let n = 0;
 const key = () => `test-${n++}`;
 const stock = (s: engine.MockState, farmId: string, itemId: string) => farmBalances(s.movements, farmId).get(itemId) ?? 0;
@@ -41,7 +43,7 @@ test("IGP raises stock by Qty Actual Received, numbers follow the farm's sequenc
   const s = buildSeed(now);
   const before = stock(s, "aw02", "nylon-rope");
   const slip = engine.saveIGP(s, {
-    ...base, farmId: "aw02", idempotencyKey: key(),
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
     source: { kind: "supplier", ms: "Test Supplier" },
     lines: [{ itemId: "nylon-rope", qtyChallan: 10, qtyReceived: 7 }],
   });
@@ -53,7 +55,7 @@ test("IGP raises stock by Qty Actual Received, numbers follow the farm's sequenc
 test("the same save twice creates one slip", () => {
   const s = buildSeed(now);
   const input = {
-    ...base, farmId: "aw02", idempotencyKey: "double-tap",
+    ...base, farmId: "aw02", idempotencyKey: "double-tap", paperNo: "IGP-9001",
     source: { kind: "supplier", ms: "X" },
     lines: [{ itemId: "gloves", qtyChallan: 5, qtyReceived: 5 }],
   };
@@ -68,7 +70,7 @@ test("OGP and SIS can't take stock below zero — same message as the screen", (
   const have = stock(s, "aw02", "drill");
   const err = errorOf(() =>
     engine.saveOGP(s, {
-      ...base, farmId: "aw02", idempotencyKey: key(),
+      ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
       to: { kind: "outside", ms: "Repair shop", reason: "repair" },
       lines: [{ itemId: "drill", qty: have + 1 }],
     }),
@@ -79,7 +81,7 @@ test("OGP and SIS can't take stock below zero — same message as the screen", (
   const diesel = stock(s, "aw02", "diesel");
   const err2 = errorOf(() =>
     engine.saveSIS(s, {
-      ...base, farmId: "aw02", idempotencyKey: key(), shedRows: [],
+      ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(), shedRows: [],
       lines: [{ itemId: "diesel", qty: diesel }, { itemId: "diesel", qty: 1 }],
     }),
   );
@@ -91,7 +93,7 @@ test("whole numbers only for Qty items; nothing is saved when a rule fails", () 
   const count = s.slips.length;
   const err = errorOf(() =>
     engine.saveIGP(s, {
-      ...base, farmId: "aw02", idempotencyKey: key(),
+      ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
       source: { kind: "supplier", ms: "X" },
       lines: [{ itemId: "gloves", qtyChallan: 1.5, qtyReceived: 1.5 }],
     }),
@@ -103,7 +105,7 @@ test("whole numbers only for Qty items; nothing is saved when a rule fails", () 
 test("transfer: OGP puts goods in transit, receiving can't exceed what was sent, shortfall marks it short", () => {
   const s = buildSeed(now);
   const ogp = engine.saveOGP(s, {
-    ...base, farmId: "aw02", idempotencyKey: key(),
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
     to: { kind: "farm", farmId: "aw05" }, lines: [{ itemId: "chips", qty: 10 }],
   });
   const transfer = s.transfers.find((t) => t.id === ogp.transferId)!;
@@ -111,11 +113,11 @@ test("transfer: OGP puts goods in transit, receiving can't exceed what was sent,
 
   const before = stock(s, "aw05", "chips");
   const tooMuch = errorOf(() =>
-    engine.receiveTransfer(s, { ...base, farmId: "aw05", idempotencyKey: key(), transferId: transfer.id, lines: [{ qtyReceived: 11 }] }),
+    engine.receiveTransfer(s, { ...base, farmId: "aw05", idempotencyKey: key(), paperNo: key(), transferId: transfer.id, lines: [{ qtyReceived: 11 }] }),
   );
   expect(tooMuch).toEqual({ id: "err.cannotReceiveMore", values: { n: "10" } });
 
-  engine.receiveTransfer(s, { ...base, farmId: "aw05", idempotencyKey: key(), transferId: transfer.id, lines: [{ qtyReceived: 8 }] });
+  engine.receiveTransfer(s, { ...base, farmId: "aw05", idempotencyKey: key(), paperNo: key(), transferId: transfer.id, lines: [{ qtyReceived: 8 }] });
   expect(transfer.status).toBe("short");
   expect(stock(s, "aw05", "chips")).toBe(before + 8);
 
@@ -126,7 +128,7 @@ test("transfer: OGP puts goods in transit, receiving can't exceed what was sent,
 test("correction moves stock by the difference only and keeps the original", () => {
   const s = buildSeed(now);
   const sis = engine.saveSIS(s, {
-    ...base, farmId: "aw02", idempotencyKey: key(), shedRows: [], lines: [{ itemId: "gloves", qty: 4 }],
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(), shedRows: [], lines: [{ itemId: "gloves", qty: 4 }],
   });
   const before = stock(s, "aw02", "gloves");
   const corrected = engine.correctSlip(s, { slipId: sis.id, lines: [{ index: 0, qty: 2 }], reason: "Typed 4", by: "Admin" });
@@ -139,9 +141,59 @@ test("cancel reverses the slip, and is refused when it would go below zero", () 
   const s = buildSeed(now);
   const before = stock(s, "aw02", "ball-pen");
   const igp = engine.saveIGP(s, {
-    ...base, farmId: "aw02", idempotencyKey: key(),
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
     source: { kind: "supplier", ms: "X" }, lines: [{ itemId: "ball-pen", qtyChallan: 10, qtyReceived: 10 }],
   });
-  engine.saveSIS(s, { ...base, farmId: "aw02", idempotencyKey: key(), shedRows: [], lines: [{ itemId: "ball-pen", qty: before + 10 }] });
+  engine.saveSIS(s, { ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(), shedRows: [], lines: [{ itemId: "ball-pen", qty: before + 10 }] });
   expect(errorOf(() => engine.cancelSlip(s, { slipId: igp.id, reason: "x", by: "Admin" }))?.id).toBe("err.wouldGoNegative");
+});
+
+test("slip date: today or up to 30 days back, never in the future", () => {
+  const s = buildSeed(now);
+  const sis = (date: string) =>
+    errorOf(() =>
+      engine.saveSIS(s, { ...base, date, farmId: "aw02", idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "gloves", qty: 1 }] }),
+    );
+  expect(sis(addDays(today(), 1))?.id).toBe("err.dateFuture");
+  expect(sis(addDays(today(), -31))).toEqual({ id: "err.dateTooOld", values: { n: 30 } });
+  expect(sis(addDays(today(), -30))).toBeNull();
+  const saved = s.slips.at(-1)!;
+  expect(saved.date).toBe(addDays(today(), -30));
+  expect(saved.postedAt.slice(0, 10)).toBe(today());
+});
+
+test("paper slip No.: required, and used once per farm and slip type", () => {
+  const s = buildSeed(now);
+  const igp = (farmId: string, paperNo: string) =>
+    errorOf(() =>
+      engine.saveIGP(s, {
+        ...base, farmId, idempotencyKey: key(), paperNo,
+        source: { kind: "supplier", ms: "X" }, lines: [{ itemId: "gloves", qtyChallan: 1, qtyReceived: 1 }],
+      }),
+    );
+  expect(igp("aw02", "")?.id).toBe("err.enterPaperNo");
+  expect(igp("aw02", "IGP-7777")).toBeNull();
+  expect(igp("aw02", "igp-7777 ")).toEqual({ id: "err.paperNoUsed", values: { no: "igp-7777" } });
+  expect(igp("aw05", "IGP-7777")).toBeNull(); // another farm's book
+  const sis = errorOf(() =>
+    engine.saveSIS(s, { ...base, farmId: "aw02", idempotencyKey: key(), paperNo: "IGP-7777", lines: [{ itemId: "gloves", qty: 1 }] }),
+  );
+  expect(sis).toBeNull(); // another slip type
+  // The seed's SIS-203 has paper No. SIS-0203.
+  const dup = errorOf(() =>
+    engine.saveSIS(s, { ...base, farmId: "aw02", idempotencyKey: key(), paperNo: "SIS-0203", lines: [{ itemId: "gloves", qty: 1 }] }),
+  );
+  expect(dup?.id).toBe("err.paperNoUsed");
+});
+
+test("SIS: no feed rows needed, Ledger Folio typed per line; a correction keeps the paper No.", () => {
+  const s = buildSeed(now);
+  const sis = engine.saveSIS(s, {
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: "SIS-5001",
+    lines: [{ itemId: "feed-all", qty: 50, ledgerFolio: "23/4", purpose: "Shed 1" }],
+  });
+  expect(sis.shedRows).toEqual([]);
+  expect(sis.lines[0].ledgerFolio).toBe("23/4");
+  const corrected = engine.correctSlip(s, { slipId: sis.id, lines: [{ index: 0, qty: 40 }], reason: "x", by: "Admin" });
+  expect(corrected.paperNo).toBe("SIS-5001");
 });

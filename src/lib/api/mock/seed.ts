@@ -14,7 +14,7 @@ import type { MockState } from "./engine";
 import farmsJson from "./seed/farms.json";
 import itemsJson from "./seed/items.json";
 
-export const MOCK_VERSION = 1;
+export const MOCK_VERSION = 2;
 const ADMIN = "Accounts Admin";
 
 const SUPPLIERS = {
@@ -187,6 +187,9 @@ export function buildSeed(now = new Date()): MockState {
     return allowsDecimals(item.unit) ? Math.floor(qty * 10) / 10 : Math.floor(qty);
   }
   const itemById = (id: string) => items.find((i) => i.id === id)!;
+  /** The farm's paper slip number: the same digits as the system number the save will get. */
+  const paper = (farmId: string, kind: "IGP" | "OGP" | "SIS", no?: number) =>
+    `${kind}-${String(no ?? (state.counters[farmId]?.[kind] ?? 0) + 1).padStart(4, "0")}`;
 
   function igp(farmId: string, date: string, time: string, ms: string, lines: [string, number, number?][], no?: number) {
     const t = timeFor(date, time);
@@ -194,7 +197,7 @@ export function buildSeed(now = new Date()): MockState {
     engine.saveIGP(
       state,
       {
-        farmId, date, time: t, preparedBy: userOf(farmId), idempotencyKey: key(),
+        farmId, date, time: t, preparedBy: userOf(farmId), idempotencyKey: key(), paperNo: paper(farmId, "IGP", no),
         source: { kind: "supplier", ms },
         biltyNo: String(between(1000, 9999)),
         truckNo: `LES-${between(1000, 9999)}`,
@@ -211,7 +214,7 @@ export function buildSeed(now = new Date()): MockState {
     const ogp = engine.saveOGP(
       state,
       {
-        farmId: fromId, date, time: t, preparedBy: userOf(fromId), idempotencyKey: key(),
+        farmId: fromId, date, time: t, preparedBy: userOf(fromId), idempotencyKey: key(), paperNo: paper(fromId, "OGP", no),
         to: { kind: "farm", farmId: toId }, driverName: driver, vehicleNo: vehicle,
         lines: lines.map(([itemId, qty]) => ({ itemId, qty })),
       },
@@ -229,6 +232,7 @@ export function buildSeed(now = new Date()): MockState {
       state,
       {
         farmId: tr.toFarmId, date, time: t, preparedBy: userOf(tr.toFarmId), idempotencyKey: key(), transferId,
+        paperNo: paper(tr.toFarmId, "IGP", no),
         lines: received.map((qtyReceived) => ({ qtyReceived })),
       },
       { no, at: at(date, t) },
@@ -241,7 +245,7 @@ export function buildSeed(now = new Date()): MockState {
     return engine.saveSIS(
       state,
       {
-        farmId: farm.id, date, time: t, preparedBy: userOf(farm.id), idempotencyKey: key(),
+        farmId: farm.id, date, time: t, preparedBy: userOf(farm.id), idempotencyKey: key(), paperNo: paper(farm.id, "SIS", no),
         shedRows: shedRows.map((r, i) => ({ shedId: farm.sheds[i].id, feedItemId: r.feed, feedKg: r.kg, mortMale: r.male, mortFemale: r.female })),
         lines: lines.map(([itemId, qty, purpose]) => ({ itemId, qty, purpose })),
       },
@@ -409,7 +413,7 @@ export function buildSeed(now = new Date()): MockState {
             engine.saveOGP(
               state,
               {
-                farmId: f.id, date, time: t, preparedBy: userOf(f.id), idempotencyKey: key(),
+                farmId: f.id, date, time: t, preparedBy: userOf(f.id), idempotencyKey: key(), paperNo: paper(f.id, "OGP"),
                 to: { kind: "outside", ms: pick(REPAIR_SHOPS), reason: "repair" },
                 driverName: "", vehicleNo: "", lines: [{ itemId: id, qty: 1 }],
               },

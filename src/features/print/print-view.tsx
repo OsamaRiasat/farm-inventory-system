@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, CircleCheck, Printer, Share2 } from "lucide-react";
+import { ChevronLeft, CircleCheck, Plus, Printer, Share2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { Bi } from "@/components/layout/bi";
 import { PrintFrame } from "@/components/slip/print-frame";
@@ -10,6 +11,7 @@ import { SlipBody } from "@/components/slip/slip-body";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useFarms, useItemMap, useSlip } from "@/lib/api/queries";
 import { useSession } from "@/lib/session";
+import { slipNo } from "@/lib/slips";
 import type { Slip } from "@/types/domain";
 
 const SIZE_KEY = "awfarms.printSize";
@@ -62,7 +64,7 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
     if (!slip.data) return;
     const url = `${origin}/print/${encodeURIComponent(slip.data.id)}`;
     try {
-      if (navigator.share) await navigator.share({ title: slip.data.no, url });
+      if (navigator.share) await navigator.share({ title: slipNo(slip.data), url });
       else {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -100,10 +102,19 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
       </div>
 
       {justSaved && slip.data && (
-        <p role="status" className="mb-4 flex items-center gap-2 rounded-lg border border-primary bg-success-bg p-3 font-medium print:hidden">
-          <CircleCheck className="shrink-0 text-primary" aria-hidden />
-          <Bi id="print.savedHint" values={{ no: slip.data.no }} />
-        </p>
+        <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary bg-success-bg p-3 print:hidden">
+          <span className="flex items-center gap-2 font-medium">
+            <CircleCheck className="shrink-0 text-primary" aria-hidden />
+            <Bi id="print.savedHint" values={{ no: slipNo(slip.data) }} />
+          </span>
+          {session?.role === "farm" && (
+            // Replaces this page, so Back from the new slip goes Home, not to this pass.
+            <Link href={`/farm/${slip.data.type.toLowerCase()}/new`} replace className="btn btn-primary min-h-10">
+              <Plus size={18} aria-hidden />
+              <Bi id="slip.newSlip" inline />
+            </Link>
+          )}
+        </div>
       )}
 
       {slip.isError ? (
@@ -116,9 +127,10 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
             <PrintFrame
               farm={farm}
               type={slip.data.type}
-              no={slip.data.no}
+              no={slipNo(slip.data)}
               date={slip.data.date}
               time={slip.data.time}
+              postedAt={slip.data.postedAt}
               preparedBy={slip.data.preparedBy}
               status={slip.data.status}
               size={size}

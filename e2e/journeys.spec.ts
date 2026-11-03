@@ -1,6 +1,6 @@
 // Whole tasks across screens: save for real, transfers between farms, corrections, stock count, admin.
 import { expect, test, type Page } from "@playwright/test";
-import { signIn } from "./helpers";
+import { fillPaperNo, signIn } from "./helpers";
 
 /** Quantity on the item's stock card (F9) at the signed-in farm. */
 async function stockOf(page: Page, itemId: string) {
@@ -16,11 +16,12 @@ async function pickItem(page: Page, query: string, row = 0) {
   await input.press("Enter");
 }
 
-test("IGP saves for real: real number, form clears, stock goes up by Qty Actual Received", async ({ page }) => {
+test("IGP saves for real: paper No. shown, form clears, stock goes up by Qty Actual Received", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
   const before = await stockOf(page, "nylon-rope");
 
   await page.goto("/farm/igp/new");
+  await fillPaperNo(page, "9123");
   await page.locator('input[name="biltyNo"]').fill("3874");
   await page.locator('input[name="ms"]').fill("Test Supplier");
   await pickItem(page, "nylon rope");
@@ -31,23 +32,37 @@ test("IGP saves for real: real number, form clears, stock goes up by Qty Actual 
   await page.keyboard.press("Control+s");
 
   const banner = page.getByRole("status").filter({ hasText: "saved" });
-  await expect(banner).toContainText(/AW02-IGP-\d{4} saved/);
+  await expect(banner).toContainText("IGP-9123 saved");
+  await expect(banner).not.toContainText("AW02-");
   await expect(page.locator('input[name="biltyNo"]')).toHaveValue("");
+  await expect(page.locator('input[name="paperNo"]')).toHaveValue("");
   expect(await stockOf(page, "nylon-rope")).toBe(before + 7);
 });
 
-test("SIS: summary sheet, Confirm with Enter, stock goes down", async ({ page }) => {
+test("SIS: no Feed & Mortality, Ledger Folio typed, summary sheet, Confirm with Enter, stock goes down", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
   const before = await stockOf(page, "diesel");
   await page.goto("/farm/sis/new");
-  await page.locator('input[name="shed.0.feedKg"]').fill("100");
+  await expect(page.getByText("Feed and Mortality")).toHaveCount(0);
+  await fillPaperNo(page, "9001");
   await pickItem(page, "diesel");
   await page.keyboard.type("5");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("17");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Generator");
   await page.keyboard.press("Control+s");
   await expect(page.locator("dialog[open]")).toContainText("Diesel Stock");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("status").filter({ hasText: "saved" })).toContainText(/AW02-SIS-\d{4} saved/);
+  const banner = page.getByRole("status").filter({ hasText: "saved" });
+  await expect(banner).toContainText("SIS-9001 saved");
   expect(await stockOf(page, "diesel")).toBe(before - 5);
+
+  await page.goto("/farm/slips?q=SIS-9001");
+  await page.locator("ul.card a").first().click();
+  const row = page.locator(".print-frame tbody tr").first();
+  await expect(row).toContainText("17");
+  await expect(row).toContainText("Generator");
 });
 
 test("save errors show in a banner and under the field; nothing is saved", async ({ page }) => {
@@ -58,6 +73,7 @@ test("save errors show in a banner and under the field; nothing is saved", async
   await expect(alert).toContainText("Not saved. Please fix:");
   await expect(alert).toContainText("Pick a farm");
   await expect(alert).toContainText("Add at least one item");
+  await expect(alert).toContainText("Enter the slip No. from the paper slip");
   await expect(page.locator("label").filter({ hasText: "Farm" }).getByText("Pick a farm", { exact: true })).toBeVisible();
 });
 
@@ -65,6 +81,7 @@ test("Not saved: red banner, everything typed stays", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
   await page.addInitScript(() => localStorage.setItem("awfarms.mock.options", JSON.stringify({ latencyMs: 0, failSaves: true })));
   await page.goto("/farm/igp/new");
+  await fillPaperNo(page, "555");
   await page.locator('input[name="biltyNo"]').fill("555");
   await page.locator('input[name="ms"]').fill("X");
   await pickItem(page, "gloves");
@@ -94,6 +111,7 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   const sender = await context.newPage();
   await signIn(sender, { role: "farm", farmId: "aw02" });
   await sender.goto("/farm/ogp/new");
+  await fillPaperNo(sender, "9555");
   await sender.locator('select[name="toFarm"]').selectOption("aw05");
   await sender.locator('input[name="driverName"]').fill("Ameen");
   await pickItem(sender, "chips");
@@ -103,13 +121,16 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   // OGP goes straight to the print view; the QR opens the waiting receipt at AW-05.
   await expect(sender).toHaveURL(/\/print\/AW02-OGP-\d{4}\?saved=1/);
   const no = decodeURIComponent(sender.url().match(/print\/([^?]+)/)![1]);
-  await expect(sender.locator(".print-frame")).toContainText(no);
+  // The pass shows the farm's paper number; the system number stays behind the QR code.
+  await expect(sender.locator(".print-frame")).toContainText("No. OGP-9555");
+  await expect(sender.locator(".print-frame")).not.toContainText(no);
   await expect(sender.locator("[data-qr]")).toHaveAttribute("data-qr", new RegExp(`/farm/igp/receive/T-${no}$`));
 
   const receiver = await context.newPage();
   await signIn(receiver, { role: "farm", farmId: "aw05" });
   await receiver.goto("/farm");
-  await receiver.getByRole("link", { name: new RegExp(no) }).click();
+  await receiver.getByRole("link", { name: /OGP-9555/ }).click();
+  await fillPaperNo(receiver, "9556");
   await receiver.locator('input[name="lines.0.qtyReceived"]').fill("8");
   await receiver.keyboard.press("Control+s");
   await expect(receiver).toHaveURL(/\/farm\/slips\/AW05-IGP-\d{4}\?saved=1/);

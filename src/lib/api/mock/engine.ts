@@ -6,10 +6,10 @@ import { igpSchema, receiveSchema } from "@/features/igp/schema";
 import { ogpSchema } from "@/features/ogp/schema";
 import { sisSchema } from "@/features/sis/schema";
 import { stockCountSchema } from "@/features/stock-count/schema";
-import { nowStamp } from "@/lib/dates";
+import { nowStamp, today } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import { farmBalances } from "@/lib/stock";
-import { toFieldErrors, type RuleContext } from "@/lib/validation";
+import { samePaperNo, toFieldErrors, type RuleContext } from "@/lib/validation";
 import type {
   AuditEntry,
   CorrectionRequest,
@@ -64,10 +64,17 @@ export function getSlip(state: MockState, slipId: string) {
   return slip;
 }
 
-export function ruleContext(state: MockState, farmId: string): RuleContext {
+/** `at` = when the save happens (seed history); otherwise now. */
+export function ruleContext(state: MockState, farmId: string, at?: string): RuleContext {
   const items = new Map(state.items.map((i) => [i.id, i]));
   const balances = farmBalances(state.movements, farmId);
-  return { item: (id) => items.get(id), stockOf: (id) => balances.get(id) ?? 0 };
+  return {
+    item: (id) => items.get(id),
+    stockOf: (id) => balances.get(id) ?? 0,
+    today: at?.slice(0, 10) ?? today(),
+    paperNoUsed: (type, paperNo) =>
+      state.slips.find((s) => s.farmId === farmId && s.type === type && !s.correctionOf && samePaperNo(s.paperNo, paperNo))?.no,
+  };
 }
 
 function parse<T>(schema: z.ZodType<T>, input: unknown): T {
@@ -161,10 +168,25 @@ function slipDeltas(slip: Slip): { itemId: string; delta: number }[] {
   }
 }
 
-function base(state: MockState, v: { farmId: string; date: string; time: string; preparedBy: string }, kind: Slip["type"], opts: SaveOpts) {
+function base(
+  state: MockState,
+  v: { farmId: string; paperNo: string; date: string; time: string; preparedBy: string },
+  kind: Slip["type"],
+  opts: SaveOpts,
+) {
   const farm = getFarm(state, v.farmId);
   const no = nextNo(state, farm, kind, opts.no);
-  return { id: no, no, farmId: farm.id, date: v.date, time: v.time, preparedBy: v.preparedBy, status: "saved" as const };
+  return {
+    id: no,
+    no,
+    paperNo: v.paperNo,
+    farmId: farm.id,
+    date: v.date,
+    time: v.time,
+    postedAt: opts.at ?? nowStamp(),
+    preparedBy: v.preparedBy,
+    status: "saved" as const,
+  };
 }
 
 function commitSlip(state: MockState, slip: Slip, key: string, opts: SaveOpts, action: AuditEntry["action"] = "save") {
@@ -183,7 +205,7 @@ const keyOf = (input: unknown) => String((input as { idempotencyKey?: unknown })
 export function saveIGP(state: MockState, input: unknown, opts: SaveOpts = {}): IGP {
   const done = remembered(state, keyOf(input), state.slips);
   if (done) return done as IGP;
-  const v = parse(igpSchema(ruleContext(state, farmIdOf(input))), input);
+  const v = parse(igpSchema(ruleContext(state, farmIdOf(input), opts.at)), input);
   const slip: IGP = {
     ...base(state, v, "IGP", opts),
     type: "IGP",
@@ -203,7 +225,7 @@ export function saveIGP(state: MockState, input: unknown, opts: SaveOpts = {}): 
 export function saveOGP(state: MockState, input: unknown, opts: SaveOpts = {}): OGP {
   const done = remembered(state, keyOf(input), state.slips);
   if (done) return done as OGP;
-  const v = parse(ogpSchema(ruleContext(state, farmIdOf(input))), input);
+  const v = parse(ogpSchema(ruleContext(state, farmIdOf(input), opts.at)), input);
   if (v.to.kind === "farm") getFarm(state, v.to.farmId);
   const slip: OGP = {
     ...base(state, v, "OGP", opts),
@@ -231,7 +253,7 @@ export function saveOGP(state: MockState, input: unknown, opts: SaveOpts = {}): 
 export function saveSIS(state: MockState, input: unknown, opts: SaveOpts = {}): SIS {
   const done = remembered(state, keyOf(input), state.slips);
   if (done) return done as SIS;
-  const v = parse(sisSchema(ruleContext(state, farmIdOf(input))), input);
+  const v = parse(sisSchema(ruleContext(state, farmIdOf(input), opts.at)), input);
   const slip: SIS = { ...base(state, v, "SIS", opts), type: "SIS", shedRows: v.shedRows, lines: v.lines };
   return commitSlip(state, slip, v.idempotencyKey, opts) as SIS;
 }
@@ -247,7 +269,7 @@ export function receiveTransfer(state: MockState, input: unknown, opts: SaveOpts
 
   const ogp = getSlip(state, transfer.ogpId) as OGP;
   const sent = ogp.lines.map((l) => ({ itemId: l.itemId, qty: l.qty }));
-  const v = parse(receiveSchema(ruleContext(state, transfer.toFarmId), sent), input);
+  const v = parse(receiveSchema(ruleContext(state, transfer.toFarmId, opts.at), sent), input);
   const slip: IGP = {
     ...base(state, v, "IGP", opts),
     type: "IGP",
@@ -319,6 +341,7 @@ export function correctSlip(state: MockState, input: CorrectionInput, opts: Save
   const count = chain(state, original).length;
   corrected.id = `${original.no.replace(/-C\d+$/, "")}-C${count}`;
   corrected.no = corrected.id;
+  corrected.postedAt = opts.at ?? nowStamp();
   corrected.correctionOf = original.id;
   corrected.correctedBy = undefined;
   corrected.status = "saved";
@@ -446,7 +469,7 @@ export function resolveShortfall(state: MockState, input: { transferId: string; 
 export function saveStockCount(state: MockState, input: unknown, opts: SaveOpts = {}): StockCount {
   const done = remembered(state, keyOf(input), state.stockCounts);
   if (done) return done;
-  const rules = ruleContext(state, farmIdOf(input));
+  const rules = ruleContext(state, farmIdOf(input), opts.at);
   const v = parse(stockCountSchema(rules), input);
   const farm = getFarm(state, v.farmId);
   const no = nextNo(state, farm, "CNT", opts.no);

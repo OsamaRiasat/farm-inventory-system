@@ -15,11 +15,14 @@ export function focusables(root: ParentNode): HTMLElement[] {
   });
 }
 
-/** Moves focus to the next field in the same form (or page). */
+/** Moves focus to the next field in the same form (or page). Skips `data-enter-skip` (e.g. Time "change"; Tab still reaches it). */
 export function focusNext(from: HTMLElement) {
   const root = (from as HTMLInputElement).form ?? document;
   const list = focusables(root);
-  list[list.indexOf(from) + 1]?.focus();
+  list
+    .slice(list.indexOf(from) + 1)
+    .find((el) => !el.hasAttribute("data-enter-skip"))
+    ?.focus();
 }
 
 /** Form-level onKeyDown: Enter in a field moves to the next field instead of submitting. */

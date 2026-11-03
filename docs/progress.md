@@ -34,9 +34,20 @@ Update this file at the end of each work session: what's done, what's next, deci
   - Fixes found by tests / screenshots: correction pre-fill raced the request load; React `autoFocus` doesn't work inside `<dialog>` opened later (focus explicitly); bilingual label CSS moved into `@layer components` (sidebar labels never hid below 1024 px, chips wrapped); slip paper keeps its width on phone and scrolls sideways.
   - Tests: 45 Playwright tests, 135/135 over 3 runs. See `docs/kb/08-testing-roadmap.md`.
 
+- 2026-11-03 — **Client issue list (Google Sheet "Simple_Issue_Correction_List", rows 1–16, 29–30 Oct 2026)** — UI + mock API only, contract docs updated
+  - #1 #3 #9 #11 Paper slip No.: `No. IGP- / OGP- / SIS-` box in the slip header (required, first field, unique per farm + type). Farm screens, banners and prints show it; the system number stays for the admin (under the paper No.) and the QR code. `SlipBase.paperNo`, `slipNo()` in `src/lib/slips.ts`.
+  - #7 #8 #11 Slip dates: "Posted on" (automatic, `SlipBase.postedAt`) + editable Arrival / Dispatch / Issue date (today − 30 … today, rule in `checkSlipBase`). IGP's lower date relabelled "D. Challan Dated".
+  - #6 Empty slip on every visit: Next.js 16 keeps left pages alive with `<Activity>`; `SlipForm` resets itself in a `useLayoutEffect` cleanup.
+  - #10 #16 Back: OGP save / receive replace the form in history; the print view's banner has New slip; slip Back links and `g h` go back instead of stacking Home again (`src/lib/nav-history.ts`); login replaces itself.
+  - #12 SIS Feed & Mortality removed (`shedRows` optional, kept for old slips). #13 Qty 9 rem, Purpose wide, lines table from 768 px. #14 Ledger Folio typed per line (`lines[].ledgerFolio`).
+  - #2 #5 Home Find (`/`, paper/system No., item, date → My slips; item searches show each slip's +/− qty). Today's slips = posted today, rows open the slip.
+  - #4 #15 Excel (CSV with BOM, `src/lib/export.ts`) + PDF/print: full stock from Home and F8; item stock card with Last 7 days / This month / From–To, opening balance and totals.
+  - Mock data version 2 (old demo data in browsers is replaced). Tests: 55, 3 runs green.
+
 ## Next
-- [ ] Draft kept in sessionStorage across a reload (the leave prompt is done)
-- [ ] Optional SIS shed chip on Purpose of Use; default feed = last one used per shed
+- [ ] Client to check the new slip header (paper No. + dates) and the SIS without feed on their phone
+- [ ] Admin reports: wire their Excel button to the same CSV export
+- [ ] Optional SIS shed chip on Purpose of Use
 - [ ] Shared PDF file (react-pdf with the Urdu font) instead of sharing the print link
 - [ ] Admin entering slips for any farm (the requirements allow it; not in the screen list)
 - [ ] Testing roadmap gaps: print/PDF checks, screenshot baselines, axe, performance budget, fixed test clock
@@ -55,3 +66,8 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-10-27 — After saving: IGP / SIS clear for the next slip; OGP opens the print view; receive opens the saved slip.
 - 2026-10-27 — Reports are typed tables from the API (`ReportResult`), so one screen shows all eight.
 - 2026-10-27 — Admin stock card added at `/admin/stock/[farmId]/[itemId]` (A4's "link to each item's stock card").
+- 2026-11-03 — Paper slip No. typed by the farm and shown everywhere on the farm side; the automatic system number is kept (unique across farms, used in URLs, QR, transfers, admin). Repeats refused per farm + type.
+- 2026-11-03 — Slip date changeable up to 30 days back, never future; stock is checked against today's stock regardless of the date. Posted-on stamp kept separately.
+- 2026-11-03 — SIS Feed & Mortality removed (client: mortality isn't stock, feed is an item). API still accepts and shows old shed rows.
+- 2026-11-03 — No slip drafts: a slip left without saving starts empty next time (replaces the planned sessionStorage draft).
+- 2026-11-03 — Excel export = CSV generated in the browser (no backend, no extra library).

@@ -69,7 +69,8 @@ docs/                         knowledge base (see above)
 
 ## Conventions
 - Server components by default; `"use client"` only for forms/interactive parts.
-- Slip numbers: `AW02-IGP-1663` (farm code without dash + type + 4 digits), per farm sequence.
+- Slip numbers: `AW02-IGP-1663` (farm code without dash + type + 4 digits), per farm sequence = the system number. The farm also types its **paper slip No.** (`paperNo`, "IGP-0123"); farm screens and prints show `slipNo(slip)` from `src/lib/slips.ts`, never `slip.no`.
+- Next.js keeps left pages alive (`<Activity>`): hidden pages stay in the DOM. Reset "new" flows when hidden (see `SlipForm`); in tests count `:visible` elements.
 - Numbers: `tabular-nums`, right-aligned in tables, thousands separators on display.
 - Every list/slip screen implements loading (skeleton), empty, and error states.
 - Visible focus ring always; never remove outlines without replacement.

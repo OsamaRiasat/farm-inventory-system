@@ -5,6 +5,7 @@ import { useId, useRef } from "react";
 import type { MsgId } from "@/lib/i18n";
 import { useKeySequence, useShortcut } from "@/lib/keyboard/use-shortcut";
 import { requestLeave } from "@/lib/leave-guard";
+import { goUp } from "@/lib/nav-history";
 import { Bi } from "./bi";
 
 const shortcuts: { keys: string[]; label: MsgId; area?: "farm" | "admin" }[] = [
@@ -31,7 +32,7 @@ export function GlobalShortcuts({ area }: { area: "farm" | "admin" }) {
   useShortcut("?", () => dialogRef.current?.showModal());
   useShortcut("/", () => document.querySelector<HTMLElement>("[data-search]")?.focus());
   const go = (href: string) => area === "farm" && requestLeave(() => router.push(href));
-  useKeySequence("g h", () => go("/farm"));
+  useKeySequence("g h", () => area === "farm" && requestLeave(() => goUp(router, "/farm")));
   useKeySequence("g s", () => go("/farm/slips"));
   useKeySequence("g k", () => go("/farm/stock"));
 

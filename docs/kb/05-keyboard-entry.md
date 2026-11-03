@@ -6,7 +6,8 @@
 | Key | Effect |
 | --- | --- |
 | `Tab` / `Shift+Tab` | Natural order = paper order (header → lines → footer). Never a positive `tabIndex` |
-| `Enter` in a text/number field | Move to the next field (like Tab). Never submits the form by accident |
+| — | On desktop the slip opens with focus in **No.** (the paper slip's number), then the slip's date |
+| `Enter` in a text/number field | Move to the next field (like Tab). Never submits the form by accident. Skips buttons marked `data-enter-skip` (Time "change"), which `Tab` still reaches |
 | `Enter` in the **last field of a line** | Add a new empty line and focus its Item search |
 | `Enter` in an **empty** Item search on a new line | Leave the lines, jump to Save |
 | `Ctrl/⌘ + Enter` or `Ctrl/⌘ + S` | Save (opens the Summary sheet on SIS) |
@@ -36,7 +37,7 @@ Radio-group semantics: `←` / `→` switch, `Space` selects. One Tab stop per g
 ## Global shortcuts
 | Key | Effect |
 | --- | --- |
-| `/` | Focus the screen's search box |
+| `/` | Focus the screen's search box (on Farm home: the Find box; `Enter` searches My slips) |
 | `g h` / `g s` / `g k` | Farm: Home / Slips / Stock |
 | `1` `2` `3` on Farm home | New IGP / New OGP / New SIS |
 | `?` | Show the shortcut list (bilingual) |

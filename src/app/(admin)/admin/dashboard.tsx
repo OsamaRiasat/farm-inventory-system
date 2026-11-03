@@ -10,6 +10,7 @@ import { LoadError, Skeleton, SkeletonRows } from "@/components/ui/skeleton";
 import { useDashboard, useFarms, useItemMap } from "@/lib/api/queries";
 import type { Dashboard } from "@/lib/api";
 import type { MsgId } from "@/lib/i18n";
+import { slipNo } from "@/lib/slips";
 
 /** A1 — count tiles, farms today, latest slips across all farms. */
 export function AdminDashboard() {
@@ -136,7 +137,10 @@ export function AdminDashboard() {
                       <div className="text-xs">{s.date.slice(5)}</div>
                     </td>
                     <td className="whitespace-nowrap">{farms.find((f) => f.id === s.farmId)?.code}</td>
-                    <td className="num font-medium whitespace-nowrap">{s.no}</td>
+                    <td className="num whitespace-nowrap">
+                      <span className="block font-medium">{slipNo(s)}</span>
+                      <span className="block text-xs text-muted">{s.no}</span>
+                    </td>
                     <td>
                       <TypeChip type={s.type} />
                     </td>

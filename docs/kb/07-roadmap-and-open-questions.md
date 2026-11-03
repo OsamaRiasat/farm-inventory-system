@@ -3,7 +3,7 @@
 ## Phase 1 scope
 **In:** every screen (responsive), all three slips end to end in the browser (fill, validate, save, view, print), balances recalculated from mock data, transfers between two mock farms, print + PDF share, mock role switch, typed API module the backend will implement unchanged.
 
-**Not in:** real backend/DB/login/permissions, real item data (≈60 mock items), Excel export (buttons shown, not wired), data migration.
+**Not in:** real backend/DB/login/permissions, real item data (≈60 mock items), data migration. Excel export: farm stock report and item stock card download as CSV (opens in Excel); admin reports' Excel button is still not wired.
 
 ## Build order (spec estimate: 7 weeks, 1 frontend dev)
 | Week | Build | Client sees |
@@ -31,3 +31,13 @@ Progress is tracked in `docs/progress.md`.
 | Printers: A5 or A4? Which farms? | A5 default, A4 option |
 | Phone models for testing | Test at 360 px |
 | View-only login for Head Office / Purchase? | Not built; keep actions role-gated so it's easy to add |
+
+## Answered (client issue list, 29–30 Oct 2026)
+| Question | Answer |
+| --- | --- |
+| Show our automatic number or the paper book's? | Farm types the paper No. on every slip; farms and prints see only that. System number kept underneath, shown to the admin |
+| Paper No. repeated? | Refused per farm + slip type |
+| Can the slip date change? | Yes: arrival / dispatch / issue date, up to 30 days back, never future. Posting date shown separately |
+| Feed & Mortality on the SIS? | Removed. Feed is an item line; mortality not recorded |
+| Ledger Folio on the SIS? | Typed by the storekeeper (their ledger page), not the item number |
+| Draft kept when leaving a slip? | No — every visit starts an empty slip |

@@ -15,7 +15,7 @@ export type SlipFilters = {
   from?: string; // ISO date, inclusive
   to?: string; // ISO date, inclusive
   itemId?: string;
-  /** Part of a slip number, any case. */
+  /** Part of a slip number (system or paper), any case. */
   no?: string;
 };
 

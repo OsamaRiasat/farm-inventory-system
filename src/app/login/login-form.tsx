@@ -19,12 +19,12 @@ export function LoginForm() {
     const farm = farms.data?.find((f) => f.id === farmId);
     if (!farm) return;
     setSession({ role: "farm", farmId: farm.id, userName: `${farm.code} Store Keeper` });
-    router.push("/farm");
+    router.replace("/farm");
   }
 
   function enterAdmin() {
     setSession({ role: "admin", userName: "Accounts Admin" });
-    router.push("/admin");
+    router.replace("/admin");
   }
 
   return (

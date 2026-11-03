@@ -30,8 +30,10 @@
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
 
 ## Farm User details
-- **F1:** top bar (farm name, user, language-order toggle). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" (No., type chip, time, first item + "and 4 more"). Bottom nav: Home, Slips, Stock.
-- **Slip header/footer (F2–F5):** bilingual title, No. = "New" until saved. Farm, Date, Time auto + read-only; Time has "change" for later-same-day entry. Footer: Prepared by + sticky 56 px Save.
+- **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = CSV download, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
+- **Back:** Home is the end of Back. A slip's Back link returns to where it was opened from (history doesn't grow); saving an OGP / receiving a transfer replaces the form in history; login replaces itself.
+- **Slip header/footer (F2–F5):** bilingual title. **No.** = `IGP-` / `OGP-` / `SIS-` + a box for the paper slip's number (required, first field). Farm (auto), **Posted on** (today, auto), the slip's **date** — "Arrival date" (IGP), "Dispatch date" (OGP), "Issue date" (SIS) — today by default, changeable up to 30 days back, never future; Time auto with "change". Footer: Prepared by + sticky 56 px Save.
+- **Every visit starts an empty slip**: Next.js keeps a page you leave alive (React `<Activity>`), so `SlipForm` clears itself whenever it is hidden.
 
 ### F2 New IGP — fields in paper order
 | Field | Control | Req | Rule |
@@ -40,7 +42,7 @@
 | Bilty No., Truck No. | Text | No | |
 | Driver Name | Text, Urdu ok (`dir="auto"`) | No | |
 | Demand No. | Text | No | |
-| D. Challan No. + Dated | Text + date | No | |
+| D. Challan No. + D. Challan Dated | Text + date | No | The challan's own date — not the arrival date |
 | Line: Item | C1 item search | ≥1 line | |
 | Line: Unit | From item | — | Not editable |
 | Line: Qty As Per Delivery Challan | C2 | Yes | > 0 |
@@ -63,19 +65,20 @@ Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-fil
 | Line: Qty | C2, > 0 and ≤ stock, else "Only 6 in stock" | Yes |
 | Line: Weight | Number + kg | No |
 
-After save → go straight to Print view (driver needs the pass).
+After save → go straight to Print view (driver needs the pass), replacing the form in history. The saved banner there has **New slip** (opens an empty OGP).
 
 ### F5 New SIS
-1. **Feed & Mortality:** one row per shed (all sheds listed). Shed, Feed (feed items only, default last used), Feed used (KG), Mort Male, Mort Female. Empty rows skipped. Total row.
-2. **Items:** S. No. auto, Name of Item (C1 with in-stock), Quantity used (≤ stock), Ledger Folio (item number, read-only, opens stock card), Purpose of Use (text + optional shed chip).
+**Items** only: S. No. auto, Name of Item (C1 with in-stock; feed is picked here like any item), Quantity used (≤ stock; 9 rem wide so "15,413 KG" shows), Ledger Folio (**typed** — the storekeeper's own ledger page), Purpose of Use (wide text). Lines are a table from 768 px, cards below.
 
-Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line, mortality listed as "recorded, not stock". Back to edit / Confirm and save.
+~~Feed & Mortality per shed~~ — removed at the client's request (30 Oct 2026): mortality doesn't touch stock, and feed goes in as an item. Old slips still show their shed rows.
+
+Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line. Back to edit / Confirm and save.
 
 ### F6–F10
-- **F6:** search (No., item), chips IGP/OGP/SIS + date, cards (No., type, date, line count).
+- **F6:** search (paper or system No., item), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
 - **F7:** paper-like read-only; Print, Share PDF, Request correction. Corrected/cancelled → banner linking the correction.
-- **F8:** search, category filter, list (EN + UR name, qty, unit). Zero items greyed at bottom.
-- **F9:** item header with balance; rows date, slip No., in, out, running balance.
+- **F8:** search, category filter, list (EN + UR name, qty, unit). Zero items greyed at bottom. **Excel** (what's listed) and **PDF / Print**; `?print=1` prints once loaded (Home's PDF button).
+- **F9:** item header with balance and Item No.; rows date, slip No., in, out, running balance. **Date range**: Last 7 days / This month / All or From–To; the range shows its opening balance and In / Out totals. **Excel** and **PDF / Print** take the range.
 - **F10:** category or all; system qty + counted input; difference highlighted; reason required.
 
 ## Accounts Admin details

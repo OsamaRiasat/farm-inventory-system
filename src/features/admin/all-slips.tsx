@@ -11,7 +11,7 @@ import { FilterBar, type Filters } from "@/components/ui/filter-bar";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useFarms, useSlips } from "@/lib/api/queries";
 import { fmtDate } from "@/lib/dates";
-import { slipLineCount, slipParty } from "@/lib/slips";
+import { slipLineCount, slipNo, slipParty } from "@/lib/slips";
 import type { Slip } from "@/types/domain";
 
 /** A2 — every slip from every farm (or the farm picked in the top bar), with filters. Rows open A3. */
@@ -23,7 +23,18 @@ export function AllSlips() {
   const slips = useSlips({ ...filters, farmId: farmId || undefined });
 
   const columns: Column<Slip>[] = [
-    { key: "no", header: <Bi id="col.no" />, cell: (s) => <span className="num font-medium whitespace-nowrap">{s.no}</span>, sortValue: (s) => s.no },
+    {
+      key: "no",
+      header: <Bi id="col.no" />,
+      // The farm's paper number, with the system number under it.
+      cell: (s) => (
+        <span className="num flex flex-col whitespace-nowrap">
+          <span className="font-medium">{slipNo(s)}</span>
+          <span className="text-xs text-muted">{s.no}</span>
+        </span>
+      ),
+      sortValue: (s) => s.no,
+    },
     { key: "type", header: <Bi id="col.type" />, cell: (s) => <TypeChip type={s.type} />, sortValue: (s) => s.type },
     { key: "farm", header: <Bi id="col.farm" />, cell: (s) => <span className="whitespace-nowrap">{farms.find((f) => f.id === s.farmId)?.code}</span>, sortValue: (s) => s.farmId },
     {

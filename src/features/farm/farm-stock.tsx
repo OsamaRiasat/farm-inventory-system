@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { clsx } from "clsx";
-import { ClipboardCheck, Search } from "lucide-react";
-import { useState } from "react";
+import { ClipboardCheck, FileSpreadsheet, Printer, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Bi } from "@/components/layout/bi";
 import { useCurrentFarm } from "@/components/layout/farm-gate";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useItems, useStock } from "@/lib/api/queries";
+import { fmtDate, today } from "@/lib/dates";
+import { downloadCsv, takePrintFlag } from "@/lib/export";
 import { fmtQty, normalizeSearch } from "@/lib/format";
 import { t, tInline } from "@/lib/i18n";
-import type { Item } from "@/types/domain";
+import type { Farm, Item } from "@/types/domain";
 
 /** Item list filtered by search text (English, Urdu, alias, number) and category. Active items only, unless asked. */
 export function filterItems(items: Item[], query: string, category: string, includeInactive = false) {
@@ -23,7 +25,25 @@ export function filterItems(items: Item[], query: string, category: string, incl
   );
 }
 
-/** F8 — every item with quantity on hand; items at 0 greyed at the bottom. Rows open the stock card. */
+/** Stock report for Excel: one row per item, in the order the screen shows. */
+export function exportStock(farm: Farm, rows: { item: Item; qty: number }[]) {
+  downloadCsv(`${farm.code} stock ${today()}`, [
+    ["Item No.", "Item", "Item (Urdu)", "Category", "In stock", "Unit"],
+    ...rows.map(({ item, qty }) => [item.number, item.name, item.nameUr, item.category, qty, t(`unit.${item.unit}`).en]),
+  ]);
+}
+
+/** Items with their stock, items at 0 last. */
+export function stockRows(items: Item[], stock: Map<string, number> | undefined) {
+  return items
+    .map((item) => ({ item, qty: stock?.get(item.id) ?? 0 }))
+    .sort((a, b) => Number(a.qty === 0) - Number(b.qty === 0) || a.item.name.localeCompare(b.item.name));
+}
+
+/**
+ * F8 — every item with quantity on hand; items at 0 greyed at the bottom. Rows open the stock card.
+ * Excel downloads what's on screen; PDF prints it (opened with ?print=1 from Home, it prints straight away).
+ */
 export function FarmStock() {
   const { farm } = useCurrentFarm();
   const items = useItems();
@@ -32,22 +52,38 @@ export function FarmStock() {
   const [category, setCategory] = useState("");
 
   const categories = [...new Set((items.data ?? []).map((i) => i.category))].sort();
-  const rows = filterItems(items.data ?? [], query, category)
-    .map((item) => ({ item, qty: stock.data?.get(item.id) ?? 0 }))
-    .sort((a, b) => Number(a.qty === 0) - Number(b.qty === 0) || a.item.name.localeCompare(b.item.name));
+  const rows = stockRows(filterItems(items.data ?? [], query, category), stock.data);
+  const loaded = !!items.data && !!stock.data;
+
+  useEffect(() => {
+    if (loaded && takePrintFlag()) window.print();
+  }, [loaded]);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="print-area flex w-full flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold">
           <Bi id="stock.title" />
         </h1>
-        <Link href="/farm/stock-count/new" className="btn">
-          <ClipboardCheck size={18} aria-hidden />
-          <Bi id="count.title" inline />
-        </Link>
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <button type="button" className="btn" disabled={!loaded} onClick={() => exportStock(farm, rows)}>
+            <FileSpreadsheet size={18} aria-hidden />
+            <Bi id="export.excel" inline />
+          </button>
+          <button type="button" className="btn" disabled={!loaded} onClick={() => window.print()}>
+            <Printer size={18} aria-hidden />
+            <Bi id="export.pdf" inline />
+          </button>
+          <Link href="/farm/stock-count/new" className="btn">
+            <ClipboardCheck size={18} aria-hidden />
+            <Bi id="count.title" inline />
+          </Link>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <p className="hidden text-sm print:block">
+        {farm.name} · {fmtDate(today())}
+      </p>
+      <div className="flex flex-wrap gap-2 print:hidden">
         <div className="relative min-w-56 flex-1">
           <Search size={20} className="absolute top-1/2 left-3 -translate-y-1/2 text-muted" aria-hidden />
           <input

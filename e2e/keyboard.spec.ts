@@ -36,9 +36,14 @@ test("Alt+N adds a line, Alt+Backspace removes it", async ({ page }) => {
   await expect(page.locator('input[name$=".item"]')).toHaveCount(1);
 });
 
-test("IGP header: Enter moves Bilty → Truck → Driver", async ({ page }) => {
+test("IGP header: starts on No.; Enter moves No. → Date → Bilty → Truck → Driver", async ({ page }) => {
   await page.goto("/farm/igp/new");
-  await page.locator('input[name="biltyNo"]').focus();
+  await expect.poll(() => focused(page)).toBe("paperNo");
+  await page.keyboard.type("9010");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("date");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("biltyNo");
   await page.keyboard.press("Enter");
   expect(await focused(page)).toBe("truckNo");
   await page.keyboard.press("Enter");
@@ -62,7 +67,7 @@ test("SIS: Ctrl+S shows before → after from live stock, focus on Confirm, Esc 
 
 test("Receive transfer: Received all, more than sent is blocked, less is amber", async ({ page }) => {
   await page.goto("/farm");
-  await page.getByRole("link", { name: /AWHATCHERY-OGP/ }).click();
+  await page.getByRole("link", { name: /AW-Hatchery · OGP-0047/ }).click();
   await page.getByRole("button", { name: /Received all/ }).click();
   const trays = page.locator('input[name="lines.0.qtyReceived"]');
   await expect(trays).toHaveValue("9,000");

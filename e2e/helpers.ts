@@ -18,6 +18,11 @@ export async function fastMock(page: Page) {
   });
 }
 
+/** Types the paper slip's number into the slip header's No. box. */
+export async function fillPaperNo(page: Page, no: string) {
+  await page.locator('input[name="paperNo"]').fill(no);
+}
+
 /** Name or kind of the focused element, for keyboard-flow checks. */
 export function focused(page: Page) {
   return page.evaluate(() => {

@@ -12,6 +12,7 @@ import { useFarms, useWaitingTransfers } from "@/lib/api/queries";
 import { fmtDate } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import type { MsgId } from "@/lib/i18n";
+import { slipNo } from "@/lib/slips";
 import { num } from "../form-data";
 
 const cols: LineCol[] = [
@@ -46,7 +47,7 @@ export function ReceiveTransfer({ transferId }: { transferId: string }) {
   const { transfer, ogp } = view;
   const facts: { label: MsgId; value: string }[] = [
     { label: "transfer.fromFarm", value: farms.find((f) => f.id === transfer.fromFarmId)?.name ?? "" },
-    { label: "transfer.ogpNo", value: ogp.no },
+    { label: "transfer.ogpNo", value: slipNo(ogp) },
     { label: "transfer.dateSent", value: fmtDate(ogp.date) },
     { label: "igp.driverName", value: ogp.driverName || "—" },
     { label: "ogp.vehicleNo", value: ogp.vehicleNo || "—" },
