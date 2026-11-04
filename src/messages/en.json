@@ -217,6 +217,7 @@
   "stock.title": "Farm stock",
   "stock.category": "Category",
   "stock.allCategories": "All categories",
+  "stock.showZero": "Show {n} items at 0",
   "card.balance": "In stock",
   "card.in": "In",
   "card.out": "Out",

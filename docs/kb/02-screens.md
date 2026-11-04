@@ -77,7 +77,7 @@ Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line. 
 ### F6–F10
 - **F6:** search (paper or system No., item), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
 - **F7:** paper-like read-only; Print, Share PDF, Request correction. Corrected/cancelled → banner linking the correction.
-- **F8:** search, category filter, list (EN + UR name, qty, unit). Zero items greyed at bottom. **Excel** (what's listed) and **PDF / Print**; `?print=1` prints once loaded (Home's PDF button).
+- **F8:** search, category filter, list (EN + UR name — the category when there is no Urdu name yet — qty, unit). Items at 0 greyed at bottom; with 1,970 items they show only when searching, picking a category or pressing "Show N items at 0". **Excel** (what's listed) and **PDF / Print**; `?print=1` prints once loaded (Home's PDF button).
 - **F9:** item header with balance and Item No.; rows date, slip No., in, out, running balance. **Date range**: Last 7 days / This month / All or From–To; the range shows its opening balance and In / Out totals. **Excel** and **PDF / Print** take the range.
 - **F10:** category or all; system qty + counted input; difference highlighted; reason required.
 

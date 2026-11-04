@@ -10,10 +10,10 @@ test("OGP: item search → qty → weight → new line → Save, without the mou
   await page.goto("/farm/ogp/new");
   const item = page.locator('[data-kind="item"]').first();
   await item.focus();
-  await page.keyboard.type("belt 89");
-  await expect(page.locator('li[role="option"]').first()).toContainText("Fan Belt 89A");
+  await page.keyboard.type("belt a-88");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Fan belt A-88");
   await page.keyboard.press("Enter");
-  await expect(page.locator('input[name="lines.0.item"]')).toHaveValue("fan-belt-89a");
+  await expect(page.locator('input[name="lines.0.item"]')).toHaveValue("fan-belt-88a");
   expect(await focused(page)).toBe("lines.0.qty");
 
   await page.keyboard.type("300");

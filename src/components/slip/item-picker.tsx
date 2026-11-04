@@ -65,9 +65,13 @@ export function ItemPicker({
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="font-medium">{i.name}</div>
-              <div lang="ur" dir="rtl" className="text-left">
-                {i.nameUr}
-              </div>
+              {i.nameUr ? (
+                <div lang="ur" dir="rtl" className="text-left">
+                  {i.nameUr}
+                </div>
+              ) : (
+                <div className="text-sm text-muted">{i.category}</div>
+              )}
             </div>
             {stock && <StockNote item={i} qty={stock.get(i.id) ?? 0} stacked />}
           </div>

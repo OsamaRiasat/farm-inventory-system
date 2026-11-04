@@ -100,9 +100,12 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
 | — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), CSV downloads, Last 7 days opening balance | ✓ |
+| — | 1,970-item list usable on a phone | — | `farm-flow.spec.ts`: F8 hides items at 0 until searched / asked; category shown when no Urdu name. `search.spec.ts` on the client's names | ✓ |
 
 ## Coverage today (all screens built, before the backend)
 55 tests after the client's issue list (3 Nov 2026), all passing, 3 runs (55 + 110/110). Added: 3 rules (slip date window, paper No., SIS without feed + folio) and `e2e/farm-flow.spec.ts` (7: empty slip on return, Back to Home ×2, Home Find, Excel exports, slip date on screen, paper No. already used).
+
+56 tests after loading the client's 1,970 items (5 Nov 2026): search, keyboard and data cases moved to the client's item names; +1 F8 test.
 
 Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 rules · 10 search · 6 keyboard · 6 data · 2 phone (no sideways scroll on all 9 farm routes) · 13 journeys (IGP/SIS save + stock change, save errors, Not saved, leave prompt, transfer end to end in two tabs incl. QR target, correction request → approve, cancel, stock count, my slips search, A4 totals, reports + chart, setup + audit).
 

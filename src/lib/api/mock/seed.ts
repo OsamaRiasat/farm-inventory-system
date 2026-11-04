@@ -1,4 +1,4 @@
-// Builds the demo data: 11 farms, ~60 items, opening balances and two weeks of history ending today.
+// Builds the demo data: 11 farms, the client's 1,970 items, opening balances and two weeks of history ending today.
 // Every slip goes through the engine, so the history obeys the same rules as the live app.
 // Includes the real examples from the screen recording (Hatchery OGP-46 → Patoki IGP-1662,
 // Patoki OGP-1366 drill machine, Patoki SIS-203) plus one transfer in transit, one in transit
@@ -14,7 +14,7 @@ import type { MockState } from "./engine";
 import farmsJson from "./seed/farms.json";
 import itemsJson from "./seed/items.json";
 
-export const MOCK_VERSION = 2;
+export const MOCK_VERSION = 3;
 const ADMIN = "Accounts Admin";
 
 const SUPPLIERS = {
@@ -90,9 +90,12 @@ export function buildSeed(now = new Date()): MockState {
   };
 
   // ── opening balances, 14 days ago ──
+  // The demo's everyday items (the ones with Urdu names) are at every farm; each farm also holds a few
+  // of the other items, so stock lists look real without every farm carrying all 1,970.
   const openingDate = addDays(todayIso, -14);
   for (const farm of farms) {
     for (const item of items) {
+      if (!item.nameUr && !chance(0.06)) continue;
       const qty = openingQty(farm, item);
       if (qty > 0) {
         state.movements.push({
@@ -129,10 +132,9 @@ export function buildSeed(now = new Date()): MockState {
     const hatchery = farm.type === "hatchery";
     if (item.isFeed) {
       if (hatchery) return 0;
-      if (farm.type === "layer") return item.id === "feed-layer" ? between(18000, 28000) : 0;
-      return item.id === "feed-all" ? between(20000, 30000) : item.id === "feed-grower" ? between(0, 6000) : 0;
+      return farm.type === "layer" ? between(18000, 28000) : between(20000, 30000);
     }
-    if (item.category === "Packing Material") {
+    if (item.id === "egg-tray" || item.id === "egg-boxes") {
       if (hatchery) return item.id === "egg-tray" ? 40000 : 2500;
       return item.id === "egg-tray" ? between(500, 2000) : between(100, 300);
     }
@@ -142,6 +144,8 @@ export function buildSeed(now = new Date()): MockState {
     if (item.id === "diesel") return between(1200, 3000);
     if (item.id === "chips") return hatchery ? 0 : between(2000, 8000);
     if (chance(0.15)) return 0;
+    // Machines, generators, furniture and scrap: a handful each.
+    if (["Generator Items", "Motor Repair Stock", "Furniture", "Discard & Scrap"].includes(item.category) && item.unit === "QTY") return between(1, 6);
     switch (item.unit) {
       case "VIAL":
         return between(20, 200);
@@ -348,7 +352,7 @@ export function buildSeed(now = new Date()): MockState {
     scripted[d]?.();
 
     for (const f of farms) {
-      const feedId = f.type === "layer" ? "feed-layer" : "feed-all";
+      const feedId = "feed-all";
 
       // Feed delivery when the farm is running low.
       if (f.type !== "hatchery" && stockOf(f.id, feedId) < f.sheds.length * 2300 * 2) {

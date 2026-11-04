@@ -192,7 +192,7 @@ test("admin cancels a slip with a reason; stamp and banner show", async ({ page 
 test("stock count: counted quantity replaces the system's, with a reason", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
   await page.goto("/farm/stock-count/new");
-  await page.getByLabel(/Brush \(Coconut\/Plastic\) — Counted/).fill("3");
+  await page.getByLabel(/Brush \(Coconut\/Plastic\/Iron\) — Counted/).fill("3");
   await page.getByLabel(/Reason for the differences/).fill("Monthly count");
   await page.keyboard.press("Control+s");
   await expect(page.getByText(/Stock count AW02-CNT-\d{4} saved/)).toBeVisible();
@@ -211,7 +211,9 @@ test("my slips: search by item and by number", async ({ page }) => {
 test("admin stock: All Farms = sum of the farm columns", async ({ page }) => {
   await signIn(page, { role: "admin" });
   await page.goto("/admin/stock");
+  await page.locator("[data-search]").fill("diesel stock");
   const row = page.getByRole("row", { name: /^Diesel Stock/ });
+  await expect(row).toBeVisible();
   const cells = await row.locator("td").allInnerTexts();
   const nums = cells.slice(1).map((c) => Number(c.replace(/,/g, "")));
   const [total] = nums.slice(-2);

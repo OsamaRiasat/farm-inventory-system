@@ -7,14 +7,15 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/dev");
 });
 
-const cases: [string, string][] = [
-  ["belt 89", "Fan Belt 89A"],
-  ["فین بیلٹ 57", "Fan Belt 57A"],
-  ["193", "Fan Belt 89A"],
+// Names are the client's item list (All Inventory Items By Names.xlsx), spellings included.
+const cases: [string, string | RegExp][] = [
+  ["belt a57", "Fan belt A57"],
+  ["فین بیلٹ 57", "Fan belt A57"],
+  ["1046", "Fan belt A-88"],
   ["ڈیزل", "Diesel Stock"],
-  ["chian lock", "Chain Lock No.60 (half)"],
+  ["chian lock", /Ch(ai|ia)n Lock No\. ?60/],
   ["deisel", "Diesel Stock"],
-  ["دستانے", "Gloves"],
+  ["دستانے", "Glove"],
   ["tezab", "HCL"],
 ];
 
@@ -38,5 +39,5 @@ test("a picked item shows up under Recent next time", async ({ page }) => {
   await page.reload();
   await page.locator('[data-kind="item"]').first().focus();
   await expect(page.getByText("Recent")).toBeVisible();
-  await expect(page.locator('li[role="option"]').first()).toContainText("Virkon S");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Virkon Spray");
 });

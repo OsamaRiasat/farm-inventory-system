@@ -30,13 +30,14 @@ test("admin dashboard shows the seeded follow-ups", async ({ page }) => {
   await expect(tile("In transit > 2 days")).toContainText("1");
   await expect(tile("Open shortfalls")).toContainText("1");
   await expect(tile("Correction requests")).toContainText("1");
-  await expect(page.getByRole("row", { name: /AW-04/ })).toContainText("Missing");
+  // Farms today is the first table; AW-04 has not saved today's SIS.
+  await expect(page.locator("table.table").first().getByRole("row", { name: /AW-04/ })).toContainText("Missing");
 });
 
 test("all-slips table: filter by No. finds the real SIS-203, sorts, keyboard opens", async ({ page }) => {
   await fastMock(page);
   await page.goto("/dev");
-  await page.locator("[data-search]").fill("SIS-0203");
+  await page.locator("[data-search]").fill("AW02-SIS-0203");
   const rows = page.locator("table.table tbody tr");
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("AW02-SIS-0203");

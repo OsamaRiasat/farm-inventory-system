@@ -82,10 +82,13 @@ Rules for the mock (`src/lib/api/mock/engine.ts`; the seed goes through the same
 
 ## Mock seed (`src/lib/api/mock/seed.ts` + `seed/farms.json`, `seed/items.json`)
 
-Deterministic (same demo after every reset), relative to today, ~250 slips. `MOCK_VERSION` 2 (paper numbers + posted stamps): older saved demo data is replaced on load. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date. Check it with `npx playwright test e2e/rules.spec.ts`.
+Deterministic (same demo after every reset), relative to today, ~250 slips. `MOCK_VERSION` 3 (the client's full item list; 2 added paper numbers + posted stamps): older saved demo data is replaced on load. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date. Check it with `npx playwright test e2e/rules.spec.ts`.
 - **Farms:** the 11 sites, each with 3–6 sheds.
-- **Items:** ~60 real items with units + Urdu names (Feed All KG, Diesel Stock LTR, Egg Tray-P, Egg Boxes-P, Fan Belt 89A / 88A / 57A, Drill Machine, Gentylo inj, Aqua Kair Tab, HCL, Accid Pro, Nylon Rope, Chips BG, Nylon Chappal, Worker Uniform, Aluminium Foil ROLL…).
-- **Balances (opening movements):** e.g. Patoki: Feed All 23,739 KG, Diesel 2,550 LTR, Nylon Rope 80, Aqua Kair 300, HCL 240 LTR, Accid Pro 200 LTR, Chips 7,552 BG, Drill Machine 6.
+- **Items:** the client's full list, `docs/source/All Inventory Items By Names.xlsx` — **1,970 items in 18 categories**, names exactly as the client wrote them (spelling variants and duplicates kept until the client cleans them). Item No. = position in that workbook (1–1,970). Categories use the cleaned names from `requirements.md` (Shed Items, Generator Items, Oil Filter, Air Filter, Printing & Stationery, Discard & Scrap; the rest as written).
+  - **Units are our guess** (the workbook has none): vaccines and injections VIAL, tablets QTY, powders KG, other medicines LTR; diesel, petrol, oils LTR; chips, husk, choona, cement BG; wire, cable, tape ROLL; sugar, salt, tea KG; everything else QTY. To be confirmed by the client.
+  - **Urdu names / aliases** only on the ~60 everyday items the demo uses (Feed All, Diesel Stock, Fan Belt, Drill Machine, HCL…; their old demo ids are kept: `diesel`, `feed-all`, `fan-belt-88a`…). The others have `nameUr: ""`; screens show the category in its place. The admin must add Urdu when editing one (A9).
+  - Only one feed item (Feed All); layer farms use it too.
+- **Balances (opening movements):** every farm holds the everyday items; each also holds ~6% of the other items, so lists look real. E.g. Patoki: Feed All 23,739 KG, Diesel 2,550 LTR, Nylon Rope 80, Aqua Kair 300, HCL 240 LTR, Accid Pro 200 LTR, Chips 7,552 BG, Drill Machine 6.
 - **Slips:** ~2 weeks of history incl. Hatchery OGP-46 → Patoki IGP-1662 (egg boxes 180, egg trays 9,000, chappals 90, worker uniforms 10, assistant uniforms 5, foil 14 rolls, Gentylo 100 vials), OGP-1366 drill machine 6 → 5 to Layer-04 Khan, SIS-203 at Patoki; one transfer in transit, one short transfer, one corrected slip.
 - **Users:** one Farm User per farm + one Accounts Admin.
 - Real SIS example (AW-05 No. 483): feed 6,067 KG, Mort Male 2, Female 7.

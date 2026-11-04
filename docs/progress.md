@@ -44,7 +44,16 @@ Update this file at the end of each work session: what's done, what's next, deci
   - #4 #15 Excel (CSV with BOM, `src/lib/export.ts`) + PDF/print: full stock from Home and F8; item stock card with Last 7 days / This month / From–To, opening balance and totals.
   - Mock data version 2 (old demo data in browsers is replaced). Tests: 55, 3 runs green.
 
+- 2026-11-05 — **Client's full item list in the demo** (`docs/source/All Inventory Items By Names.xlsx`)
+  - `seed/items.json` = the 1,970 items in 18 categories, client spellings; Item No. = workbook position. Units guessed by name (VIAL / KG / LTR / BG / ROLL / QTY); Urdu names only on the ~60 everyday items, which keep their demo ids so the scripted history still runs. Feed Grower / Feed Layer Mash removed (not in the list); layers use Feed All.
+  - Seed: every farm stocks the everyday items + ~6% of the rest; machines / furniture / scrap a handful each. `MOCK_VERSION` 3. Demo data in localStorage ≈ 0.8 MB.
+  - Item search: an exact name / alias wins, then "starts with", shorter names first ("diesel" → Diesel Stock, not Diesel Motor 0.5HP). Items without Urdu show their category in search results and on F8.
+  - F8: items at 0 hidden until searched for, a category is picked, or "Show N items at 0" (keeps the phone list ~150 rows instead of 1,970).
+  - Tests: 56 green (search / keyboard cases moved to the client's names; new F8 test).
+
 ## Next
+- [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`)
+- [ ] Stock count (F10) lists every item in the chosen category ("All" = 1,970 rows): consider counting by category only
 - [ ] Client to check the new slip header (paper No. + dates) and the SIS without feed on their phone
 - [ ] Admin reports: wire their Excel button to the same CSV export
 - [ ] Optional SIS shed chip on Purpose of Use
@@ -71,3 +80,4 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-11-03 — SIS Feed & Mortality removed (client: mortality isn't stock, feed is an item). API still accepts and shows old shed rows.
 - 2026-11-03 — No slip drafts: a slip left without saving starts empty next time (replaces the planned sessionStorage draft).
 - 2026-11-03 — Excel export = CSV generated in the browser (no backend, no extra library).
+- 2026-11-05 — Demo uses the client's 1,970 items as written; units and missing Urdu names are our defaults until the client confirms.

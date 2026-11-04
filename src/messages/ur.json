@@ -217,6 +217,7 @@
   "stock.title": "فارم کا اسٹاک",
   "stock.category": "قسم",
   "stock.allCategories": "تمام اقسام",
+  "stock.showZero": "صفر والی {n} اشیاء دکھائیں",
   "card.balance": "اسٹاک میں",
   "card.in": "آمد",
   "card.out": "روانگی / استعمال",

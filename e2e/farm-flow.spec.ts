@@ -146,3 +146,18 @@ test("a paper No. already used is refused under the No. box", async ({ page }) =
   await page.locator("dialog[open]").getByRole("button", { name: /Confirm and save/ }).click();
   await expect(page.getByText("No. SIS-0203 is already saved. Check the number.").first()).toBeVisible();
 });
+
+test("farm stock: items at 0 stay hidden until searched for or asked for (1,970 items)", async ({ page }) => {
+  await page.goto("/farm/stock");
+  const rows = page.locator("ul.card li:visible");
+  const showZero = page.getByRole("button", { name: /Show [\d,]+ items at 0/ });
+  await expect(showZero).toBeVisible();
+  expect(await rows.count()).toBeLessThan(500);
+  await expect(rows.first()).not.toHaveClass(/opacity/);
+
+  await page.locator("[data-search]").fill("Genrator 800KVA");
+  await expect(rows.first()).toContainText("Generator Items"); // no Urdu name yet: the category shows instead
+  await page.locator("[data-search]").fill("");
+  await showZero.click();
+  await expect(rows).toHaveCount(1970);
+});

@@ -24,7 +24,11 @@ Progress is tracked in `docs/progress.md`.
 | Language order for Farm Users: EN or UR first? | English first, toggle available |
 | Urdu slip names (آمد گیٹ پاس, روانگی گیٹ پاس, اشیاء جاری پرچی) correct? | Use these drafts |
 | Branding / logo; "Sutlej Feeds Breeders/Layer" for print header? | Use those names, no logo |
-| Feed: one item ("Feed All") or feed types? | Feed picker over `isFeed` items; seed has Feed All + 2 types |
+| Feed: one item ("Feed All") or feed types? | One item, Feed All (as in the client's item list) |
+| Units for the 1,970 items (the workbook has none) | Our guess by name — see `03-data-and-api.md` → Mock seed → Items |
+| Urdu names / aliases for the items | Only the ~60 everyday items; the rest show the category |
+| Duplicates and spelling variants ("Chain Lock No. 60(half)" / "Chian Lock No.60(half)"; 23 names in two categories) | Kept as separate items until the client merges them |
+| "Discard & Scrap": items or a status? | Items in their own category, as in the workbook |
 | Mortality: same Male/Female columns for layer farms & hatchery? Culls? | Male / Female everywhere |
 | Shed names and count per farm | 3–6 mock sheds ("Shed 1"…) |
 | SIS once a day or whenever issued? | Many per day allowed; "missing" = none today |
