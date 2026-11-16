@@ -62,7 +62,7 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 ### Changes from the client's issue list (30 Oct 2026)
 - **Save inputs** (`saveIGP`, `saveOGP`, `saveSIS`, `receiveTransfer`) now take `paperNo` (required, trimmed) and `date` (the slip's own date). The form sends `paperNo` with the type prefix (`"IGP-0123"`); the server compares paper numbers ignoring case and spaces.
 - The server sets `postedAt` itself; a correction gets its own `postedAt` and keeps the original's `paperNo`.
-- New errors (same ids on screen and API): `err.enterPaperNo` (path `paperNo`), `err.paperNoUsed` `{no}` (path `paperNo` — same farm, same type, not a correction), `err.dateFuture` and `err.dateTooOld` `{n: 30}` (path `date`). "Today" is the server's date.
+- New errors (same ids on screen and API): `err.enterPaperNo` (path `paperNo`), `err.paperNoUsed` `{no}` (path `paperNo` — same farm, same type, not a correction), `err.dateFuture` (path `date`; no lower limit — `err.dateTooOld` removed). "Today" is the server's date.
 - `SlipFilters.no` matches the system **or** paper number.
 - `getStockCard` rows' `ref` is the paper number (`slipNo()`: paper No. + `-C1` on corrections).
 - Home's "Today's slips" means **posted** today (`postedAt`), not dated today. Admin "Slips today" / missing-SIS still use `date`.
@@ -76,7 +76,7 @@ Rules for the mock (`src/lib/api/mock/engine.ts`; the seed goes through the same
 - Saves take a client-generated idempotency key so a double submit returns the first result.
 - Simulate latency (~300 ms) and an optional failure toggle so the Saving / Not saved states can be demoed.
 - Writes run on a copy of the store and are swapped in only on success.
-- Slip date between today − 30 and today; paper No. unique per farm + type (`checkSlipBase` in `src/lib/validation.ts`, called by every slip schema; the engine passes today and the used numbers through `RuleContext`).
+- Slip date any day up to today (no lower limit); paper No. unique per farm + type (`checkSlipBase` in `src/lib/validation.ts`, called by every slip schema; the engine passes today and the used numbers through `RuleContext`).
 - Corrections are new slips (`AW02-SIS-0213-C1`, `correctionOf` → original, original `status: "corrected"`); stock moves by the difference only. Cancel reverses the slip's net effect; refused if it would take an item below zero, or if the OGP's transfer was already received.
 - Session (mock login) is per browser tab (sessionStorage), so one tab can be a farm and another the admin.
 

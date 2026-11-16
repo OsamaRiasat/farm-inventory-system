@@ -357,7 +357,6 @@
   "err.enterPaperNo": "Enter the slip No. from the paper slip",
   "err.paperNoUsed": "No. {no} is already saved. Check the number.",
   "err.dateFuture": "Date can't be after today",
-  "err.dateTooOld": "Date can be at most {n} days back",
   "home.find": "Find a gate pass or item",
   "home.findHint": "Gate pass No. or item name",
   "home.findButton": "Find",

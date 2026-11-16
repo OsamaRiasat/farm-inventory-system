@@ -41,7 +41,7 @@ Progress is tracked in `docs/progress.md`.
 | --- | --- |
 | Show our automatic number or the paper book's? | Farm types the paper No. on every slip; farms and prints see only that. System number kept underneath, shown to the admin |
 | Paper No. repeated? | Refused per farm + slip type |
-| Can the slip date change? | Yes: arrival / dispatch / issue date, up to 30 days back, never future. Posting date shown separately |
+| Can the slip date change? | Yes: arrival / dispatch / issue date, any earlier date incl. previous months (client, 6 Nov 2026 — issue #18), never future. Posting date shown separately |
 | Feed & Mortality on the SIS? | Removed. Feed is an item line; mortality not recorded |
 | Ledger Folio on the SIS? | Typed by the storekeeper (their ledger page), not the item number |
 | Draft kept when leaving a slip? | No — every visit starts an empty slip |

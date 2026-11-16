@@ -88,7 +88,7 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 4 | Automatic numbers per farm (`AW02-IGP-1663`) | IGP number format; real slip numbers in the seed | Admin tables show it under the paper No. | ✓ |
 | 4 | Paper slip No. required, unique per farm + type | Paper No. test (required, case/space-insensitive, other farm / type ok, seed's SIS-0203 taken) | Saved banner + print show the paper No., not `AW02-…`; "already saved" under the No. box | ✓ |
 | 5 | Farm, date, time, number, Prepared by on every slip | Schemas require them | Missing No. listed in the save errors | ✓ |
-| 5a | Slip date: today − 30 … today; posted-on stamp automatic | Date window test (future, 31 days, 30 days ok, postedAt = today) | Future date refused; 2 days back saves; print shows Arrival date + Posted on | ✓ |
+| 5a | Slip date: any date up to today (previous months too); posted-on stamp automatic | Date test (future refused, 31 and 400 days back ok, postedAt = today) | Future date refused; 2 days back saves; print shows Arrival date + Posted on | ✓ |
 | 6 | Unit comes from the item, not editable | — | Week 3: Unit never focused or editable | Todo |
 | 7 | Nothing deleted; corrections point to the original | Correction keeps the original | Request → approve → original "Corrected" | ✓ |
 | 8 | Received transfer's OGP can't be cancelled | Transfer test | Week 5 A3 | Engine ✓ |

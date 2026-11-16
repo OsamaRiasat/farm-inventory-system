@@ -49,7 +49,7 @@ Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses
 3. **Balances are calculated from movements**, never typed.
 4. **System numbers automatic, per farm**: `AW05-SIS-0484`, `AW02-IGP-1663`, `AW02-OGP-1367`. The farm also types the **paper slip No.** (required); it is unique per farm and slip type ("No. IGP-0123 is already saved. Check the number."). Farm screens and prints show the paper No.
 5. Every slip has farm, paper No., date, time, posted-on stamp, system number, preparedBy.
-5a. **Slip date** (arrival / dispatch / issue) is today by default and can be changed: **never after today** ("Date can't be after today"), **at most 30 days back** ("Date can be at most 30 days back"). The stock check is against today's stock, whatever the date.
+5a. **Slip date** (arrival / dispatch / issue) is today by default and can be changed: **never after today** ("Date can't be after today"); **any earlier date is allowed**, previous months included (client issue #18, 6 Nov 2026). The stock check is against today's stock, whatever the date.
 6. **Unit comes from the item** and cannot be changed on a line.
 7. **Nothing is deleted.** Corrections point to the original; cancel reverses stock with a reason.
 8. An OGP whose transfer is already received **cannot be cancelled**.

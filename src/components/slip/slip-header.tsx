@@ -4,16 +4,14 @@ import { clsx } from "clsx";
 import { useState, type ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
 import { slipTypeStyle, TypeChip } from "@/components/layout/type-chip";
-import { addDays } from "@/lib/dates";
 import { useClock } from "@/lib/use-clock";
-import { MAX_DAYS_BACK } from "@/lib/validation";
 import { useCurrentFarm } from "@/components/layout/farm-gate";
 import type { SlipType } from "@/types/domain";
 import { useSlipErrors } from "./slip-errors";
 
 /**
  * C4 slip header: bilingual title, No. (the paper slip's number, typed), Farm / Hatchery, Posted on (automatic),
- * the slip's own date (arrival / dispatch / issue — up to 30 days back) and Time — the same on every slip.
+ * the slip's own date (arrival / dispatch / issue — any past date, never ahead) and Time — the same on every slip.
  */
 export function SlipHeader({ type, subtitle }: { type: SlipType; subtitle?: ReactNode }) {
   const posted = useClock("date");
@@ -107,7 +105,7 @@ function PaperNoField({ type }: { type: SlipType }) {
   );
 }
 
-/** The slip's date: today by default, can go back up to 30 days, never ahead. Submitted as "date". */
+/** The slip's date: today by default, any earlier date (previous months too), never ahead. Submitted as "date". */
 function DateField() {
   const iso = useClock("iso");
   const invalid = useSlipErrors().some((e) => e.path[0] === "date");
@@ -119,7 +117,6 @@ function DateField() {
         type="date"
         name="date"
         defaultValue={iso}
-        min={iso ? addDays(iso, -MAX_DAYS_BACK) : undefined}
         max={iso || undefined}
         aria-invalid={invalid || undefined}
         className={clsx("input num min-h-10 w-auto", invalid && "border-2 border-danger")}

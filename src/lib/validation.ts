@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { allowsDecimals, fmtQty } from "@/lib/format";
 import { t, type MsgId, type MsgValues } from "@/lib/i18n";
-import { addDays } from "@/lib/dates";
 import en from "@/messages/en.json";
 import type { Item, SlipType } from "@/types/domain";
 
@@ -16,9 +15,6 @@ export type RuleContext = {
   /** System number of this farm's slip that already has this paper number, if any. */
   paperNoUsed?: (type: SlipType, paperNo: string) => string | undefined;
 };
-
-/** How far back a slip's date may go. */
-export const MAX_DAYS_BACK = 30;
 
 export type FieldError = { path: (string | number)[]; id: MsgId; values?: MsgValues };
 
@@ -81,13 +77,10 @@ export const slipBase = z.object({
   idempotencyKey: required,
 });
 
-/** Date: not in the future, at most 30 days back. Paper number: not used before on this farm's slips of this type. */
+/** Date: any past date (earlier months too), never in the future. Paper number: not used before on this farm's slips of this type. */
 export function checkSlipBase(rules: RuleContext, type: SlipType, v: { date: string; paperNo: string }, ctx: Ctx) {
   if (rules.today) {
     if (v.date > rules.today) ctx.addIssue({ code: "custom", message: "err.dateFuture", path: ["date"] });
-    else if (v.date < addDays(rules.today, -MAX_DAYS_BACK)) {
-      ctx.addIssue({ code: "custom", message: "err.dateTooOld", params: { n: MAX_DAYS_BACK }, path: ["date"] });
-    }
   }
   const usedBy = v.paperNo ? rules.paperNoUsed?.(type, v.paperNo) : undefined;
   if (usedBy) ctx.addIssue({ code: "custom", message: "err.paperNoUsed", params: { no: v.paperNo }, path: ["paperNo"] });

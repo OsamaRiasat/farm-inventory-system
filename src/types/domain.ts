@@ -41,7 +41,7 @@ export interface SlipBase {
   paperNo: string;
   type: SlipType;
   farmId: string;
-  /** ISO date the goods came in (IGP) / went out (OGP) / were used (SIS). Up to 30 days back, never future. */
+  /** ISO date the goods came in (IGP) / went out (OGP) / were used (SIS). Any past date (previous months too), never future. */
   date: string;
   time: string; // HH:mm
   /** Local date-time the slip was saved ("posted"), automatic. */

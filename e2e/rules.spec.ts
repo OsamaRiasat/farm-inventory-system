@@ -7,7 +7,7 @@ import { addDays, today } from "@/lib/dates";
 import { farmBalances } from "@/lib/stock";
 
 const now = new Date(2026, 9, 27, 12, 0);
-// Saves without a seed time happen "now", so the slip date is today (the date rule allows 30 days back).
+// Saves without a seed time happen "now", so the slip date is today (any past date is allowed).
 const base = { date: today(), time: "12:00", preparedBy: "Test" };
 let n = 0;
 const key = () => `test-${n++}`;
@@ -148,17 +148,17 @@ test("cancel reverses the slip, and is refused when it would go below zero", () 
   expect(errorOf(() => engine.cancelSlip(s, { slipId: igp.id, reason: "x", by: "Admin" }))?.id).toBe("err.wouldGoNegative");
 });
 
-test("slip date: today or up to 30 days back, never in the future", () => {
+test("slip date: today or any earlier date (previous months too), never in the future", () => {
   const s = buildSeed(now);
   const sis = (date: string) =>
     errorOf(() =>
       engine.saveSIS(s, { ...base, date, farmId: "aw02", idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "gloves", qty: 1 }] }),
     );
   expect(sis(addDays(today(), 1))?.id).toBe("err.dateFuture");
-  expect(sis(addDays(today(), -31))).toEqual({ id: "err.dateTooOld", values: { n: 30 } });
-  expect(sis(addDays(today(), -30))).toBeNull();
+  expect(sis(addDays(today(), -31))).toBeNull();
+  expect(sis(addDays(today(), -400))).toBeNull();
   const saved = s.slips.at(-1)!;
-  expect(saved.date).toBe(addDays(today(), -30));
+  expect(saved.date).toBe(addDays(today(), -400));
   expect(saved.postedAt.slice(0, 10)).toBe(today());
 });
 

@@ -38,6 +38,7 @@ Update this file at the end of each work session: what's done, what's next, deci
   - #1 #3 #9 #11 Paper slip No.: `No. IGP- / OGP- / SIS-` box in the slip header (required, first field, unique per farm + type). Farm screens, banners and prints show it; the system number stays for the admin (under the paper No.) and the QR code. `SlipBase.paperNo`, `slipNo()` in `src/lib/slips.ts`.
   - #7 #8 #11 Slip dates: "Posted on" (automatic, `SlipBase.postedAt`) + editable Arrival / Dispatch / Issue date (today − 30 … today, rule in `checkSlipBase`). IGP's lower date relabelled "D. Challan Dated".
   - #6 Empty slip on every visit: Next.js 16 keeps left pages alive with `<Activity>`; `SlipForm` resets itself in a `useLayoutEffect` cleanup.
+- 2026-11-16 — **Client issue #18 (6 Nov 2026)**: slip date (Arrival / Dispatch / Issue) can be any earlier date, previous months included; still never after today. 30-day limit and `err.dateTooOld` removed (`checkSlipBase`, date field `min`).
   - #10 #16 Back: OGP save / receive replace the form in history; the print view's banner has New slip; slip Back links and `g h` go back instead of stacking Home again (`src/lib/nav-history.ts`); login replaces itself.
   - #12 SIS Feed & Mortality removed (`shedRows` optional, kept for old slips). #13 Qty 9 rem, Purpose wide, lines table from 768 px. #14 Ledger Folio typed per line (`lines[].ledgerFolio`).
   - #2 #5 Home Find (`/`, paper/system No., item, date → My slips; item searches show each slip's +/− qty). Today's slips = posted today, rows open the slip.
@@ -76,8 +77,9 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-10-27 — Reports are typed tables from the API (`ReportResult`), so one screen shows all eight.
 - 2026-10-27 — Admin stock card added at `/admin/stock/[farmId]/[itemId]` (A4's "link to each item's stock card").
 - 2026-11-03 — Paper slip No. typed by the farm and shown everywhere on the farm side; the automatic system number is kept (unique across farms, used in URLs, QR, transfers, admin). Repeats refused per farm + type.
-- 2026-11-03 — Slip date changeable up to 30 days back, never future; stock is checked against today's stock regardless of the date. Posted-on stamp kept separately.
+- 2026-11-03 — Slip date changeable up to 30 days back, never future (**superseded 2026-11-16**: no lower limit, client #18); stock is checked against today's stock regardless of the date. Posted-on stamp kept separately.
 - 2026-11-03 — SIS Feed & Mortality removed (client: mortality isn't stock, feed is an item). API still accepts and shows old shed rows.
 - 2026-11-03 — No slip drafts: a slip left without saving starts empty next time (replaces the planned sessionStorage draft).
 - 2026-11-03 — Excel export = CSV generated in the browser (no backend, no extra library).
 - 2026-11-05 — Demo uses the client's 1,970 items as written; units and missing Urdu names are our defaults until the client confirms.
+- 2026-11-16 — Slip date has no lower limit (client #18: "enable all dates, including previous months"). Back-dated slips are still checked against today's stock, not stock on that date.
