@@ -8,15 +8,21 @@ import { useSession } from "@/lib/session";
 import type { Farm } from "@/types/domain";
 import { GlobalShortcuts } from "./global-shortcuts";
 
-type CurrentFarm = { farm: Farm; userName: string };
+/** `area`: where the slip is being entered — the farm itself, or the Accounts Admin on the farm's behalf. */
+type CurrentFarm = { farm: Farm; userName: string; area?: "farm" | "admin" };
 
 const FarmContext = createContext<CurrentFarm | null>(null);
 
 /** The signed-in Farm User's farm. Only valid below <FarmGate>. */
-export function useCurrentFarm(): CurrentFarm {
+export function useCurrentFarm(): Required<CurrentFarm> {
   const value = useContext(FarmContext);
   if (!value) throw new Error("useCurrentFarm must be used inside <FarmGate>");
-  return value;
+  return { area: "farm", ...value };
+}
+
+/** Where a saved slip opens for whoever is entering it. */
+export function slipHref(area: "farm" | "admin", slipId: string) {
+  return `/${area}/slips/${encodeURIComponent(slipId)}`;
 }
 
 /** Waits for the session and the farm list; sends anyone who isn't a Farm User to the login. */
@@ -56,7 +62,7 @@ export function FarmGate({ children }: { children: ReactNode }) {
   );
 }
 
-/** Provides a farm without the gate — for the component review page. */
-export function CurrentFarmProvider({ farm, userName, children }: CurrentFarm & { children: ReactNode }) {
-  return <FarmContext.Provider value={{ farm, userName }}>{children}</FarmContext.Provider>;
+/** Provides a farm without the gate — for the admin's "New slip" and the component review page. */
+export function CurrentFarmProvider({ farm, userName, area = "farm", children }: CurrentFarm & { children: ReactNode }) {
+  return <FarmContext.Provider value={{ farm, userName, area }}>{children}</FarmContext.Provider>;
 }

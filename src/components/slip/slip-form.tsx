@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { CircleCheck, LoaderCircle, TriangleAlert } from "lucide-react";
 import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
-import { useCurrentFarm } from "@/components/layout/farm-gate";
+import { slipHref, useCurrentFarm } from "@/components/layout/farm-gate";
 import { isBlank, newIdempotencyKey, readSlipForm } from "@/features/form-data";
 import { ApiError } from "@/lib/api";
 import { useApiMutation, useItemMap, useStock } from "@/lib/api/queries";
@@ -51,7 +51,7 @@ export function SlipForm({
   children: ReactNode;
 }) {
   const router = useRouter();
-  const { farm, userName: preparedBy } = useCurrentFarm();
+  const { farm, userName: preparedBy, area } = useCurrentFarm();
   const items = useItemMap();
   const stock = useStock(withSummary ? farm.id : undefined).data;
   const mutation = useApiMutation(save);
@@ -134,7 +134,7 @@ export function SlipForm({
       setDirty(false);
       idempotencyKey.current = newIdempotencyKey();
       if (afterSave === "print") return router.replace(`/print/${encodeURIComponent(slip.id)}?saved=1`);
-      if (afterSave === "detail") return router.replace(`/farm/slips/${encodeURIComponent(slip.id)}?saved=1`);
+      if (afterSave === "detail") return router.replace(`${slipHref(area, slip.id)}?saved=1`);
       setSaved(slip);
       setFormKey((k) => k + 1);
       window.scrollTo({ top: 0 });
@@ -174,7 +174,7 @@ export function SlipForm({
             <Link href={`/print/${encodeURIComponent(saved.id)}`} className="btn min-h-10">
               <Bi id="slip.print" inline />
             </Link>
-            <Link href={`/farm/slips/${encodeURIComponent(saved.id)}`} className="btn min-h-10">
+            <Link href={slipHref(area, saved.id)} className="btn min-h-10">
               <Bi id="slip.view" inline />
             </Link>
             <button type="button" className="btn btn-primary min-h-10" onClick={startNew}>

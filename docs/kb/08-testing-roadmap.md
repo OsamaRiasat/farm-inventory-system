@@ -102,6 +102,7 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
 | — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), CSV downloads, Last 7 days opening balance | ✓ |
+| — | Admin enters a farm's slip (A12): same rules, Prepared by = admin | — | `admin-entry.spec.ts`: New slip menu by keyboard → choose farm → IGP saved as AW05-…; top-bar farm preselected + "Only n in stock"; Change farm asks first; admin stock count | ✓ |
 | — | 1,970-item list usable on a phone | — | `farm-flow.spec.ts`: F8 hides items at 0 until searched / asked; category shown when no Urdu name. `search.spec.ts` on the client's names | ✓ |
 
 ## Coverage today (all screens built, before the backend)
@@ -110,6 +111,8 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 56 tests after loading the client's 1,970 items (5 Nov 2026): search, keyboard and data cases moved to the client's item names; +1 F8 test.
 
 Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 rules · 10 search · 6 keyboard · 6 data · 2 phone (no sideways scroll on all 9 farm routes) · 13 journeys (IGP/SIS save + stock change, save errors, Not saved, leave prompt, transfer end to end in two tabs incl. QR target, correction request → approve, cancel, stock count, my slips search, A4 totals, reports + chart, setup + audit).
+
+72 tests after A12 admin slip entry (21 Nov 2026): +4 in `e2e/admin-entry.spec.ts`, A12 added to the admin Back check.
 
 Still to add: print/PDF page checks (`page.pdf()`), screenshot baselines, axe accessibility, performance budget, fixed test clock.
 

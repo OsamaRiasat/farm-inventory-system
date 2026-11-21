@@ -32,6 +32,7 @@ test("admin: Back on every page except the dashboard", async ({ page }) => {
   for (const path of [
     "/admin/slips",
     "/admin/slips/AW02-SIS-0203",
+    "/admin/slips/new/igp",
     "/admin/stock",
     "/admin/stock/aw02/diesel",
     "/admin/transfers",

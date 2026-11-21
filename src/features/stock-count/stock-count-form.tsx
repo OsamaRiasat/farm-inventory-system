@@ -25,7 +25,7 @@ import type { StockCount } from "@/types/domain";
  * see the difference, give a reason, save. Stock then equals the count. Replaces "Adjust Quantity on Hand".
  */
 export function StockCountForm() {
-  const { farm, userName } = useCurrentFarm();
+  const { farm, userName, area } = useCurrentFarm();
   const items = useItems();
   const stock = useStock(farm.id);
   const mutation = useApiMutation(api.saveStockCount);
@@ -114,7 +114,7 @@ export function StockCountForm() {
             <CircleCheck className="shrink-0 text-primary" aria-hidden />
             <Bi id="count.saved" values={{ no: saved.no }} />
           </span>
-          <Link href="/farm/stock" className="btn min-h-10">
+          <Link href={`/${area}/stock`} className="btn min-h-10">
             <Bi id="nav.stock" inline />
           </Link>
         </div>

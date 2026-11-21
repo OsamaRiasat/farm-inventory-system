@@ -107,9 +107,13 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
             <CircleCheck className="shrink-0 text-primary" aria-hidden />
             <Bi id="print.savedHint" values={{ no: slipNo(slip.data) }} />
           </span>
-          {session?.role === "farm" && (
-            // Replaces this page, so Back from the new slip goes Home, not to this pass.
-            <Link href={`/farm/${slip.data.type.toLowerCase()}/new`} replace className="btn btn-primary min-h-10">
+          {session && (
+            // Replaces this page, so Back from the new slip goes Home (or All slips), not to this pass.
+            <Link
+              href={session.role === "admin" ? `/admin/slips/new/${slip.data.type.toLowerCase()}` : `/farm/${slip.data.type.toLowerCase()}/new`}
+              replace
+              className="btn btn-primary min-h-10"
+            >
               <Plus size={18} aria-hidden />
               <Bi id="slip.newSlip" inline />
             </Link>

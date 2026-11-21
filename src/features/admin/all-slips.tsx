@@ -13,6 +13,7 @@ import { useFarms, useSlips } from "@/lib/api/queries";
 import { fmtDate } from "@/lib/dates";
 import { slipLineCount, slipNo, slipParty } from "@/lib/slips";
 import type { Slip } from "@/types/domain";
+import { NewSlipMenu } from "./new-slip";
 
 /** A2 — every slip from every farm (or the farm picked in the top bar), with filters. Rows open A3. */
 export function AllSlips() {
@@ -55,9 +56,12 @@ export function AllSlips() {
 
   return (
     <div className="flex flex-col gap-3">
-      <h1 className="text-xl font-semibold">
-        <Bi id="nav.slips" />
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">
+          <Bi id="nav.slips" />
+        </h1>
+        <NewSlipMenu />
+      </div>
       <FilterBar value={filters} onChange={setFilters} fields={["no", "type", "dates", "item", "status"]} />
       {slips.isError ? (
         <LoadError onRetry={() => slips.refetch()} />

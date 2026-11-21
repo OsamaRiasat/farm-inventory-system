@@ -28,6 +28,7 @@
 | A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit | P2 |
 | A10 | Users | `/admin/setup/users` | Admin | Mock data only | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
+| A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
 
 ## Farm User details
 - **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = CSV download, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
@@ -87,7 +88,8 @@ Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line. 
 Layout: left sidebar (Dashboard, Slips, Stock, Transfers, Corrections, Reports, Setup → Farms & sheds / Items / Users, Audit log; icons-only < 1024 px). Top bar farm filter (All farms / one) applies to every screen. Dense tables.
 
 - **A1:** five clickable tiles — Slips today, In transit, In transit > 2 days, Open shortfalls, Correction requests. "Farms today" table (11 rows: IGP, OGP, SIS ✓ or amber "missing", last slip time). Latest 20 slips (time, farm, No., type, first item).
-- **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No.
+- **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No. **New slip ▾** above the table: Inward Gate Pass / Outward Gate Pass / Stock Issue Slip / Stock count (↑ ↓ Enter, Esc closes) → A12.
+- **A12:** the admin types in a paper slip received from a farm. Farm picked in the top bar → used straight away; "All farms" → "Which farm is this slip from?" first (Enter continues). Then the farm's own form (same fields, paper No. required, same rules and messages) with an "Entering slip for AW-05 · Change farm" bar; the farm is fixed once the form opens, Change farm asks "Leave without saving?" and clears it. Prepared by = the admin's name (the audit log shows the admin). After saving, View opens A3; the OGP pass's New slip comes back to A12. Receiving a transfer stays with the farm (not in A12).
 - **A3:** F7 + **Correct** (editable qtys + required reason → before/after diff) + **Cancel** (reason; warns/blocks for received transfers). Original ↔ correction linked both ways.
 - **A4:** all-farms matrix (items × 11 farms + All Farms + In transit), sticky first column + header, category filter, search. One farm → F8 list with stock card links.
 - **A5:** OGP No., From, To, Sent, Received, Status, Shortfall, Age (days). Row opens sent vs received side by side + **Resolve** (write off with reason / keep open).
