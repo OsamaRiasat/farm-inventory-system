@@ -24,7 +24,7 @@
 | A5 | Transfers | `/admin/transfers` | Admin | Status, shortfall, age, Resolve | P1 |
 | A6 | Correction requests | `/admin/corrections` | Admin | Approve (→ correct flow) / Reject | P2 |
 | A7 | Reports | `/admin/reports/[type]` | Admin | The 8 reports | P2 |
-| A8 | Farms & sheds | `/admin/setup/farms` | Admin | Add/edit/deactivate | P2 |
+| A8 | Farms | `/admin/setup/farms` | Admin | Edit/deactivate (sheds hidden for now — not handled separately) | P2 |
 | A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit | P2 |
 | A10 | Users | `/admin/setup/users` | Admin | Mock data only | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
@@ -85,7 +85,7 @@ Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line. 
 - **F10:** category or all; system qty + counted input; difference highlighted; reason required.
 
 ## Accounts Admin details
-Layout: left sidebar (Dashboard, Slips, Stock, Transfers, Corrections, Reports, Setup → Farms & sheds / Items / Users, Audit log; icons-only < 1024 px). Top bar farm filter (All farms / one) applies to every screen. Dense tables.
+Layout: left sidebar (Dashboard, Slips, Stock, Transfers, Corrections, Reports, Setup → Farms / Items / Users, Audit log; icons-only < 1024 px). Top bar farm filter (All farms / one) applies to every screen. Dense tables.
 
 - **A1:** five clickable tiles — Slips today, In transit, In transit > 2 days, Open shortfalls, Correction requests. "Farms today" table (11 rows: IGP, OGP, SIS ✓ or amber "missing", last slip time). Latest 20 slips (time, farm, No., type, first item).
 - **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No. **New slip ▾** above the table: Inward Gate Pass / Outward Gate Pass / Stock Issue Slip / Stock count (↑ ↓ Enter, Esc closes) → A12.

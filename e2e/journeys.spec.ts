@@ -236,13 +236,17 @@ test("reports: feed & mortality chart for one farm, gate register filter, audit 
   await expect(page.locator("table.table tbody tr").first()).toBeVisible();
 });
 
-test("setup: add a shed and an item; both appear in the audit log", async ({ page }) => {
+test("setup: rename a farm and add an item; both appear in the audit log (sheds hidden)", async ({ page }) => {
   await signIn(page, { role: "admin" });
   await page.goto("/admin/setup/farms");
+  await expect(page.getByLabel(/New shed name/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Add shed/ })).toHaveCount(0);
   const card = page.locator("section").filter({ hasText: "AW-04" }).first();
-  await card.getByLabel(/New shed name/).fill("Shed 9");
-  await card.getByRole("button", { name: /Add shed/ }).click();
-  await expect(card.getByText("Shed 9")).toBeVisible();
+  await card.getByRole("button", { name: /Edit/ }).click();
+  const form = page.locator("form:visible").filter({ has: page.getByRole("checkbox") });
+  await form.getByLabel(/Name/).fill("Farm Nine");
+  await form.getByRole("button", { name: /Save/ }).click();
+  await expect(page.locator("section").filter({ hasText: "AW-04" }).getByText("Farm Nine")).toBeVisible();
 
   await page.goto("/admin/setup/items");
   await page.getByRole("button", { name: /Add item/ }).click();
@@ -256,5 +260,5 @@ test("setup: add a shed and an item; both appear in the audit log", async ({ pag
 
   await page.goto("/admin/audit");
   await expect(page.getByRole("row", { name: /Test Bucket/ })).toBeVisible();
-  await expect(page.getByRole("row", { name: /Shed 9/ })).toBeVisible();
+  await expect(page.getByRole("row", { name: /Farm Nine/ })).toBeVisible();
 });
