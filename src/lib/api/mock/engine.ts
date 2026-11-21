@@ -4,6 +4,7 @@
 import type { z } from "zod";
 import { igpSchema, receiveSchema } from "@/features/igp/schema";
 import { ogpSchema } from "@/features/ogp/schema";
+import { returnSchema, type ReturnableLine } from "@/features/sis/return-schema";
 import { sisSchema } from "@/features/sis/schema";
 import { stockCountSchema } from "@/features/stock-count/schema";
 import { nowStamp, today } from "@/lib/dates";
@@ -19,6 +20,7 @@ import type {
   Movement,
   OGP,
   SIS,
+  SISReturn,
   Slip,
   StockCount,
   Transfer,
@@ -39,6 +41,8 @@ export type MockState = {
   movements: Movement[];
   corrections: CorrectionRequest[];
   stockCounts: StockCount[];
+  /** "Return unused" entries on SIS slips. */
+  returns: SISReturn[];
   audit: AuditEntry[];
   /** farmId → "IGP" | "OGP" | "SIS" | "CNT" → last number used. */
   counters: Record<string, Record<string, number>>;
@@ -129,7 +133,7 @@ function audit(state: MockState, entry: Omit<AuditEntry, "id" | "at">, at?: stri
   state.audit.push({ id: newId(state, "a"), at: at ?? nowStamp(), ...entry });
 }
 
-function remembered<T extends Slip | StockCount>(state: MockState, key: string, list: T[]): T | undefined {
+function remembered<T extends Slip | StockCount | SISReturn>(state: MockState, key: string, list: T[]): T | undefined {
   const id = state.idempotency[key];
   return id ? list.find((r) => r.id === id) : undefined;
 }
@@ -336,6 +340,14 @@ export function correctSlip(state: MockState, input: CorrectionInput, opts: Save
     }
   }
 
+  if (corrected.type === "SIS") {
+    const returned = returnedPerLine(state, original);
+    for (const { index } of input.lines) {
+      const back = returned[index] ?? 0;
+      if (back > 0 && corrected.lines[index].qty < back) throw new ApiError("err.belowReturned", { n: fmtQty(back) });
+    }
+  }
+
   const before = slipDeltas(original);
   const after = slipDeltas(corrected);
   const deltas = after.map((a, i) => ({ itemId: a.itemId, delta: a.delta - (before[i]?.delta ?? 0) }));
@@ -396,7 +408,9 @@ export function cancelSlip(state: MockState, input: { slipId: string; reason: st
   const transfer = transferId ? state.transfers.find((t) => t.id === transferId) : undefined;
   if (slip.type === "OGP" && transfer && transfer.status !== "in_transit") throw new ApiError("err.cannotCancelReceived");
 
-  const ids = new Set(chain(state, slip).map((s) => s.id));
+  // An SIS's returns are part of its effect: only what was really used (issued − returned) goes back.
+  const returns = returnsOf(state, slip);
+  const ids = new Set([...chain(state, slip).map((s) => s.id), ...returns.map((r) => r.id)]);
   const net = new Map<string, number>();
   for (const m of state.movements) {
     if (ids.has(m.slipId)) net.set(m.itemId, (net.get(m.itemId) ?? 0) + m.qtyIn - m.qtyOut);
@@ -405,6 +419,11 @@ export function cancelSlip(state: MockState, input: { slipId: string; reason: st
   assertNotNegative(state, slip.farmId, reversal);
   addMovements(state, slip, reversal);
   slip.status = "cancelled";
+  const stamp = opts.at ?? nowStamp();
+  for (const r of returns.filter((x) => x.status === "saved")) {
+    r.status = "cancelled";
+    r.cancelled = { by: input.by, at: stamp, reason: input.reason.trim() };
+  }
 
   if (transfer && slip.type === "OGP") transfer.status = "cancelled";
   if (transfer && slip.type === "IGP") {
@@ -418,6 +437,99 @@ export function cancelSlip(state: MockState, input: { slipId: string; reason: st
     opts.at,
   );
   return slip;
+}
+
+// ── return unused (SIS) ─────────────────────────────────────────────────
+
+/** Every version of a slip: the latest correction and all it replaces. */
+function family(state: MockState, slip: Slip) {
+  let head = slip;
+  while (head.correctedBy) head = getSlip(state, head.correctedBy);
+  return chain(state, head);
+}
+
+/** Returns saved on any version of this SIS (cancelled ones too), oldest first. */
+export function returnsOf(state: MockState, slip: Slip): SISReturn[] {
+  if (slip.type !== "SIS") return [];
+  const ids = new Set(family(state, slip).map((s) => s.id));
+  return state.returns
+    .filter((r) => ids.has(r.sisId))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.postedAt.localeCompare(b.postedAt));
+}
+
+/** Quantity already returned per SIS line (saved returns only). */
+export function returnedPerLine(state: MockState, slip: Slip): number[] {
+  const totals = slip.lines.map(() => 0);
+  for (const r of returnsOf(state, slip)) {
+    if (r.status !== "saved") continue;
+    for (const l of r.lines) totals[l.lineIndex] = Math.round(((totals[l.lineIndex] ?? 0) + l.qty) * 1000) / 1000;
+  }
+  return totals;
+}
+
+export function returnableLines(state: MockState, sis: SIS): ReturnableLine[] {
+  const returned = returnedPerLine(state, sis);
+  return sis.lines.map((l, i) => ({ itemId: l.itemId, issued: l.qty, returned: returned[i] ?? 0 }));
+}
+
+/** Farm User or Admin: unused items come back from a saved SIS. Stock goes up on the return date. */
+export function returnUnused(state: MockState, input: unknown, opts: SaveOpts = {}): SISReturn {
+  const done = remembered(state, keyOf(input), state.returns);
+  if (done) return done;
+  const sis = getSlip(state, String((input as { sisId?: unknown })?.sisId ?? ""));
+  if (sis.type !== "SIS") throw new ApiError("err.notFound");
+  if (sis.status !== "saved") throw new ApiError("err.alreadyClosed");
+  const v = parse(returnSchema(ruleContext(state, sis.farmId, opts.at), { date: sis.date, lines: returnableLines(state, sis) }), input);
+
+  const no = `${sis.no.replace(/-C\d+$/, "")}-R${returnsOf(state, sis).length + 1}`;
+  const record: SISReturn = {
+    id: no,
+    no,
+    sisId: sis.id,
+    farmId: sis.farmId,
+    date: v.date,
+    postedAt: opts.at ?? nowStamp(),
+    by: v.by,
+    lines: v.lines.map((l) => ({ lineIndex: l.lineIndex, itemId: sis.lines[l.lineIndex].itemId, qty: l.qty })),
+    remarks: v.remarks || undefined,
+    status: "saved",
+  };
+  state.returns.push(record);
+  addMovements(state, record, record.lines.map((l) => ({ itemId: l.itemId, delta: l.qty })));
+  state.idempotency[v.idempotencyKey] = record.id;
+  audit(
+    state,
+    {
+      user: v.by,
+      farmId: sis.farmId,
+      action: "return",
+      recordId: sis.id,
+      recordNo: no,
+      new: record.lines.map((l) => `+${fmtQty(l.qty)}`).join(", "),
+      reason: record.remarks,
+    },
+    opts.at,
+  );
+  return record;
+}
+
+/** Admin: a return entered by mistake. Stock goes back down, and never below zero. */
+export function cancelReturn(state: MockState, input: { returnId: string; reason: string; by: string }, opts: SaveOpts = {}): SISReturn {
+  const record = state.returns.find((r) => r.id === input.returnId);
+  if (!record) throw new ApiError("err.notFound");
+  if (record.status !== "saved") throw new ApiError("err.returnClosed");
+  if (!input.reason.trim()) throw new ApiError("err.enterReason");
+  const reversal = record.lines.map((l) => ({ itemId: l.itemId, delta: -l.qty }));
+  assertNotNegative(state, record.farmId, reversal);
+  addMovements(state, record, reversal);
+  record.status = "cancelled";
+  record.cancelled = { by: input.by, at: opts.at ?? nowStamp(), reason: input.reason.trim() };
+  audit(
+    state,
+    { user: input.by, farmId: record.farmId, action: "cancel_return", recordId: record.sisId, recordNo: record.no, reason: record.cancelled.reason },
+    opts.at,
+  );
+  return record;
 }
 
 export function requestCorrection(state: MockState, input: CorrectionRequestInput, opts: SaveOpts = {}) {

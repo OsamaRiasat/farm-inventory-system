@@ -99,6 +99,7 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 11 | In transit > 2 days flagged | — | Admin dashboard test | Screen ✓ |
 | 12 | Double save → one slip | Idempotency test | Save button disabled while saving; key per slip | Engine ✓ |
 | — | Whole numbers only for Qty items | Whole-number test | Week 3 | Engine ✓ |
+| 13 | Return unused: ≤ issued − returned, date between issue date and today, once per key, saved SIS only; admin cancel never below zero; correction not below returned; SIS cancel reverses issued − returned | 4 return tests + seed example | `journeys.spec.ts`: keyboard return (over-limit message, stock preview, Used column, stock card row) → admin cancels; `phone.spec.ts`: sheet fits 360 px | ✓ |
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
 | — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), CSV downloads, Last 7 days opening balance | ✓ |
@@ -113,6 +114,8 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 rules · 10 search · 6 keyboard · 6 data · 2 phone (no sideways scroll on all 9 farm routes) · 13 journeys (IGP/SIS save + stock change, save errors, Not saved, leave prompt, transfer end to end in two tabs incl. QR target, correction request → approve, cancel, stock count, my slips search, A4 totals, reports + chart, setup + audit).
 
 72 tests after A12 admin slip entry (21 Nov 2026): +4 in `e2e/admin-entry.spec.ts`, A12 added to the admin Back check.
+
+78 tests after Return unused (21 Nov 2026): +4 rules, +1 journey (farm by keyboard → admin cancels), +1 phone.
 
 Still to add: print/PDF page checks (`page.pdf()`), screenshot baselines, axe accessibility, performance budget, fixed test clock.
 

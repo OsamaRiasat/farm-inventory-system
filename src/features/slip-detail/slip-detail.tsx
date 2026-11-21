@@ -9,12 +9,15 @@ import { TypeChip } from "@/components/layout/type-chip";
 import { PrintFrame } from "@/components/slip/print-frame";
 import { SlipBody } from "@/components/slip/slip-body";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
-import { useAudit, useCorrectionRequests, useFarms, useItemMap, useSlip } from "@/lib/api/queries";
+import { useAudit, useCorrectionRequests, useFarms, useItemMap, useReturns, useSlip } from "@/lib/api/queries";
 import { fmtStamp } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import { slipNo } from "@/lib/slips";
 import type { MsgId, MsgValues } from "@/lib/i18n";
 import { CancelDialog } from "./cancel-dialog";
+import { CancelReturnDialog } from "./cancel-return";
+import { FarmReturnUnused, ReturnUnusedDialog } from "./return-unused";
+import { returnedByLine, ReturnsList } from "./returns-list";
 import { CorrectPanel } from "./correct-panel";
 import { RequestCorrectionDialog } from "./request-correction";
 import { slipHref, type DetailMode } from "./util";
@@ -24,7 +27,7 @@ export { slipHref, type DetailMode } from "./util";
 
 /**
  * F7 / A3 — the slip laid out like the paper, read-only, with its history.
- * Farm: Print, Request correction. Admin: Print, Correct, Cancel.
+ * Farm: Print, Return unused (SIS), Request correction. Admin: Print, Return unused, Correct, Cancel, Cancel return.
  */
 export function SlipDetail(props: DetailProps) {
   // Typed corrections, reasons and open panels start fresh when you come back to this page.
@@ -58,6 +61,7 @@ function SlipDetailView({
   const farmId = slip.data?.farmId;
   const audit = useAudit({ farmId });
   const requests = useCorrectionRequests({ farmId });
+  const returns = useReturns(slipId, slip.data?.type === "SIS");
   const [correcting, setCorrecting] = useState(!!requestId);
   const [notice, setNotice] = useState<{ id: MsgId; values?: MsgValues } | null>(null);
 
@@ -80,6 +84,12 @@ function SlipDetailView({
   const mine = (requests.data ?? []).filter((r) => r.slipId === s.id);
   const request = requestId ? mine.find((r) => r.id === requestId && r.status === "open") : undefined;
   const editable = s.status === "saved";
+  const sisReturns = s.type === "SIS" ? (returns.data ?? []) : [];
+  const returned = s.type === "SIS" ? returnedByLine(sisReturns, s.lines.length) : undefined;
+  const returnable =
+    s.type === "SIS" && editable && returns.data
+      ? s.lines.map((l, i) => ({ itemId: l.itemId, issued: l.qty, returned: returned?.[i] ?? 0 }))
+      : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,6 +103,12 @@ function SlipDetailView({
           <Printer size={18} aria-hidden />
           <Bi id="slip.print" inline />
         </Link>
+        {s.type === "SIS" && returnable && mode === "farm" && (
+          <FarmReturnUnused slip={s} items={items} lines={returnable} onSaved={() => setNotice({ id: "ret.saved" })} />
+        )}
+        {s.type === "SIS" && returnable && mode === "admin" && (
+          <ReturnUnusedDialog slip={s} items={items} lines={returnable} by="Accounts Admin" onSaved={() => setNotice({ id: "ret.saved" })} />
+        )}
         {mode === "farm" && editable && <RequestCorrectionDialog slip={s} items={items} onSent={() => setNotice({ id: "detail.requestSent" })} />}
         {mode === "admin" && editable && !correcting && (
           <button type="button" className="btn" onClick={() => setCorrecting(true)}>
@@ -180,7 +196,16 @@ function SlipDetailView({
             status={s.status}
             size="screen"
           >
-            <SlipBody slip={s} items={items} farms={farms} />
+            <SlipBody slip={s} items={items} farms={farms} returned={returned} />
+            <ReturnsList
+              returns={sisReturns}
+              items={items}
+              action={
+                mode === "admin"
+                  ? (r) => <CancelReturnDialog record={r} onCancelled={() => setNotice({ id: "ret.cancelDone" })} />
+                  : undefined
+              }
+            />
           </PrintFrame>
         </div>
       )}

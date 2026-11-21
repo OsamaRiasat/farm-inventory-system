@@ -51,7 +51,7 @@ export function StockCard({ farmId, itemId, slipHrefBase }: { farmId: string; it
 
   function exportExcel() {
     if (!item) return;
-    const label = (m: (typeof all)[number]) => (m.kind === "OPENING" ? "Opening balance" : m.ref);
+    const label = (m: (typeof all)[number]) => (m.kind === "OPENING" ? "Opening balance" : m.returnOf ? `${m.ref} ${t("ret.cardLabel").en}` : m.ref);
     downloadCsv(`${farmId} ${item.name} ${range.from || "start"} to ${range.to || today()}`, [
       ["Item", item.name, item.nameUr, unit],
       ["From", range.from ? fmtDate(range.from) : "", "To", range.to ? fmtDate(range.to) : fmtDate(today())],
@@ -172,9 +172,13 @@ export function StockCard({ farmId, itemId, slipHrefBase }: { farmId: string; it
                     ) : m.kind === "COUNT" ? (
                       <span className="num">{m.ref}</span>
                     ) : (
-                      <Link href={`${slipHrefBase}/${encodeURIComponent(m.slipId)}`} className="flex items-center gap-2 text-primary underline">
+                      <Link
+                        href={`${slipHrefBase}/${encodeURIComponent(m.returnOf ?? m.slipId)}`}
+                        className="flex flex-wrap items-center gap-2 text-primary underline"
+                      >
                         <TypeChip type={m.kind} />
                         <span className="num whitespace-nowrap">{m.ref}</span>
+                        {m.returnOf && <Bi id="ret.cardLabel" inline className="text-sm" />}
                       </Link>
                     )}
                   </td>

@@ -16,6 +16,7 @@ export const keys = {
   waiting: (farmId?: string) => ["waiting", farmId] as const,
   slips: (filters: SlipFilters) => ["slips", filters] as const,
   slip: (id: string) => ["slip", id] as const,
+  returns: (slipId: string) => ["returns", slipId] as const,
   dashboard: ["dashboard"] as const,
   stockMatrix: ["stockMatrix"] as const,
   stockCard: (farmId: string, itemId: string) => ["stockCard", farmId, itemId] as const,
@@ -74,6 +75,11 @@ export function useSlips(filters: SlipFilters, enabled = true) {
 
 export function useSlip(id: string) {
   return useQuery({ queryKey: keys.slip(id), queryFn: () => api.getSlip(id) });
+}
+
+/** "Return unused" entries on an SIS. */
+export function useReturns(slipId: string, enabled = true) {
+  return useQuery({ queryKey: keys.returns(slipId), queryFn: () => api.listReturns(slipId), enabled });
 }
 
 export function useDashboard() {

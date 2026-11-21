@@ -16,6 +16,8 @@ export function buildReport(s: MockState, type: ReportType, f: ReportFilters): R
     return true;
   };
   const slipById = new Map(s.slips.map((x) => [x.id, x]));
+  // "Return unused" movements belong to their SIS: they open it and count against its use.
+  for (const r of s.returns) slipById.set(r.id, slipById.get(r.sisId)!);
   const byTime = (a: Slip, b: Slip) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
   // The version of each slip that counts: corrected originals are replaced by their correction.
   const effective = s.slips.filter((x) => x.status === "saved");
@@ -71,7 +73,7 @@ export function buildReport(s: MockState, type: ReportType, f: ReportFilters): R
         columns,
         rows: stockCard(s.movements, f.farmId, f.itemId)
           .filter((m) => inRange(m.date))
-          .map((m) => ({ date: m.date, ref: slipById.has(m.slipId) ? m.slipId : m.slipId === "opening" ? null : m.slipId, in: m.qtyIn || null, out: m.qtyOut || null, balance: m.balance })),
+          .map((m) => ({ date: m.date, ref: slipById.get(m.slipId)?.id ?? (m.slipId === "opening" ? null : m.slipId), in: m.qtyIn || null, out: m.qtyOut || null, balance: m.balance })),
       };
     }
 
@@ -217,7 +219,7 @@ export function buildReport(s: MockState, type: ReportType, f: ReportFilters): R
           { key: "by", label: "rep.by", kind: "text" },
         ],
         rows: s.audit
-          .filter((a) => ["correct", "cancel", "count", "resolve_shortfall"].includes(a.action) && farmOk(a.farmId) && inRange(a.at.slice(0, 10)))
+          .filter((a) => ["correct", "cancel", "cancel_return", "count", "resolve_shortfall"].includes(a.action) && farmOk(a.farmId) && inRange(a.at.slice(0, 10)))
           .sort((a, b) => b.at.localeCompare(a.at))
           .map((a) => ({
             at: a.at,

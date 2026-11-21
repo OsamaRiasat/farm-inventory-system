@@ -88,6 +88,28 @@ export interface SIS extends SlipBase {
 
 export type Slip = IGP | OGP | SIS;
 
+/**
+ * Unused items brought back after an SIS ("Return unused"). The SIS stays as issued; stock goes up on the
+ * return date. Points at the SIS it was saved on (later corrections of that SIS keep its returns).
+ * No paper slip exists for returns, so there is no paperNo.
+ */
+export interface SISReturn {
+  id: string;
+  no: string; // AW02-SIS-0484-R1
+  /** The SIS (or its correction) the return was saved on. */
+  sisId: string;
+  farmId: string;
+  /** ISO date the items came back: not before the issue date, never after today. */
+  date: string;
+  postedAt: string;
+  by: string;
+  /** lineIndex = the SIS line the items came back from. */
+  lines: { lineIndex: number; itemId: string; qty: number }[];
+  remarks?: string;
+  status: "saved" | "cancelled";
+  cancelled?: { by: string; at: string; reason: string };
+}
+
 export interface Transfer {
   id: string;
   ogpId: string;
@@ -106,7 +128,7 @@ export interface Movement {
   id: string;
   farmId: string;
   itemId: string;
-  /** Slip id, stock count id, or "opening" for opening balances. */
+  /** Slip id, SIS return id, stock count id, or "opening" for opening balances. */
   slipId: string;
   date: string;
   qtyIn: number;
@@ -160,6 +182,8 @@ export interface AuditEntry {
     | "receive"
     | "correct"
     | "cancel"
+    | "return"
+    | "cancel_return"
     | "count"
     | "request_correction"
     | "reject_correction"

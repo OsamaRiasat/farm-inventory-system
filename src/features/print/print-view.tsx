@@ -9,7 +9,8 @@ import { PrintFrame } from "@/components/slip/print-frame";
 import { QrCode } from "@/components/slip/qr-code";
 import { SlipBody } from "@/components/slip/slip-body";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
-import { useFarms, useItemMap, useSlip } from "@/lib/api/queries";
+import { returnedByLine, ReturnsList } from "@/features/slip-detail/returns-list";
+import { useFarms, useItemMap, useReturns, useSlip } from "@/lib/api/queries";
 import { useSession } from "@/lib/session";
 import { slipNo } from "@/lib/slips";
 import type { Slip } from "@/types/domain";
@@ -38,6 +39,7 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
   const router = useRouter();
   const session = useSession();
   const slip = useSlip(slipId);
+  const returns = useReturns(slipId, slip.data?.type === "SIS").data ?? [];
   const farms = useFarms().data ?? [];
   const items = useItemMap();
   const initialSize = useSyncExternalStore(noSubscribe, storedSize, () => "A5" as const);
@@ -140,7 +142,13 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
               size={size}
               qr={origin ? <QrCode value={qrTarget(slip.data, origin)} /> : null}
             >
-              <SlipBody slip={slip.data} items={items} farms={farms} />
+              <SlipBody
+                slip={slip.data}
+                items={items}
+                farms={farms}
+                returned={slip.data.type === "SIS" ? returnedByLine(returns, slip.data.lines.length) : undefined}
+              />
+              {slip.data.type === "SIS" && <ReturnsList returns={returns} items={items} />}
             </PrintFrame>
           </div>
         </div>

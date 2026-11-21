@@ -6,6 +6,7 @@ import type { Movement, OGP, IGP, Slip, SlipStatus, SlipType, Transfer } from "@
 export type { IgpInput, ReceiveInput } from "@/features/igp/schema";
 export type { OgpInput } from "@/features/ogp/schema";
 export type { SisInput } from "@/features/sis/schema";
+export type { ReturnInput } from "@/features/sis/return-schema";
 export type { StockCountInput } from "@/features/stock-count/schema";
 
 export type SlipFilters = {
@@ -33,6 +34,8 @@ export type StockCardRow = Movement & {
   /** Slip number, stock count number, or "Opening balance". */
   ref: string;
   kind: SlipType | "COUNT" | "OPENING";
+  /** Set on a "Return unused" row: the SIS the items came back from (open this, not the movement's id). */
+  returnOf?: string;
 };
 
 export type TransferView = { transfer: Transfer; ogp: OGP; igp?: IGP };

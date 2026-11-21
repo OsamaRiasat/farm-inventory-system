@@ -67,6 +67,7 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 - `getStockCard` rows' `ref` is the paper number (`slipNo()`: paper No. + `-C1` on corrections).
 - Home's "Today's slips" means **posted** today (`postedAt`), not dated today. Admin "Slips today" / missing-SIS still use `date`.
 - **Remarks (21 Nov 2026):** `IGP.remarks?` and `OGP.remarks?` — optional, trimmed, ≤ 200 characters (`err.remarksTooLong`, path `remarks`), blank → not stored. Accepted by `saveIGP`, `saveOGP` and `receiveTransfer`. Corrections keep it unchanged. Shown on F7 / A3 and printed only when present. Not searched by `SlipFilters` (yet).
+- **Return unused (21 Nov 2026):** new type `SISReturn { id, no, sisId, farmId, date, postedAt, by, lines: {lineIndex, itemId, qty}[], remarks?, status: "saved" | "cancelled", cancelled? }`. API: `listReturns(slipId)` (all versions of that SIS, oldest first, cancelled included), `returnUnused({ sisId, date, by, remarks?, lines: [{lineIndex, qty}], idempotencyKey })`, `cancelReturn({ returnId, reason, by })`. Rules in `src/features/sis/return-schema.ts`. Number `<SIS system no. without -Cn>-R<n>`; no paper No. Movements point at the return id (stock up; cancel = same id, stock down). `StockCardRow.returnOf` = the SIS to open. Errors: `err.onlyReturnable {n}`, `err.returnBeforeIssue`, `err.noReturnQty`, `err.belowReturned {n}` (correction), `err.returnClosed`. Audit actions `return` / `cancel_return` (recordId = the SIS). Consumption report counts returns against their SIS (use = issued − returned).
 - Excel export is done in the browser as CSV (UTF-8 with BOM so Excel shows Urdu) from data the screens already have; no API function. A backend may later serve real `.xlsx`.
 
 Screens call these through TanStack Query hooks in `src/lib/api/queries.ts`. Every API error is an `ApiError` with a message id (+ values and field errors), so the screen shows the rule's own words.
@@ -83,7 +84,7 @@ Rules for the mock (`src/lib/api/mock/engine.ts`; the seed goes through the same
 
 ## Mock seed (`src/lib/api/mock/seed.ts` + `seed/farms.json`, `seed/items.json`)
 
-Deterministic (same demo after every reset), relative to today, ~250 slips. `MOCK_VERSION` 3 (the client's full item list; 2 added paper numbers + posted stamps): older saved demo data is replaced on load. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date. Check it with `npx playwright test e2e/rules.spec.ts`.
+Deterministic (same demo after every reset), relative to today, ~250 slips. `MOCK_VERSION` 4 (4 added SIS returns; 3 the client's full item list; 2 added paper numbers + posted stamps): older saved demo data is replaced on load. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date. Check it with `npx playwright test e2e/rules.spec.ts`.
 - **Farms:** the 11 sites, each with 3–6 sheds.
 - **Items:** the client's full list, `docs/source/All Inventory Items By Names.xlsx` — **1,970 items in 18 categories**, names exactly as the client wrote them (spelling variants and duplicates kept until the client cleans them). Item No. = position in that workbook (1–1,970). Categories use the cleaned names from `requirements.md` (Shed Items, Generator Items, Oil Filter, Air Filter, Printing & Stationery, Discard & Scrap; the rest as written).
   - **Units are our guess** (the workbook has none): vaccines and injections VIAL, tablets QTY, powders KG, other medicines LTR; diesel, petrol, oils LTR; chips, husk, choona, cement BG; wire, cable, tape ROLL; sugar, salt, tea KG; everything else QTY. To be confirmed by the client.
@@ -91,5 +92,6 @@ Deterministic (same demo after every reset), relative to today, ~250 slips. `MOC
   - Only one feed item (Feed All); layer farms use it too.
 - **Balances (opening movements):** every farm holds the everyday items; each also holds ~6% of the other items, so lists look real. E.g. Patoki: Feed All 23,739 KG, Diesel 2,550 LTR, Nylon Rope 80, Aqua Kair 300, HCL 240 LTR, Accid Pro 200 LTR, Chips 7,552 BG, Drill Machine 6.
 - **Slips:** ~2 weeks of history incl. Hatchery OGP-46 → Patoki IGP-1662 (egg boxes 180, egg trays 9,000, chappals 90, worker uniforms 10, assistant uniforms 5, foil 14 rolls, Gentylo 100 vials), OGP-1366 drill machine 6 → 5 to Layer-04 Khan, SIS-203 at Patoki; one transfer in transit, one short transfer, one corrected slip.
+- **Return unused:** AW-01, 4 days ago — 60 LTR diesel issued for the generator, 15 LTR returned the same evening.
 - **Users:** one Farm User per farm + one Accounts Admin.
 - Real SIS example (AW-05 No. 483): feed 6,067 KG, Mort Male 2, Female 7.

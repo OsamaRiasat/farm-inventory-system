@@ -15,6 +15,7 @@ import type {
   ReportFilters,
   ReportResult,
   ReportType,
+  ReturnInput,
   SlipFilters,
   StockCardRow,
   StockMatrix,
@@ -132,7 +133,12 @@ export const mockApi = {
 
   getStockCard: (farmId: string, itemId: string) =>
     read((s): StockCardRow[] =>
-      stockCard(s.movements, farmId, itemId).map((m) => {
+      stockCard(s.movements, farmId, itemId).map((m): StockCardRow => {
+        const back = s.returns.find((r) => r.id === m.slipId);
+        if (back) {
+          const sis = engine.getSlip(s, back.sisId);
+          return { ...m, ref: slipNo(sis), kind: "SIS", returnOf: sis.id };
+        }
         const slip = s.slips.find((x) => x.id === m.slipId);
         const count = slip ? undefined : s.stockCounts.find((c) => c.id === m.slipId);
         return {
@@ -149,6 +155,12 @@ export const mockApi = {
   saveIGP: (input: unknown) => write((s) => engine.saveIGP(s, input)),
   saveOGP: (input: unknown) => write((s) => engine.saveOGP(s, input)),
   saveSIS: (input: unknown) => write((s) => engine.saveSIS(s, input)),
+
+  // ── return unused (SIS) ──
+  /** Returns on this SIS (any version of it), oldest first, cancelled ones included. */
+  listReturns: (slipId: string) => read((s) => engine.returnsOf(s, engine.getSlip(s, slipId))),
+  returnUnused: (input: ReturnInput) => write((s) => engine.returnUnused(s, input)),
+  cancelReturn: (input: { returnId: string; reason: string; by: string }) => write((s) => engine.cancelReturn(s, input)),
 
   // ── transfers ──
   listWaitingTransfers: (farmId: string) =>

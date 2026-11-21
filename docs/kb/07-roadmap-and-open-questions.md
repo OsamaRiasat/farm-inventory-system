@@ -35,6 +35,7 @@ Progress is tracked in `docs/progress.md`.
 | Printers: A5 or A4? Which farms? | A5 default, A4 option |
 | Phone models for testing | Test at 360 px |
 | View-only login for Head Office / Purchase? | Not built; keep actions role-gated so it's easy to add |
+| Return unused after an SIS: does the farm write a paper note for it? Can the Farm User do it without the Admin? | No paper note: system number `AW02-SIS-0484-R1`, no paper No. Farm User returns on their own SIS; only the Admin cancels a wrong return (21 Nov 2026) |
 
 ## Answered (client issue list, 29–30 Oct 2026)
 | Question | Answer |

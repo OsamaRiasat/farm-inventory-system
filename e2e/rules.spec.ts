@@ -37,6 +37,8 @@ test("seed has the real slips and never goes below zero", () => {
   expect(s.slips.some((x) => x.status === "corrected")).toBe(true);
   expect(s.slips.some((x) => x.status === "cancelled")).toBe(true);
   expect(s.corrections.filter((r) => r.status === "open")).toHaveLength(1);
+  // One "Return unused" example: AW-01, 60 LTR diesel issued, 15 back.
+  expect(s.returns.map((r) => [r.farmId, r.lines[0].itemId, r.lines[0].qty])).toEqual([["aw01", "diesel", 15]]);
 });
 
 test("IGP raises stock by Qty Actual Received, numbers follow the farm's sequence", () => {
@@ -218,4 +220,93 @@ test("IGP / OGP Remarks are optional, kept as typed (Urdu too), at most 200 char
     remarks: "Sample for the supplier",
   });
   expect(ogp.remarks).toBe("Sample for the supplier");
+});
+
+// ── Return unused (SIS) ──
+function issueDiesel(s: engine.MockState, qty: number) {
+  return engine.saveSIS(s, {
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
+    lines: [{ itemId: "diesel", qty, purpose: "Generator" }, { itemId: "gloves", qty: 2 }],
+  });
+}
+const giveBack = (s: engine.MockState, sisId: string, lines: { lineIndex: number; qty: number }[], extra: object = {}) =>
+  engine.returnUnused(s, { sisId, date: today(), by: "Test", idempotencyKey: key(), lines, ...extra });
+
+test("return unused: 1,000 issued, 200 back → stock +200, used 800; the SIS stays as issued", () => {
+  const s = buildSeed(now);
+  const start = stock(s, "aw02", "diesel");
+  const sis = issueDiesel(s, 1000);
+  expect(stock(s, "aw02", "diesel")).toBe(start - 1000);
+
+  const r = giveBack(s, sis.id, [{ lineIndex: 0, qty: 200 }], { remarks: "جنریٹر جلدی ٹھیک ہو گیا" });
+  expect(r.no).toBe(`${sis.no}-R1`);
+  expect(r.lines).toEqual([{ lineIndex: 0, itemId: "diesel", qty: 200 }]);
+  expect(stock(s, "aw02", "diesel")).toBe(start - 800);
+  expect((engine.getSlip(s, sis.id) as typeof sis).lines[0].qty).toBe(1000);
+  expect(engine.returnedPerLine(s, sis)).toEqual([200, 0]);
+  expect(s.audit.at(-1)).toMatchObject({ action: "return", recordId: sis.id, recordNo: r.no });
+
+  // Partial returns add up; more than is left is refused with the screen's words.
+  giveBack(s, sis.id, [{ lineIndex: 0, qty: 50 }]);
+  expect(errorOf(() => giveBack(s, sis.id, [{ lineIndex: 0, qty: 751 }]))).toEqual({ id: "err.onlyReturnable", values: { n: "750" } });
+  expect(errorOf(() => giveBack(s, sis.id, [{ lineIndex: 1, qty: 1.5 }]))?.id).toBe("err.wholeNumber");
+  expect(errorOf(() => giveBack(s, sis.id, []))?.id).toBe("err.noReturnQty");
+  expect(stock(s, "aw02", "diesel")).toBe(start - 750);
+});
+
+test("return unused: date between the issue date and today; same save twice = one return; only on a saved SIS", () => {
+  const s = buildSeed(now);
+  const sis = issueDiesel(s, 10);
+  expect(errorOf(() => giveBack(s, sis.id, [{ lineIndex: 0, qty: 1 }], { date: addDays(today(), 1) }))?.id).toBe("err.dateFuture");
+  expect(errorOf(() => giveBack(s, sis.id, [{ lineIndex: 0, qty: 1 }], { date: addDays(today(), -1) }))?.id).toBe("err.returnBeforeIssue");
+
+  const input = { sisId: sis.id, date: today(), by: "Test", idempotencyKey: "return-twice", lines: [{ lineIndex: 0, qty: 3 }] };
+  const a = engine.returnUnused(s, input);
+  const b = engine.returnUnused(s, input);
+  expect(b.id).toBe(a.id);
+  expect(s.returns.filter((r) => r.sisId === sis.id)).toHaveLength(1);
+
+  const igp = s.slips.find((x) => x.type === "IGP" && x.status === "saved")!;
+  expect(errorOf(() => giveBack(s, igp.id, [{ lineIndex: 0, qty: 1 }]))?.id).toBe("err.notFound");
+  engine.cancelSlip(s, { slipId: sis.id, reason: "x", by: "Admin" });
+  expect(errorOf(() => giveBack(s, sis.id, [{ lineIndex: 0, qty: 1 }]))?.id).toBe("err.alreadyClosed");
+});
+
+test("return unused: admin cancels a return (never below zero); corrections and SIS cancel respect returns", () => {
+  const s = buildSeed(now);
+  const start = stock(s, "aw02", "diesel");
+  const sis = issueDiesel(s, 1000);
+  const r = giveBack(s, sis.id, [{ lineIndex: 0, qty: 200 }]);
+
+  // Correction can't go below what came back; the correction keeps the SIS's returns.
+  expect(errorOf(() => engine.correctSlip(s, { slipId: sis.id, lines: [{ index: 0, qty: 150 }], reason: "x", by: "Admin" }))).toEqual({
+    id: "err.belowReturned",
+    values: { n: "200" },
+  });
+  const corrected = engine.correctSlip(s, { slipId: sis.id, lines: [{ index: 0, qty: 900 }], reason: "x", by: "Admin" });
+  expect(stock(s, "aw02", "diesel")).toBe(start - 700);
+  expect(engine.returnedPerLine(s, corrected)).toEqual([200, 0]);
+  const r2 = giveBack(s, corrected.id, [{ lineIndex: 0, qty: 100 }]);
+  expect(r2.no).toBe(`${sis.no}-R2`);
+  expect(errorOf(() => giveBack(s, corrected.id, [{ lineIndex: 0, qty: 601 }]))?.values).toEqual({ n: "600" });
+
+  // Cancel a return: stock back down, reason kept, can't cancel twice.
+  expect(errorOf(() => engine.cancelReturn(s, { returnId: r2.id, reason: " ", by: "Admin" }))?.id).toBe("err.enterReason");
+  engine.cancelReturn(s, { returnId: r2.id, reason: "Typed at the wrong slip", by: "Admin" });
+  expect(stock(s, "aw02", "diesel")).toBe(start - 700);
+  expect(s.returns.find((x) => x.id === r2.id)?.cancelled?.reason).toBe("Typed at the wrong slip");
+  expect(errorOf(() => engine.cancelReturn(s, { returnId: r2.id, reason: "x", by: "Admin" }))?.id).toBe("err.returnClosed");
+
+  // Cancelling the SIS puts back only what was really used (900 − 200 = 700) and closes its returns.
+  engine.cancelSlip(s, { slipId: corrected.id, reason: "Wrong farm", by: "Admin" });
+  expect(stock(s, "aw02", "diesel")).toBe(start);
+  expect(s.returns.find((x) => x.id === r.id)?.status).toBe("cancelled");
+});
+
+test("return unused: a cancelled return that would take stock below zero is refused", () => {
+  const s = buildSeed(now);
+  const sis = issueDiesel(s, stock(s, "aw02", "diesel"));
+  const r = giveBack(s, sis.id, [{ lineIndex: 0, qty: 5 }]);
+  engine.saveSIS(s, { ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "diesel", qty: 5 }] });
+  expect(errorOf(() => engine.cancelReturn(s, { returnId: r.id, reason: "x", by: "Admin" }))?.id).toBe("err.wouldGoNegative");
 });

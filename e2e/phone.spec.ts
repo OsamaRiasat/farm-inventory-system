@@ -36,3 +36,16 @@ test("no horizontal scroll on slip screens", async ({ page }) => {
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
 });
+
+test("return unused sheet fits a 360 px phone and works by touch", async ({ page }) => {
+  await page.goto("/farm/slips/AW02-SIS-0203");
+  await page.getByRole("button", { name: /Return unused/ }).tap();
+  const sheet = page.locator("dialog[open]");
+  await expect(sheet.locator('input[name="lines.0.qty"]')).toBeVisible();
+  const box = await sheet.boundingBox();
+  expect(box!.width).toBeLessThanOrEqual(360);
+  const overflow = await sheet.evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await sheet.getByRole("button", { name: /Close/ }).tap();
+  await expect(page.locator("dialog[open]")).toHaveCount(0);
+});

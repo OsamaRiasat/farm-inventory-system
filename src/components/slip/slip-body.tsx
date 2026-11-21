@@ -14,14 +14,14 @@ type Ctx = { items: Map<string, Item>; farms: Farm[] };
  * The slip's fields and table in the paper slip's order. Used inside the print frame for print (S2)
  * and for the read-only slip on screen (F7 / A3).
  */
-export function SlipBody({ slip, items, farms }: { slip: Slip } & Ctx) {
+export function SlipBody({ slip, items, farms, returned }: { slip: Slip; /** SIS: quantity returned unused per line. */ returned?: number[] } & Ctx) {
   switch (slip.type) {
     case "IGP":
       return <IgpBody slip={slip} items={items} farms={farms} />;
     case "OGP":
       return <OgpBody slip={slip} items={items} farms={farms} />;
     case "SIS":
-      return <SisBody slip={slip} items={items} farms={farms} />;
+      return <SisBody slip={slip} items={items} farms={farms} returned={returned} />;
   }
 }
 
@@ -195,7 +195,9 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
   );
 }
 
-function SisBody({ slip, items, farms }: { slip: SIS } & Ctx) {
+function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: number[] } & Ctx) {
+  // Once something came back: Quantity (as issued) · Returned · Used.
+  const hasReturns = !!returned?.some((n) => n > 0);
   const farm = farms.find((f) => f.id === slip.farmId);
   const shedName = (id?: string) => farm?.sheds.find((s) => s.id === id)?.name ?? "";
   const mortMale = slip.shedRows.reduce((n, r) => n + r.mortMale, 0);
@@ -209,6 +211,8 @@ function SisBody({ slip, items, farms }: { slip: SIS } & Ctx) {
             <H id="line.srNo" />
             <H id="line.nameOfItem" />
             <H id="line.quantity" right />
+            {hasReturns && <H id="ret.returned" right />}
+            {hasReturns && <H id="ret.used" right />}
             <H id="line.ledgerFolio" />
             <H id="line.purpose" />
           </tr>
@@ -221,6 +225,8 @@ function SisBody({ slip, items, farms }: { slip: SIS } & Ctx) {
                 {items.get(r.feedItemId)?.name} — {shedName(r.shedId)}
               </td>
               <td className="num text-right">{fmtQty(r.feedKg)} KG</td>
+              {hasReturns && <td />}
+              {hasReturns && <td />}
               <td className="num">{items.get(r.feedItemId)?.number}</td>
               <td className="num">
                 <Bi id="sis.mortMale" inline /> {r.mortMale} · <Bi id="sis.mortFemale" inline /> {r.mortFemale}
@@ -238,6 +244,12 @@ function SisBody({ slip, items, farms }: { slip: SIS } & Ctx) {
                 <td className="num text-right">
                   {fmtQty(l.qty)} {unitOf(item)}
                 </td>
+                {hasReturns && <td className="num text-right">{returned![i] ? `${fmtQty(returned![i])} ${unitOf(item)}` : ""}</td>}
+                {hasReturns && (
+                  <td className="num text-right font-semibold" data-used={i}>
+                    {fmtQty(Math.round((l.qty - (returned![i] ?? 0)) * 1000) / 1000)} {unitOf(item)}
+                  </td>
+                )}
                 <td className="num">{l.ledgerFolio}</td>
                 <td dir="auto">
                   {l.purpose}

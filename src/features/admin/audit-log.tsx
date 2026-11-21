@@ -23,7 +23,7 @@ export function AuditLog() {
   if (audit.isError) return <LoadError onRetry={() => audit.refetch()} />;
   const users = [...new Set((audit.data ?? []).map((a) => a.user))].sort();
   const rows = (audit.data ?? []).filter((a) => (!user || a.user === user) && (!from || a.at.slice(0, 10) >= from) && (!to || a.at.slice(0, 10) <= to));
-  const isSlip = (a: AuditEntry) => ["save", "receive", "correct", "cancel", "request_correction", "reject_correction"].includes(a.action);
+  const isSlip = (a: AuditEntry) => ["save", "receive", "correct", "cancel", "return", "cancel_return", "request_correction", "reject_correction"].includes(a.action);
 
   const columns: Column<AuditEntry>[] = [
     { key: "at", header: <Bi id="rep.when" />, cell: (a) => <span className="num whitespace-nowrap">{fmtStamp(a.at)}</span>, sortValue: (a) => a.at },

@@ -14,7 +14,7 @@ import type { MockState } from "./engine";
 import farmsJson from "./seed/farms.json";
 import itemsJson from "./seed/items.json";
 
-export const MOCK_VERSION = 3;
+export const MOCK_VERSION = 4;
 const ADMIN = "Accounts Admin";
 
 const SUPPLIERS = {
@@ -83,6 +83,7 @@ export function buildSeed(now = new Date()): MockState {
     movements: [],
     corrections: [],
     stockCounts: [],
+    returns: [],
     audit: [],
     counters: {},
     idempotency: {},
@@ -301,6 +302,16 @@ export function buildSeed(now = new Date()): MockState {
     [-4]: () => {
       // In transit for more than 2 days.
       transfer("aw01", "aw3a", addDays(todayIso, -4), "10:30", [["nylon-rope", 20]], "Iqbal", "LEC-7782");
+      // Return unused: 60 LTR diesel issued for the generator, 15 LTR brought back the same evening.
+      const date = addDays(todayIso, -4);
+      const issued = sis(farm("aw01"), date, "08:15", [], [["diesel", 60, "جنریٹر"]]);
+      if (issued) {
+        engine.returnUnused(
+          state,
+          { sisId: issued.id, date, by: userOf("aw01"), idempotencyKey: key(), remarks: "جنریٹر جلدی ٹھیک ہو گیا", lines: [{ lineIndex: 0, qty: 15 }] },
+          { at: at(date, "18:10") },
+        );
+      }
     },
     [-3]: () => {
       // Corrected slip: diesel typed as 58 instead of 85.

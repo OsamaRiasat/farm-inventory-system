@@ -25,6 +25,7 @@ The app: the farm's one data-entry person fills in **the same three slips** on p
 | **Arrival / Dispatch / Issue date** | The slip's own date: when goods came in (IGP), went out (OGP) or were used (SIS). Today by default, changeable |
 | **Posted on** | When the slip was saved in the app, automatic |
 | **Purpose of Use** | Free text (Urdu or English) on SIS lines |
+| **Return unused / بچا ہوا واپس** | Items issued on an SIS but not used, brought back into stock (e.g. 1,000 LTR diesel issued, 800 used → 200 returned). The SIS stays as issued and shows **Issued / Returned / Used**. Stock **up** on the return date. No paper slip: numbered `AW02-SIS-0484-R1` (21 Nov 2026) |
 | **Mort Male / Mort Female** | Mortality counts per shed per day, on old SIS slips only. Never affected stock |
 | **In transit** | Left on an OGP to another farm, not yet received. Belongs to neither farm |
 | **Out for repair** | Left on an OGP to outside party (repair) until back on an IGP |
@@ -39,6 +40,7 @@ Never use accounting words in the Farm User UI (debit, credit, adjustment, vendo
 | Sees | Own farm only | All farms + All Farms totals |
 | Enters | IGP, OGP, SIS, receive transfers, stock counts | Same, for any farm |
 | Changes saved slip | No — "Request correction" with reason | Correct / Cancel (original kept) |
+| Return unused (SIS) | Yes, on own farm's saved SIS | Yes, any farm; also cancels a wrong return |
 | Manages | Nothing | Farms, sheds, items, units, users |
 
 Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses A1–A5, A7 with actions hidden.
@@ -57,6 +59,7 @@ Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses
 10. Shortfall (received < challan/sent) is **amber, not an error** — the slip still saves.
 11. Transfer in transit > 2 days (configurable) → flagged on the admin dashboard.
 12. **Double save must not create two slips** (button disables + idempotency on the save call).
+13. **Return unused (SIS):** only on a saved SIS; per line qty > 0 and **≤ issued − already returned** ("Only 200 can be returned"); several partial returns allowed; return date not before the issue date ("Return date can't be before the issue date") and never after today. A wrong return is cancelled by the Admin with a reason (stock back down, never below zero). A correction can't set a line below what was returned ("200 already returned on this line…"). Cancelling the SIS reverses only issued − returned and closes its returns.
 
 ## Transfers
 OGP (farm A → farm B) creates a Transfer `in_transit`. Farm B sees it under "Waiting to receive" → opens F3 (IGP pre-filled from the OGP; only Qty Actual Received is entered). Result: `received` or `short`. Admin resolves shortfalls (write off with reason, or keep open).

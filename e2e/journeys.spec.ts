@@ -262,3 +262,57 @@ test("setup: rename a farm and add an item; both appear in the audit log (sheds 
   await expect(page.getByRole("row", { name: /Test Bucket/ })).toBeVisible();
   await expect(page.getByRole("row", { name: /Farm Nine/ })).toBeVisible();
 });
+
+test("return unused: farm brings back diesel by keyboard, SIS shows Used, stock card row; admin cancels the return", async ({ context }) => {
+  const farm = await context.newPage();
+  await signIn(farm, { role: "farm", farmId: "aw02" });
+  const before = await stockOf(farm, "diesel");
+  await farm.goto("/farm/sis/new");
+  await fillPaperNo(farm, "9301");
+  await pickItem(farm, "diesel");
+  await farm.keyboard.type("10");
+  await farm.keyboard.press("Control+s");
+  await farm.keyboard.press("Enter");
+  await expect(farm.getByRole("status").filter({ hasText: "saved" })).toContainText("SIS-9301 saved");
+
+  await farm.goto("/farm/slips?q=SIS-9301");
+  await farm.locator("ul.card a").first().click();
+  const slipUrl = farm.url();
+  await farm.getByRole("button", { name: /Return unused/ }).focus();
+  await farm.keyboard.press("Enter");
+  const sheet = farm.locator("dialog[open]");
+  await expect(sheet.locator('input[name="lines.0.qty"]')).toBeFocused();
+  await expect(sheet).toContainText("Can return 10 LTR");
+
+  // More than was issued: refused with the rule's words, nothing saved.
+  await farm.keyboard.type("11");
+  await farm.keyboard.press("Control+s");
+  await expect(sheet.getByRole("alert")).toContainText("Only 10 can be returned");
+  await sheet.locator('input[name="lines.0.qty"]').fill("4");
+  await expect(sheet).toContainText(`Stock: ${(before - 10).toLocaleString("en-US")} → ${(before - 6).toLocaleString("en-US")} LTR`);
+  await farm.keyboard.press("Enter"); // → Return date
+  await farm.keyboard.press("Enter"); // → Remarks
+  await farm.keyboard.type("Generator fixed early");
+  await farm.keyboard.press("Control+s");
+
+  await expect(farm.getByText("Return saved. Stock is back up.")).toBeVisible();
+  await expect(farm.locator("dialog[open]")).toHaveCount(0);
+  await expect(farm.locator('[data-used="0"]')).toContainText("6 LTR");
+  await expect(farm.locator("[data-return]")).toContainText("+4");
+  await expect(farm.locator("[data-return]")).toContainText("Generator fixed early");
+  expect(await stockOf(farm, "diesel")).toBe(before - 6);
+  await expect(farm.locator("tbody tr").filter({ hasText: "SIS-9301" }).filter({ hasText: "Returned" })).toContainText("+4");
+
+  const admin = await context.newPage();
+  await signIn(admin, { role: "admin" });
+  await admin.goto(slipUrl.replace("/farm/", "/admin/"));
+  await admin.getByRole("button", { name: /Cancel return/ }).click();
+  const dialog = admin.locator("dialog[open]");
+  await expect(dialog.getByRole("button", { name: /Keep it/ })).toBeFocused();
+  await dialog.getByLabel(/Reason/).fill("Typed on the wrong slip");
+  await dialog.getByRole("button", { name: /Cancel the return/ }).click();
+  await expect(admin.getByText("Return cancelled", { exact: true })).toBeVisible();
+  await expect(admin.locator("[data-return]")).toContainText("Typed on the wrong slip");
+  await expect(admin.locator('[data-used="0"]')).toHaveCount(0);
+  expect(await stockOf(farm, "diesel")).toBe(before - 10);
+});
