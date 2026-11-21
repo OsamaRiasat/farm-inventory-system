@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, text, type RuleContext } from "@/lib/validation";
+import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, remarks, slipBase, text, type RuleContext } from "@/lib/validation";
 
 const destination = z.discriminatedUnion(
   "kind",
@@ -24,6 +24,7 @@ export function ogpSchema(rules: RuleContext) {
       lines: z
         .array(z.object({ itemId: z.string(), qty: positiveQty, weightKg: z.number().min(0).optional() }))
         .min(1, "err.noLines"),
+      remarks,
     })
     .superRefine((v, ctx) => {
       checkSlipBase(rules, "OGP", v, ctx);

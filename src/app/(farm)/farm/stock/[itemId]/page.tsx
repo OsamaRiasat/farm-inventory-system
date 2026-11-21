@@ -6,7 +6,7 @@ import { FarmStockCard } from "@/features/farm/farm-stock-card";
 // F9 — Item stock card.
 export default function StockCardPage({ params }: PageProps<"/farm/stock/[itemId]">) {
   return (
-    <FarmShell active="stock">
+    <FarmShell active="stock" back="/farm/stock">
       <Suspense fallback={<SkeletonRows rows={6} />}>
         <WithParams params={params} />
       </Suspense>

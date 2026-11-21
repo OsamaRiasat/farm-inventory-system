@@ -6,7 +6,7 @@ import { FarmSlipDetail } from "@/features/farm/farm-slip-detail";
 // F7 — Slip detail (read-only, print, request correction).
 export default function SlipDetailPage({ params, searchParams }: PageProps<"/farm/slips/[id]">) {
   return (
-    <FarmShell active="slips">
+    <FarmShell active="slips" back="/farm/slips">
       <Suspense fallback={<SkeletonRows rows={6} />}>
         <WithParams params={params} searchParams={searchParams} />
       </Suspense>

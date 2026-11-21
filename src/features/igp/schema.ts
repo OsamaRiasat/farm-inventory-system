@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fmtQty } from "@/lib/format";
-import { checkItemAndUnit, checkSlipBase, optionalText, positiveQty, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
+import { checkItemAndUnit, checkSlipBase, optionalText, positiveQty, remarks, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
 
 const igpLine = z.object({
   itemId: z.string(),
@@ -25,6 +25,7 @@ export function igpSchema(rules: RuleContext) {
       challanNo: optionalText,
       challanDate: optionalText,
       lines: z.array(igpLine).min(1, "err.noLines"),
+      remarks,
     })
     .superRefine((v, ctx) => {
       checkSlipBase(rules, "IGP", v, ctx);
@@ -42,6 +43,7 @@ export function receiveSchema(rules: RuleContext, sent: { itemId: string; qty: n
       lines: z
         .array(z.object({ qtyReceived: zeroOrMore, weightKg: z.number().min(0).optional() }))
         .length(sent.length, "err.required"),
+      remarks,
     })
     .superRefine((v, ctx) => {
       checkSlipBase(rules, "IGP", v, ctx);

@@ -2,6 +2,7 @@
 
 import { SlipForm, type BaseInput, type BuiltInput, type SlipFormData } from "@/components/slip/slip-form";
 import { SlipHeader } from "@/components/slip/slip-header";
+import { RemarksField } from "@/components/slip/remarks-field";
 import { SlipLines, type LineCol } from "@/components/slip/slip-lines";
 import { Field, TextInput } from "@/components/ui/field";
 import { api } from "@/lib/api";
@@ -9,11 +10,11 @@ import { isBlank, num, opt } from "../form-data";
 import { IgpSource } from "./igp-source";
 
 const cols: LineCol[] = [
-  { key: "item", label: "line.item", kind: "item", width: "2fr", required: true },
+  { key: "item", label: "line.item", kind: "item", width: "minmax(9rem, 2fr)", required: true },
   { key: "unit", label: "line.unit", kind: "unit", width: "4.5rem" },
-  { key: "qtyChallan", label: "line.qtyChallan", kind: "qty", width: "1fr", required: true },
-  { key: "qtyReceived", label: "line.qtyReceived", kind: "qty", width: "1fr", required: true },
-  { key: "weight", label: "line.weight", kind: "weight", width: "0.8fr" },
+  { key: "qtyChallan", label: "line.qtyChallan", kind: "qty", width: "minmax(6.5rem, 1fr)", required: true },
+  { key: "qtyReceived", label: "line.qtyReceived", kind: "qty", width: "minmax(6.5rem, 1fr)", required: true },
+  { key: "weight", label: "line.weight", kind: "weight", width: "minmax(7rem, 0.8fr)" },
 ];
 
 /** F2 New Inward Gate Pass. Fields in the paper slip's order. */
@@ -45,6 +46,7 @@ export function IgpForm() {
         </Field>
       </section>
       <SlipLines cols={cols} rules={{ shortfall: true }} />
+      <RemarksField />
     </SlipForm>
   );
 }
@@ -67,6 +69,7 @@ function buildIgp({ fields, lines }: SlipFormData, base: BaseInput): BuiltInput 
         qtyReceived: num(r.qtyReceived),
         weightKg: num(r.weight),
       })),
+      remarks: opt(fields.remarks),
     },
     lineRows: filled.map(([row]) => row),
   };

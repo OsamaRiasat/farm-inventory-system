@@ -40,6 +40,19 @@ function Facts({ facts }: { facts: [MsgId, ReactNode][] }) {
   );
 }
 
+/** IGP / OGP Remarks under the table, only when the farm wrote some (a blank slip stays like the paper). */
+function Remarks({ text }: { text?: string }) {
+  if (!text) return null;
+  return (
+    <p className="mt-3">
+      <span className="font-semibold">
+        <Bi id="slip.remarks" inline />:
+      </span>{" "}
+      <span dir="auto">{text}</span>
+    </p>
+  );
+}
+
 function H({ id, right }: { id: MsgId; right?: boolean }) {
   return (
     <th className={clsx(right && "text-right")}>
@@ -123,6 +136,7 @@ function IgpBody({ slip, items, farms }: { slip: IGP } & Ctx) {
           })}
         </tbody>
       </table>
+      <Remarks text={slip.remarks} />
     </>
   );
 }
@@ -176,6 +190,7 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
           })}
         </tbody>
       </table>
+      <Remarks text={slip.remarks} />
     </>
   );
 }

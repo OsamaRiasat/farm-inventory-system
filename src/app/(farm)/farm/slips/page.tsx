@@ -6,7 +6,7 @@ import { MySlipsFromUrl } from "@/features/farm/my-slips";
 // F6 — My slips. Reads ?q= / ?date= from Home's Find, so the list sits inside <Suspense>.
 export default function MySlipsPage() {
   return (
-    <FarmShell active="slips">
+    <FarmShell active="slips" back="/farm">
       <Suspense fallback={<SkeletonRows rows={6} />}>
         <MySlipsFromUrl />
       </Suspense>

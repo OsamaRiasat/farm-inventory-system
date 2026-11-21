@@ -72,6 +72,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
   }, [rows, uid]);
 
   const lastEditable = [...cols].reverse().find((c) => EDITABLE.has(c.kind) && !c.readOnly)?.key;
+  const hasUnitCol = cols.some((c) => c.kind === "unit");
   const gridCols = ["2.5rem", ...cols.map((c) => c.width), ...(fixed ? [] : ["2.5rem"])].join(" ");
 
   function addLine() {
@@ -114,7 +115,8 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
       addLine();
     } else if (isLast && index > 0 && target.dataset.kind === "item" && !target.value) {
       e.preventDefault();
-      document.querySelector<HTMLElement>("[data-save]")?.focus();
+      // Remarks (IGP / OGP) comes before Save in the form, so this lands there first.
+      target.form?.querySelector<HTMLElement>("[data-after-lines], [data-save]")?.focus();
     }
   }
 
@@ -189,6 +191,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
                     name={`lines.${index}.${c.key}`}
                     labelId={`${uid}-${row.id}-${c.key}`}
                     isLast={c.key === lastEditable}
+                    hasUnitCol={hasUnitCol}
                     invalid={check.invalid.has(c.key)}
                     farmId={farm.id}
                     stock={showStock ? stock : undefined}
@@ -247,6 +250,7 @@ function Cell({
   name,
   labelId,
   isLast,
+  hasUnitCol,
   invalid,
   farmId,
   stock,
@@ -259,6 +263,8 @@ function Cell({
   name: string;
   labelId: string;
   isLast: boolean;
+  /** The table shows the unit in its own column from 768px up, so the qty box needn't repeat it. */
+  hasUnitCol: boolean;
   invalid: boolean;
   farmId: string;
   stock?: Map<string, number>;
@@ -321,6 +327,7 @@ function Cell({
             value={value}
             onChange={onValue}
             suffix={item ? t(`unit.${item.unit}`).en : undefined}
+            suffixPhoneOnly={hasUnitCol}
             decimals={item ? allowsDecimals(item.unit) : true}
             readOnly={col.readOnly}
             tabIndex={col.readOnly ? -1 : undefined}

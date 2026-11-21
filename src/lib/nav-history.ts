@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-// Keeps the browser history short: going "up" (Back link, g h) returns to the page we came from
+// Keeps the browser history short: Back links and `g h` return to the page we came from
 // instead of stacking another copy of it, so the phone's Back button never walks through old slips.
 
 type Router = { back: () => void; replace: (href: string) => void };
@@ -11,7 +11,7 @@ type Router = { back: () => void; replace: (href: string) => void };
 let current: string | null = null;
 let previous: string | null = null;
 
-/** Mounted once in the farm layout (inside <Suspense>): remembers the last two in-app pages. */
+/** Mounted once in the farm and admin layouts (inside <Suspense>): remembers the last two in-app pages. */
 export function NavTracker() {
   const path = usePathname();
   useEffect(() => {
@@ -26,4 +26,10 @@ export function NavTracker() {
 export function goUp(router: Router, href: string) {
   if (previous === href) router.back();
   else router.replace(href);
+}
+
+/** The Back link: the previous in-app page if there is one; opened directly (no in-app history) → `fallback`. */
+export function goBack(router: Router, fallback: string) {
+  if (previous !== null) router.back();
+  else router.replace(fallback);
 }

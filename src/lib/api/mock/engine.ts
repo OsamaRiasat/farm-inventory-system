@@ -217,6 +217,7 @@ export function saveIGP(state: MockState, input: unknown, opts: SaveOpts = {}): 
     challanNo: v.challanNo,
     challanDate: v.challanDate,
     lines: v.lines,
+    remarks: v.remarks || undefined,
   };
   if (v.source.kind === "supplier" && !state.suppliers.includes(v.source.ms)) state.suppliers.push(v.source.ms);
   return commitSlip(state, slip, v.idempotencyKey, opts) as IGP;
@@ -234,6 +235,7 @@ export function saveOGP(state: MockState, input: unknown, opts: SaveOpts = {}): 
     driverName: v.driverName,
     vehicleNo: v.vehicleNo,
     lines: v.lines,
+    remarks: v.remarks || undefined,
   };
   if (v.to.kind === "farm") {
     const transfer: Transfer = {
@@ -283,6 +285,7 @@ export function receiveTransfer(state: MockState, input: unknown, opts: SaveOpts
       qtyReceived: v.lines[i].qtyReceived,
       weightKg: v.lines[i].weightKg,
     })),
+    remarks: v.remarks || undefined,
   };
   transfer.igpId = slip.id;
   transfer.receivedAt = `${slip.date}T${slip.time}`;

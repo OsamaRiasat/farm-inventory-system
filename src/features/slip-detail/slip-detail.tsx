@@ -18,6 +18,7 @@ import { CancelDialog } from "./cancel-dialog";
 import { CorrectPanel } from "./correct-panel";
 import { RequestCorrectionDialog } from "./request-correction";
 import { slipHref, type DetailMode } from "./util";
+import { ResetOnHide } from "@/lib/on-hide";
 
 export { slipHref, type DetailMode } from "./util";
 
@@ -25,13 +26,16 @@ export { slipHref, type DetailMode } from "./util";
  * F7 / A3 — the slip laid out like the paper, read-only, with its history.
  * Farm: Print, Request correction. Admin: Print, Correct, Cancel.
  */
-export function SlipDetail({
-  slipId,
-  mode,
-  onlyFarmId,
-  justSaved,
-  requestId,
-}: {
+export function SlipDetail(props: DetailProps) {
+  // Typed corrections, reasons and open panels start fresh when you come back to this page.
+  return (
+    <ResetOnHide>
+      <SlipDetailView {...props} />
+    </ResetOnHide>
+  );
+}
+
+type DetailProps = {
   slipId: string;
   mode: DetailMode;
   /** Farm User: slips of other farms are "not found". */
@@ -39,7 +43,15 @@ export function SlipDetail({
   justSaved?: boolean;
   /** Admin opened this from a correction request (A6 → Approve). */
   requestId?: string;
-}) {
+};
+
+function SlipDetailView({
+  slipId,
+  mode,
+  onlyFarmId,
+  justSaved,
+  requestId,
+}: DetailProps) {
   const slip = useSlip(slipId);
   const farms = useFarms().data ?? [];
   const items = useItemMap();

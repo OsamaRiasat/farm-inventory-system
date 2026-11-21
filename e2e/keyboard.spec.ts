@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
 });
 
-test("OGP: item search → qty → weight → new line → Save, without the mouse", async ({ page }) => {
+test("OGP: item search → qty → weight → new line → Remarks → Save, without the mouse", async ({ page }) => {
   await page.goto("/farm/ogp/new");
   const item = page.locator('[data-kind="item"]').first();
   await item.focus();
@@ -23,6 +23,9 @@ test("OGP: item search → qty → weight → new line → Save, without the mou
   await page.keyboard.press("Enter");
   await expect(page.locator('input[name$=".item"]')).toHaveCount(2);
   expect(await focused(page)).toBe("item");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("remarks");
+  await page.keyboard.type("ڈرائیور کل واپس لائے گا");
   await page.keyboard.press("Enter");
   expect(await focused(page)).toBe("save");
 });

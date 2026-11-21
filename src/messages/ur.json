@@ -28,6 +28,8 @@
   "slip.date": "تاریخ",
   "slip.time": "وقت",
   "slip.change": "تبدیل کریں",
+  "slip.remarks": "ریمارکس",
+  "err.remarksTooLong": "ریمارکس: زیادہ سے زیادہ 200 حروف",
   "slip.preparedBy": "تیار کنندہ",
   "slip.save": "محفوظ کریں",
   "slip.saving": "محفوظ ہو رہا ہے…",

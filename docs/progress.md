@@ -51,6 +51,8 @@ Update this file at the end of each work session: what's done, what's next, deci
   - Item search: an exact name / alias wins, then "starts with", shorter names first ("diesel" → Diesel Stock, not Diesel Motor 0.5HP). Items without Urdu show their category in search results and on F8.
   - F8: items at 0 hidden until searched for, a category is picked, or "Show N items at 0" (keeps the phone list ~150 rows instead of 1,970).
   - Tests: 56 green (search / keyboard cases moved to the client's names; new F8 test).
+- 2026-11-21 — Qty boxes on IGP / OGP / SIS / receive were too narrow (1,000 showed as "00"): the unit suffix kept a fixed 3.5rem even with no unit. Suffix room now matches the unit's length, the suffix hides from 768 px where the Unit column shows it, qty / weight columns have minimum widths, slip screens widen to `max-w-5xl` on desktop. Test: `e2e/qty-width.spec.ts`.
+- 2026-11-21 — **Back everywhere, forms never come back filled, Remarks.** `BackLink` on every farm and admin page except F1 / A1 (history back; direct open → up to the list, replacing). Admin layout tracks history too. `ResetOnHide` / `useOnHide` clear stock count, slip detail panels, A5 write-off, A6 reject, A8 / A9 editors when the page is hidden (`SlipForm` already did); slip forms `autocomplete="off"`. Optional **Remarks** (≤ 200, Urdu ok) on IGP, OGP and receive: after the lines, saved, on detail and print when filled. Tests: `e2e/navigation.spec.ts`, remarks rule in `rules.spec.ts`, OGP keyboard flow now goes empty item → Remarks → Save. 68 tests pass (3 runs).
 
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`)
@@ -82,4 +84,6 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-11-03 — No slip drafts: a slip left without saving starts empty next time (replaces the planned sessionStorage draft).
 - 2026-11-03 — Excel export = CSV generated in the browser (no backend, no extra library).
 - 2026-11-05 — Demo uses the client's 1,970 items as written; units and missing Urdu names are our defaults until the client confirms.
+- 2026-11-21 — Back = browser history back (was: "up" to a fixed parent). A page opened directly has no in-app history, so Back goes up and replaces itself. Admin list pages get Back too (→ Dashboard), per "Back everywhere except Home".
+- 2026-11-21 — Remarks: one optional note per IGP / OGP (not per line), label "Remarks / ریمارکس", after the lines. Not on SIS (it has Purpose of Use per line). The paper slips' field lists show no remarks box — confirm label and position with the client.
 - 2026-11-16 — Slip date has no lower limit (client #18: "enable all dates, including previous months"). Back-dated slips are still checked against today's stock, not stock on that date.

@@ -19,6 +19,8 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 4. Keyboard | Enter flow, line add/remove, pick, save, Esc, shortcuts, tables | Playwright (desktop) | `e2e/keyboard.spec.ts` | Every change |
 | 5. Journeys | A user's whole task across screens (farm saves → admin sees) | Playwright, 2 contexts | `e2e/journeys/*.spec.ts` (week 3+) | Every change |
 | 6. Phone | 360 px: cards, full-screen search, no horizontal scroll, touch targets ≥ 48 px | Playwright (phone project) | `e2e/phone.spec.ts` | Every change |
+| 6a. Navigation | Back on every page but the two homes; Back = history back, direct open → up without stacking; forms (IGP, stock count) empty after Back / forward / same link; OGP Remarks saved + printed | Playwright (desktop) | `e2e/navigation.spec.ts` | Every change |
+| 6b. Qty widths | Big numbers fit every slip qty box at 360 / 768 / 1024 / 1280 px (1,000,000; 100,000 on phone and for weight) | Playwright (desktop) | `e2e/qty-width.spec.ts` | Every change |
 | 7. Visual | Screenshot baselines of key screens, EN-first and UR-first | `toHaveScreenshot` | `e2e/visual.spec.ts` (week 4) | Before each client demo |
 | 8. Accessibility | Labels, focus order, contrast, dialogs | `@axe-core/playwright` + manual keyboard pass | `e2e/a11y.spec.ts` (week 5) | Weekly |
 | 9. Print / PDF | A5/A4 layout, one page, empty rows not printed, stamp, Urdu font in PDF | Playwright `page.pdf()` + real printer | `e2e/print.spec.ts` (week 4) | Weekly + week 7 |

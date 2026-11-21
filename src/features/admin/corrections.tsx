@@ -12,6 +12,7 @@ import { fmtStamp } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import { tInline, type MsgId } from "@/lib/i18n";
 import type { CorrectionRequest } from "@/types/domain";
+import { ResetOnHide } from "@/lib/on-hide";
 
 type Status = CorrectionRequest["status"];
 
@@ -114,7 +115,9 @@ export function Corrections() {
                           <Link className="btn btn-primary min-h-10" href={`/admin/slips/${encodeURIComponent(r.slipId)}?request=${r.id}`}>
                             <Bi id="corr.approve" inline />
                           </Link>
-                          <RejectButton request={r} />
+                          <ResetOnHide>
+                            <RejectButton request={r} />
+                          </ResetOnHide>
                         </span>
                       )}
                     </td>

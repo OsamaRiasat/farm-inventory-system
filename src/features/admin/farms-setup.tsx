@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { useApiMutation, useFarms, useUsers } from "@/lib/api/queries";
 import { tInline, type MsgId } from "@/lib/i18n";
 import type { Farm, Shed } from "@/types/domain";
+import { ResetOnHide } from "@/lib/on-hide";
 
 const BY = "Accounts Admin";
 const TYPES: Farm["type"][] = ["breeder", "layer", "hatchery"];
@@ -33,7 +34,9 @@ export function FarmsSetup() {
         <ul className="grid gap-3 lg:grid-cols-2">
           {farms.data.map((f) => (
             <li key={f.id}>
-              <FarmCard farm={f} userName={users.find((u) => u.farmId === f.id)?.name} />
+              <ResetOnHide>
+                <FarmCard farm={f} userName={users.find((u) => u.farmId === f.id)?.name} />
+              </ResetOnHide>
             </li>
           ))}
         </ul>

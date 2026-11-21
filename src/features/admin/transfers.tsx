@@ -13,6 +13,7 @@ import { daysBetween, fmtDate, today } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import { tInline, type MsgId } from "@/lib/i18n";
 import type { Transfer } from "@/types/domain";
+import { ResetOnHide } from "@/lib/on-hide";
 
 const sent = (v: TransferView) => v.ogp.lines.reduce((n, l) => n + l.qty, 0);
 const received = (v: TransferView) => v.igp?.lines.reduce((n, l) => n + l.qtyReceived, 0) ?? null;
@@ -92,7 +93,9 @@ export function Transfers() {
         <div className="grid gap-4 2xl:grid-cols-[1fr_28rem]">
           <DataTable rows={rows} columns={columns} rowKey={(v) => v.transfer.id} onOpen={(v) => setOpenId(v.transfer.id)} initialSort={{ key: "sentAt", dir: "desc" }} />
           {open ? (
-            <TransferDetail view={open} />
+            <ResetOnHide>
+              <TransferDetail view={open} />
+            </ResetOnHide>
           ) : (
             <p className="card p-4 text-sm text-muted">
               <Bi id="transfers.pick" />

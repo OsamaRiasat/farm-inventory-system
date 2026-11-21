@@ -96,18 +96,20 @@ html[data-lang-order="ur"] .bi-inline {
   background: var(--color-surface-2);
 }
 .input-num {
+  padding-left: 8px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 .input-wrap {
   position: relative;
 }
-.input-wrap > .input {
-  padding-right: 3.5rem;
+/* Room for the unit only (its length in characters), so 1,000 still fits in a narrow column. */
+.input-wrap > .input-has-suffix {
+  padding-right: calc(var(--suffix-len) * 1ch + 14px);
 }
 .input-suffix {
   position: absolute;
-  right: 12px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-muted);

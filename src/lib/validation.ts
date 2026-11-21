@@ -33,6 +33,9 @@ export function toFieldErrors(error: z.ZodError): FieldError[] {
 
 export const text = z.string().trim();
 export const optionalText = z.string().trim().optional();
+/** IGP / OGP Remarks: optional, one note for the whole slip. */
+export const REMARKS_MAX = 200;
+export const remarks = z.string().trim().max(REMARKS_MAX, "err.remarksTooLong").optional();
 export const required = z.string().trim().min(1, "err.required");
 
 export const positiveQty = z.number({ error: "err.qtyAboveZero" }).positive("err.qtyAboveZero");

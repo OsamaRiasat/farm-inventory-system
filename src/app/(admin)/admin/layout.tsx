@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { AdminBack } from "@/components/layout/admin-back";
 import { AdminGate } from "@/components/layout/admin-gate";
 import { AdminNav, AdminNavLinks } from "@/components/layout/admin-nav";
 import { AdminTopBar } from "@/components/layout/admin-top-bar";
 import { Bi } from "@/components/layout/bi";
+import { NavTracker } from "@/lib/nav-history";
 
 // Accounts Admin frame: sidebar + top bar with the farm filter that applies to every screen.
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
@@ -19,9 +21,15 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       <div className="min-w-0 flex-1">
         <AdminTopBar />
         <main className="p-4 lg:p-6">
+          <Suspense fallback={null}>
+            <AdminBack />
+          </Suspense>
           <AdminGate>{children}</AdminGate>
         </main>
       </div>
+      <Suspense fallback={null}>
+        <NavTracker />
+      </Suspense>
     </div>
   );
 }

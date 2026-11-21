@@ -10,6 +10,7 @@ import { api, ApiError } from "@/lib/api";
 import { useApiMutation, useItems } from "@/lib/api/queries";
 import { t, tInline, type MsgId } from "@/lib/i18n";
 import type { Item, Unit } from "@/types/domain";
+import { useOnHide } from "@/lib/on-hide";
 
 const UNITS: Unit[] = ["KG", "LTR", "QTY", "BG", "ROLL", "VIAL"];
 type Draft = Omit<Item, "id" | "number" | "aliases"> & { id?: string; aliases: string };
@@ -25,6 +26,7 @@ export function ItemsSetup() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  useOnHide(() => setDraft(null));
 
   if (items.isError) return <LoadError onRetry={() => items.refetch()} />;
   const categories = [...new Set((items.data ?? []).map((i) => i.category))].sort();

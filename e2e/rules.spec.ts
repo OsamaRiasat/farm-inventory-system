@@ -197,3 +197,25 @@ test("SIS: no feed rows needed, Ledger Folio typed per line; a correction keeps 
   const corrected = engine.correctSlip(s, { slipId: sis.id, lines: [{ index: 0, qty: 40 }], reason: "x", by: "Admin" });
   expect(corrected.paperNo).toBe("SIS-5001");
 });
+
+test("IGP / OGP Remarks are optional, kept as typed (Urdu too), at most 200 characters", () => {
+  const s = buildSeed(now);
+  const igp = (remarks?: string) =>
+    engine.saveIGP(s, {
+      ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
+      source: { kind: "supplier", ms: "X" },
+      lines: [{ itemId: "gloves", qtyChallan: 5, qtyReceived: 5 }],
+      remarks,
+    });
+  expect(igp().remarks).toBeUndefined();
+  expect(igp("  ").remarks).toBeUndefined();
+  expect(igp(" 2 بوری پھٹی ہوئی ").remarks).toBe("2 بوری پھٹی ہوئی");
+  expect(errorOf(() => igp("x".repeat(201)))?.id).toBe("err.remarksTooLong");
+  const ogp = engine.saveOGP(s, {
+    ...base, farmId: "aw02", idempotencyKey: key(), paperNo: key(),
+    to: { kind: "outside", ms: "Workshop", reason: "other" },
+    lines: [{ itemId: "gloves", qty: 1 }],
+    remarks: "Sample for the supplier",
+  });
+  expect(ogp.remarks).toBe("Sample for the supplier");
+});

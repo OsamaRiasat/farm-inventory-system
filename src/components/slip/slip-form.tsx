@@ -220,6 +220,7 @@ export function SlipForm({
           }
         }}
         noValidate
+        autoComplete="off"
       >
         {children}
         <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-line bg-surface px-4 py-3">

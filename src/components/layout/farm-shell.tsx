@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { Boxes, FileText, House, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import type { MsgId } from "@/lib/i18n";
+import { BackLink } from "./back-link";
 import { Bi } from "./bi";
 import { useCurrentFarm } from "./farm-gate";
 import { LangOrderToggle } from "./lang-order-toggle";
@@ -17,18 +18,34 @@ const tabs: { tab: Tab; href: string; label: MsgId; icon: LucideIcon }[] = [
   { tab: "stock", href: "/farm/stock", label: "nav.stock", icon: Boxes },
 ];
 
-/** Farm User frame for Home, Slips and Stock: top bar + nav (bottom on phone, top from 640px). */
-export function FarmShell({ active, children }: { active?: Tab; children: ReactNode }) {
+/**
+ * Farm User frame for Home, Slips and Stock: top bar + nav (bottom on phone, top from 640px).
+ * Every page but Home passes `back` (where Back goes when the page was opened directly).
+ */
+export function FarmShell({ active, back, children }: { active?: Tab; back?: string; children: ReactNode }) {
   const { farm, userName } = useCurrentFarm();
   return (
     <>
       <header className="border-b border-line bg-surface print:hidden">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2">
-          <div>
-            <div className="font-semibold">{farm.name}</div>
-            <div className="text-sm text-muted">{userName}</div>
-          </div>
-          <LangOrderToggle />
+          {back ? (
+            // Same as a slip screen: Back, then farm name (no user name, to fit a 360 px phone).
+            <>
+              <BackLink href={back} />
+              <div className="flex items-center gap-3">
+                <span className="text-right font-semibold">{farm.name}</span>
+                <LangOrderToggle />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <div className="font-semibold">{farm.name}</div>
+                <div className="text-sm text-muted">{userName}</div>
+              </div>
+              <LangOrderToggle />
+            </>
+          )}
         </div>
         <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-surface sm:static sm:border-t-0">
           <ul className="mx-auto flex max-w-3xl">

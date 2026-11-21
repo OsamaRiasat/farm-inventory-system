@@ -31,9 +31,9 @@
 
 ## Farm User details
 - **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = CSV download, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
-- **Back:** Home is the end of Back. A slip's Back link returns to where it was opened from (history doesn't grow); saving an OGP / receiving a transfer replaces the form in history; login replaces itself.
+- **Back:** every screen has a **Back** link (top left) except the two homes — F1 and A1 — and Login. Back returns to the page you came from (`router.back()`, history doesn't grow); a page opened directly (link, bookmark, QR) goes up instead and replaces itself: detail → its list (F7 → F6, F9 → F8, A3 → A2, A4 card → A4), anything else → Home / Dashboard. On a slip with typed data it asks "Leave without saving?" first. Saving an OGP / receiving a transfer replaces the form in history; login replaces itself. Component: `BackLink` (`src/components/layout/back-link.tsx`); admin pages get it from the layout (`AdminBack`).
 - **Slip header/footer (F2–F5):** bilingual title. **No.** = `IGP-` / `OGP-` / `SIS-` + a box for the paper slip's number (required, first field). Farm (auto), **Posted on** (today, auto), the slip's **date** — "Arrival date" (IGP), "Dispatch date" (OGP), "Issue date" (SIS) — today by default, changeable to any earlier date (previous months too), never future; Time auto with "change". Footer: Prepared by + sticky 56 px Save.
-- **Every visit starts an empty slip**: Next.js keeps a page you leave alive (React `<Activity>`), so `SlipForm` clears itself whenever it is hidden.
+- **Every visit starts an empty slip**: Next.js keeps a page you leave alive (React `<Activity>`), so `SlipForm` clears itself whenever it is hidden — by Back, the phone's Back, forward, or opening the same link again — and after a save. Same for every other form: stock count, correction / cancel / request panels on F7 / A3, shortfall write-off (A5), reject note (A6), farm and item editors (A8 / A9) — via `ResetOnHide` / `useOnHide` (`src/lib/on-hide.tsx`). Slip forms are `autocomplete="off"` so the browser doesn't refill them either. List filters are kept (going back to a list keeps its search).
 
 ### F2 New IGP — fields in paper order
 | Field | Control | Req | Rule |
@@ -48,9 +48,10 @@
 | Line: Qty As Per Delivery Challan | C2 | Yes | > 0 |
 | Line: Qty Actual Received | C2 | Yes | ≥ 0; less than challan → amber row "Short by 3" |
 | Line: Weight | Number + kg | No | |
+| Remarks | Text, Urdu ok, ≤ 200 characters, after the lines | No | One note for the whole slip |
 
 ### F3 Receive transfer
-Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-filled (Item, Unit, Qty As Per Delivery Challan = sent). Only **Qty Actual Received** editable. "Received all" fills every row. More than sent → blocked: "Cannot receive more than 9,000. Extra items need a separate IGP."
+Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-filled (Item, Unit, Qty As Per Delivery Challan = sent). Only **Qty Actual Received** editable (plus optional **Remarks**, e.g. "2 bags torn"). "Received all" fills every row. More than sent → blocked: "Cannot receive more than 9,000. Extra items need a separate IGP."
 
 ### F4 New OGP
 | Field | Control | Req |
@@ -64,6 +65,7 @@ Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-fil
 | Line: Unit | From item | — |
 | Line: Qty | C2, > 0 and ≤ stock, else "Only 6 in stock" | Yes |
 | Line: Weight | Number + kg | No |
+| Remarks | Text, Urdu ok, ≤ 200 characters, after the lines | No |
 
 After save → go straight to Print view (driver needs the pass), replacing the form in history. The saved banner there has **New slip** (opens an empty OGP).
 

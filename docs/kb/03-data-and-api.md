@@ -66,6 +66,7 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 - `SlipFilters.no` matches the system **or** paper number.
 - `getStockCard` rows' `ref` is the paper number (`slipNo()`: paper No. + `-C1` on corrections).
 - Home's "Today's slips" means **posted** today (`postedAt`), not dated today. Admin "Slips today" / missing-SIS still use `date`.
+- **Remarks (21 Nov 2026):** `IGP.remarks?` and `OGP.remarks?` — optional, trimmed, ≤ 200 characters (`err.remarksTooLong`, path `remarks`), blank → not stored. Accepted by `saveIGP`, `saveOGP` and `receiveTransfer`. Corrections keep it unchanged. Shown on F7 / A3 and printed only when present. Not searched by `SlipFilters` (yet).
 - Excel export is done in the browser as CSV (UTF-8 with BOM so Excel shows Urdu) from data the screens already have; no API function. A backend may later serve real `.xlsx`.
 
 Screens call these through TanStack Query hooks in `src/lib/api/queries.ts`. Every API error is an `ApiError` with a message id (+ values and field errors), so the screen shows the rule's own words.

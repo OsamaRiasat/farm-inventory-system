@@ -89,6 +89,7 @@ export function StockCountForm() {
         setSaved(null);
       }}
       noValidate
+      autoComplete="off"
     >
       <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
         <h1 className="text-xl font-semibold">

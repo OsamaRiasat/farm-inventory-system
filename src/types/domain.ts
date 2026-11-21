@@ -63,6 +63,8 @@ export interface IGP extends SlipBase {
   challanNo?: string;
   challanDate?: string;
   lines: { itemId: string; qtyChallan: number; qtyReceived: number; weightKg?: number }[];
+  /** Optional free note for the whole slip (Urdu or English, ≤ 200 characters). Kept as first saved. */
+  remarks?: string;
 }
 
 export interface OGP extends SlipBase {
@@ -72,6 +74,8 @@ export interface OGP extends SlipBase {
   driverName?: string;
   vehicleNo?: string;
   lines: { itemId: string; qty: number; weightKg?: number }[];
+  /** Optional free note for the whole slip (Urdu or English, ≤ 200 characters). Kept as first saved. */
+  remarks?: string;
 }
 
 export interface SIS extends SlipBase {

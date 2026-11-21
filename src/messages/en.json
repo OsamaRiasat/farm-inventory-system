@@ -28,6 +28,8 @@
   "slip.date": "Date",
   "slip.time": "Time",
   "slip.change": "change",
+  "slip.remarks": "Remarks",
+  "err.remarksTooLong": "Remarks: 200 characters at most",
   "slip.preparedBy": "Prepared by",
   "slip.save": "Save",
   "slip.saving": "Saving…",
