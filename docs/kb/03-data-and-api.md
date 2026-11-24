@@ -1,6 +1,6 @@
 # 03 · Data shapes and API
 
-The UI talks **only** to `src/lib/api`. Phase 1 backs it with a mock store in the browser (seeded from JSON, persisted to localStorage, "reset demo" restores the seed). Later the same functions call the real backend — **no screen changes**. Treat these shapes as the backend contract; change them only deliberately.
+The UI talks **only** to `src/lib/api`. Since 24 Nov 2026 those functions call the real backend over HTTP (`src/lib/api/http.ts` → `/api/*` route handlers → `src/server/services` → PostgreSQL); the browser mock is gone. Treat these shapes as the contract between screens and server; change them only deliberately.
 
 ## Types (from the spec — put in `src/types/domain.ts`)
 ```ts
@@ -55,9 +55,9 @@ Added in week 2 (not in the spec — review with the backend developer): `User`,
 ## API functions (`src/lib/api/index.ts`, async, typed)
 `listFarms` · `listItems` · `searchItems(q)` · `getStock(farmId)` · `getStockCard(farmId, itemId)` · `listSlips(filters)` · `getSlip(id)` · `saveIGP` · `saveOGP` · `saveSIS` · `listWaitingTransfers(farmId)` · `receiveTransfer` · `requestCorrection` · `correctSlip` · `cancelSlip` · `saveStockCount` · `getDashboard` · `getReport(type, filters)` (stub until A7, week 6)
 
-Added for the remaining screens: `updateFarm` · `addShed` · `updateShed` (A8) · `saveItem` (A9; the unit is locked once an item has movements). `getReport(type, filters)` returns `{ columns, rows, totals?, note?, series? }` — every report is a typed table (+ the feed & mortality chart series), computed from movements so corrections and cancellations are always included (`src/lib/api/mock/reports.ts`).
+Added for the remaining screens: `updateFarm` · `addShed` · `updateShed` (A8) · `saveItem` (A9; the unit is locked once an item has movements). `getReport(type, filters)` returns `{ columns, rows, totals?, note?, series? }` — every report is a typed table (+ the feed & mortality chart series), computed from movements so corrections and cancellations are always included (`src/server/services/reports.ts`).
 
-Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `listTransfers` (A5) · `resolveShortfall` (A5) · `listCorrectionRequests` · `rejectCorrection` (A6) · `listAudit` (A11) · `onExternalChange` (other tab saved → refetch). Demo only: `resetDemo`, `getMockOptions` / `setMockOptions` (latency, fail every save).
+Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `listTransfers` (A5) · `resolveShortfall` (A5) · `listCorrectionRequests` · `rejectCorrection` (A6) · `listAudit` (A11; a Farm User gets their own farm's entries, which F7 uses for "Corrected on … by …"). `onExternalChange` and the demo-only `resetDemo` / mock options were removed with the mock: other users' saves show up on window focus and every 30 s on live screens (`refetchInterval` in `queries.ts`).
 
 ### Changes from the client's issue list (30 Oct 2026)
 - **Save inputs** (`saveIGP`, `saveOGP`, `saveSIS`, `receiveTransfer`) now take `paperNo` (required, trimmed) and `date` (the slip's own date). The form sends `paperNo` with the type prefix (`"IGP-0123"`); the server compares paper numbers ignoring case and spaces.
@@ -72,19 +72,42 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 
 Screens call these through TanStack Query hooks in `src/lib/api/queries.ts`. Every API error is an `ApiError` with a message id (+ values and field errors), so the screen shows the rule's own words.
 
-Rules for the mock (`src/lib/api/mock/engine.ts`; the seed goes through the same engine):
-- Balance = Σ movements (qtyIn − qtyOut) per farm × item. Calculated in `src/lib/stock.ts`, never stored.
-- Save functions reject a line that would take stock below zero, **with the same message the screen shows**.
-- Saves take a client-generated idempotency key so a double submit returns the first result.
-- Simulate latency (~300 ms) and an optional failure toggle so the Saving / Not saved states can be demoed.
-- Writes run on a copy of the store and are swapped in only on success.
-- Slip date any day up to today (no lower limit); paper No. unique per farm + type (`checkSlipBase` in `src/lib/validation.ts`, called by every slip schema; the engine passes today and the used numbers through `RuleContext`).
+## HTTP endpoints (`src/app/api/**/route.ts`)
+Thin handlers: session → permission → service → JSON (`handler()` in `src/server/route.ts`). Errors: `{ error: { id, values, fieldErrors } }` with 400 (rule), 404 (not found **or not yours**), 401 `err.signedOut`, 500 `err.notSaved`; `http.ts` turns them back into `ApiError`.
+
+| Function | Endpoint | Who |
+| --- | --- | --- |
+| listFarms · listItems · searchItems · listSuppliers | `GET /api/farms` · `/api/items` · `/api/items/search?q` · `/api/suppliers` | any |
+| listUsers · getStockMatrix · getDashboard · getReport | `GET /api/users` · `/api/stock/matrix` · `/api/dashboard` · `/api/reports/[type]?filters` | Admin |
+| getStock · getStockCard | `GET /api/stock?farmId` · `/api/stock/card?farmId&itemId` | own farm / Admin |
+| listSlips · getSlip · listReturns | `GET /api/slips?filters` · `/api/slips/[id]` · `/api/slips/[id]/returns` | own farm (+ the other side of a transfer) / Admin |
+| listWaitingTransfers · listTransfers · listCorrectionRequests · listAudit | `GET /api/transfers/waiting?farmId` · `/api/transfers?farmId` · `/api/corrections?farmId&status` · `/api/audit?farmId` | own farm / Admin |
+| saveIGP · saveOGP · saveSIS · saveStockCount · receiveTransfer | `POST /api/slips/{igp,ogp,sis}` · `/api/stock-counts` · `/api/transfers/receive` | own farm / Admin (any farm) |
+| returnUnused · requestCorrection | `POST /api/returns` · `/api/corrections` | own farm's slip / Admin |
+| correctSlip · cancelSlip · cancelReturn · rejectCorrection · resolveShortfall | `POST /api/slips/[id]/{correct,cancel}` · `/api/returns/[id]/cancel` · `/api/corrections/[id]/reject` · `/api/transfers/[id]/resolve` | Admin |
+| updateFarm · addShed · updateShed · saveItem | `POST /api/farms/[id]` · `/api/sheds` · `/api/sheds/[id]` · `/api/items` | Admin |
+| (session) | `POST /api/auth/login` `{username, password}` · `POST /api/auth/logout` · `GET /api/me` → the `Session` or null | — |
+
+- **The server never trusts who / which farm from the body.** `preparedBy`, `by`, `requestedBy` are replaced by the signed-in user's name; a Farm User's `farmId` must be their own (or is filled in). The `by` fields in the function inputs are now optional and ignored.
+- Login: username + password (bcrypt). Session = random token in an httpOnly cookie (`awfarms_session`, 30 days), stored as a sha256 hash in `Session`. Seeded usernames: farm id (`aw02`, `layer04`…) and `admin`.
+
+## Rules on the server (`src/server/services/*`, ported from the phase 1 mock engine)
+- Balance = Σ movements (qtyIn − qtyOut) per farm × item, summed in SQL (`balancesOf` in `src/server/repo.ts`); never stored.
+- Every save runs the **same Zod schema** as the form (`src/features/*/schema.ts`) with a `RuleContext` loaded from the database (the items on the slip, their balances, today, the paper No. lookup), so messages match the screen exactly.
+- **One transaction per save, holding a lock per farm it touches** (`withFarmLock`, Postgres advisory locks, sorted). Two saves racing for the last stock run one after the other: one wins, the other gets "Only 0 in stock". Receive / cancel / correct of a transfer's gate pass lock both farms.
+- Idempotency key per save (`IdempotencyKey` table): a retry returns the first result, even when sent at the same time.
+- Numbers from `Counter` (farm × IGP / OGP / SIS / CNT), inside the farm lock.
+- Slip date any day up to today (no lower limit); paper No. unique per farm + type (`checkSlipBase`; plus a partial unique index as a backstop).
 - Corrections are new slips (`AW02-SIS-0213-C1`, `correctionOf` → original, original `status: "corrected"`); stock moves by the difference only. Cancel reverses the slip's net effect; refused if it would take an item below zero, or if the OGP's transfer was already received.
-- Session (mock login) is per browser tab (sessionStorage), so one tab can be a farm and another the admin.
+- `AuditEntry` is append-only: a database trigger refuses UPDATE / DELETE / TRUNCATE.
+- "Today" and posted-on stamps are Pakistan time (`Asia/Karachi` in `src/lib/dates.ts`), whatever the server's time zone.
 
-## Mock seed (`src/lib/api/mock/seed.ts` + `seed/farms.json`, `seed/items.json`)
+## Database (`prisma/schema.prisma`, PostgreSQL, Prisma 7)
+`Farm`, `Shed`, `Item`, `User`, `Session`, `Supplier` · `Slip` (header columns per type, `shedRows` JSON for old SIS) + `SlipLine` (by index) · `Transfer` · `Movement` · `SisReturn` + lines · `StockCount` + lines · `CorrectionRequest` · `Counter` · `IdempotencyKey` · `AuditEntry`. Dates and times are text in the API's own format. `src/server/mappers.ts` turns rows into the domain types above.
 
-Deterministic (same demo after every reset), relative to today, ~250 slips. `MOCK_VERSION` 4 (4 added SIS returns; 3 the client's full item list; 2 added paper numbers + posted stamps): older saved demo data is replaced on load. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date. Check it with `npx playwright test e2e/rules.spec.ts`.
+## Seed (`prisma/seed.ts` → `src/server/seed/base.ts`, `demo.ts`, `farms.json`, `items.json`)
+
+`npm run db:seed:base`: farms, sheds, items and one login per farm + the Admin with random passwords (printed once) — what a real install starts with. `npm run db:seed` (and `db:reset`): base + the demo history below, all logins `demo1234`. The demo goes through the real services, so it obeys the same rules. Deterministic, relative to today, ~250 slips. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date.
 - **Farms:** the 11 sites, each with 3–6 sheds.
 - **Items:** the client's full list, `docs/source/All Inventory Items By Names.xlsx` — **1,970 items in 18 categories**, names exactly as the client wrote them (spelling variants and duplicates kept until the client cleans them). Item No. = position in that workbook (1–1,970). Categories use the cleaned names from `requirements.md` (Shed Items, Generator Items, Oil Filter, Air Filter, Printing & Stationery, Discard & Scrap; the rest as written).
   - **Units are our guess** (the workbook has none): vaccines and injections VIAL, tablets QTY, powders KG, other medicines LTR; diesel, petrol, oils LTR; chips, husk, choona, cement BG; wire, cable, tape ROLL; sugar, salt, tea KG; everything else QTY. To be confirmed by the client.

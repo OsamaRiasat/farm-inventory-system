@@ -4,7 +4,7 @@ import { Bi } from "@/components/layout/bi";
 import { LangOrderToggle } from "@/components/layout/lang-order-toggle";
 import { DevGallery } from "./dev-gallery";
 
-// Component review (C1–C12) and demo controls. Not part of the product; no login needed.
+// Component review (C1–C12) on live data. Not part of the product; reads the API, so sign in first.
 export default function DevPage() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 pb-24">

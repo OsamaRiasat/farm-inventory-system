@@ -102,13 +102,19 @@ export function SlipForm({
     (confirmRef.current?.disabled ? backRef : confirmRef).current?.focus();
   }, [summary]);
 
+  // Stock still loading when the sheet opened: fill it in when it arrives (never "before" = 0 by mistake).
+  useEffect(() => {
+    if (!stock || !pending.current || !dialogRef.current?.open) return;
+    setSummary(buildSummary(readSlipForm(pending.current), items, stock));
+  }, [stock, items]);
+
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (saving) return;
     const data = new FormData(e.currentTarget);
     if (withSummary) {
       pending.current = data;
-      setSummary(buildSummary(readSlipForm(data), items, stock ?? new Map()));
+      setSummary(stock ? buildSummary(readSlipForm(data), items, stock) : null);
       dialogRef.current?.showModal();
     } else {
       void doSave(data);

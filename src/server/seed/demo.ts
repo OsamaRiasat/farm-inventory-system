@@ -1,21 +1,20 @@
-// Builds the demo data: 11 farms, the client's 1,970 items, opening balances and two weeks of history ending today.
-// Every slip goes through the engine, so the history obeys the same rules as the live app.
+// Demo history on top of the base data: opening balances and two weeks of slips ending today.
+// Every slip goes through the services, so the history obeys the same rules as the live app.
 // Includes the real examples from the screen recording (Hatchery OGP-46 → Patoki IGP-1662,
 // Patoki OGP-1366 drill machine, Patoki SIS-203) plus one transfer in transit, one in transit
-// for more than 2 days, one short transfer, one corrected slip, one cancelled slip and one
-// open correction request.
+// for more than 2 days, one short transfer, one corrected slip, one cancelled slip, one
+// "return unused" and one open correction request.
 
-import { addDays, isoDate, isoTime } from "@/lib/dates";
+import { addDays, farmNow } from "@/lib/dates";
 import { allowsDecimals } from "@/lib/format";
-import { farmBalances } from "@/lib/stock";
-import type { Farm, FarmType, Item, Unit, User } from "@/types/domain";
-import * as engine from "./engine";
-import type { MockState } from "./engine";
-import farmsJson from "./seed/farms.json";
-import itemsJson from "./seed/items.json";
-
-export const MOCK_VERSION = 4;
-const ADMIN = "Accounts Admin";
+import type { Farm, Item, Unit } from "@/types/domain";
+import { db } from "../db";
+import { balancesOf } from "../repo";
+import { cancelSlip, correctSlip, requestCorrection } from "../services/corrections";
+import { returnUnused } from "../services/returns";
+import { listFarms, listItems } from "../services/setup";
+import { receiveTransfer, saveIGP, saveOGP, saveSIS } from "../services/slips";
+import { ADMIN_NAME } from "./base";
 
 const SUPPLIERS = {
   feed: "Sutlej Feeds Mill",
@@ -40,94 +39,49 @@ function mulberry32(seed: number) {
   };
 }
 
-export function buildSeed(now = new Date()): MockState {
+/** Needs the base data (seedBase) and nothing else. */
+export async function seedDemo(now = new Date()) {
   const rand = mulberry32(20261027);
   const between = (min: number, max: number) => Math.round(min + rand() * (max - min));
   const chance = (p: number) => rand() < p;
   const pick = <T>(list: T[]) => list[Math.floor(rand() * list.length)];
 
-  const todayIso = isoDate(now);
-  const nowT = isoTime(now);
-
-  const farms: Farm[] = farmsJson.map((f) => ({
-    id: f.id,
-    code: f.code,
-    name: f.name,
-    type: f.type as FarmType,
-    active: true,
-    sheds: Array.from({ length: f.sheds }, (_, i) => ({ id: `${f.id}-s${i + 1}`, farmId: f.id, name: `Shed ${i + 1}`, active: true })),
-  }));
-  const items: Item[] = itemsJson.map((i) => ({ ...i, unit: i.unit as Unit, active: true }));
-  const users: User[] = [
-    ...farms.map((f, i) => ({
-      id: `u-${f.id}`,
-      name: `${f.code} Store Keeper`,
-      role: "farm" as const,
-      farmId: f.id,
-      phone: `0300-55500${String(i + 1).padStart(2, "0")}`,
-      active: true,
-    })),
-    { id: "u-admin", name: ADMIN, role: "admin", phone: "0300-5550000", active: true },
-  ];
+  const { date: todayIso, time: nowT } = farmNow(now);
+  const farms: Farm[] = await listFarms();
+  const items: Item[] = await listItems();
+  const users = await db().user.findMany({ where: { role: "farm" } });
   const userOf = (farmId: string) => users.find((u) => u.farmId === farmId)!.name;
 
-  const state: MockState = {
-    version: MOCK_VERSION,
-    seededAt: now.toISOString(),
-    farms,
-    items,
-    users,
-    suppliers: Object.values(SUPPLIERS),
-    slips: [],
-    transfers: [],
-    movements: [],
-    corrections: [],
-    stockCounts: [],
-    returns: [],
-    audit: [],
-    counters: {},
-    idempotency: {},
-    nextId: 1,
-  };
+  await db().supplier.createMany({ data: Object.values(SUPPLIERS).map((name) => ({ name })), skipDuplicates: true });
 
   // ── opening balances, 14 days ago ──
   // The demo's everyday items (the ones with Urdu names) are at every farm; each farm also holds a few
   // of the other items, so stock lists look real without every farm carrying all 1,970.
   const openingDate = addDays(todayIso, -14);
+  const opening = new Map<string, number>();
   for (const farm of farms) {
     for (const item of items) {
       if (!item.nameUr && !chance(0.06)) continue;
       const qty = openingQty(farm, item);
-      if (qty > 0) {
-        state.movements.push({
-          id: `m${state.nextId++}`,
-          farmId: farm.id,
-          itemId: item.id,
-          slipId: "opening",
-          date: openingDate,
-          qtyIn: qty,
-          qtyOut: 0,
-        });
-      }
+      if (qty > 0) opening.set(`${farm.id}|${item.id}`, qty);
     }
   }
-
-  function setOpening(farmId: string, itemId: string, qty: number) {
-    const existing = state.movements.find((m) => m.slipId === "opening" && m.farmId === farmId && m.itemId === itemId);
-    if (existing) existing.qtyIn = qty;
-    else state.movements.push({ id: `m${state.nextId++}`, farmId, itemId, slipId: "opening", date: openingDate, qtyIn: qty, qtyOut: 0 });
-  }
-
   // Patoki opening stock as seen in the recording.
   const patokiOpening: Record<string, number> = {
     "feed-all": 23739, diesel: 2550, "nylon-rope": 80, "aqua-kair": 300, hcl: 240, "accid-pro": 200, chips: 7552,
     polythene: 22, brush: 7, holder: 48, drill: 6, "fan-belt-89a": 24, "fan-belt-88a": 8, "fan-belt-57a": 6,
   };
-  for (const [itemId, qty] of Object.entries(patokiOpening)) setOpening("aw02", itemId, qty);
+  for (const [itemId, qty] of Object.entries(patokiOpening)) opening.set(`aw02|${itemId}`, qty);
   // Enough stock for the scripted transfers and slips below.
-  setOpening("aw05", "drill", 4);
-  setOpening("aw05", "gloves", 30);
-  setOpening("aw01", "nylon-rope", 60);
+  opening.set("aw05|drill", 4);
+  opening.set("aw05|gloves", 30);
+  opening.set("aw01|nylon-rope", 60);
+  await db().movement.createMany({
+    data: [...opening].map(([key, qty]) => {
+      const [farmId, itemId] = key.split("|");
+      return { farmId, itemId, slipId: "opening", date: openingDate, qtyIn: qty, qtyOut: 0 };
+    }),
+  });
 
   function openingQty(farm: Farm, item: Item): number {
     const hatchery = farm.type === "hatchery";
@@ -147,7 +101,7 @@ export function buildSeed(now = new Date()): MockState {
     if (chance(0.15)) return 0;
     // Machines, generators, furniture and scrap: a handful each.
     if (["Generator Items", "Motor Repair Stock", "Furniture", "Discard & Scrap"].includes(item.category) && item.unit === "QTY") return between(1, 6);
-    switch (item.unit) {
+    switch (item.unit as Unit) {
       case "VIAL":
         return between(20, 200);
       case "LTR":
@@ -164,16 +118,20 @@ export function buildSeed(now = new Date()): MockState {
   }
 
   // Slip numbers continue from the paper books; Patoki and the Hatchery line up with the real slips.
+  const counters: Record<string, Record<string, number>> = {};
   for (const farm of farms) {
-    state.counters[farm.id] = { IGP: between(100, 2000), OGP: between(100, 2000), SIS: between(100, 600), CNT: 0 };
+    counters[farm.id] = { IGP: between(100, 2000), OGP: between(100, 2000), SIS: between(100, 600), CNT: 0 };
   }
-  state.counters.aw02 = { IGP: 1657, OGP: 1362, SIS: 202, CNT: 0 };
-  state.counters.awhatchery = { ...state.counters.awhatchery, OGP: 44 };
+  counters.aw02 = { IGP: 1657, OGP: 1362, SIS: 202, CNT: 0 };
+  counters.awhatchery = { ...counters.awhatchery, OGP: 44 };
+  await db().counter.createMany({
+    data: Object.entries(counters).flatMap(([farmId, kinds]) => Object.entries(kinds).map(([kind, last]) => ({ farmId, kind, last }))),
+  });
 
   // ── helpers ──
   let keyN = 0;
   const key = () => `seed-${keyN++}`;
-  const stockOf = (farmId: string, itemId: string) => farmBalances(state.movements, farmId).get(itemId) ?? 0;
+  const stockOf = async (farmId: string, itemId: string) => (await balancesOf(db(), farmId, [itemId])).get(itemId) ?? 0;
 
   /** Today's events can't be in the future: pull them back before "now". */
   function timeFor(date: string, time: string): string | null {
@@ -186,23 +144,23 @@ export function buildSeed(now = new Date()): MockState {
   const at = (date: string, time: string) => `${date}T${time}:00`;
 
   /** A quantity the farm can actually spare, or 0. */
-  function usable(farmId: string, item: Item, wanted: number) {
-    const stock = stockOf(farmId, item.id);
-    const qty = Math.min(wanted, stock);
+  async function usable(farmId: string, item: Item, wanted: number) {
+    const qty = Math.min(wanted, await stockOf(farmId, item.id));
     return allowsDecimals(item.unit) ? Math.floor(qty * 10) / 10 : Math.floor(qty);
   }
   const itemById = (id: string) => items.find((i) => i.id === id)!;
   /** The farm's paper slip number: the same digits as the system number the save will get. */
-  const paper = (farmId: string, kind: "IGP" | "OGP" | "SIS", no?: number) =>
-    `${kind}-${String(no ?? (state.counters[farmId]?.[kind] ?? 0) + 1).padStart(4, "0")}`;
+  async function paper(farmId: string, kind: "IGP" | "OGP" | "SIS", no?: number) {
+    const last = no ? no - 1 : ((await db().counter.findUnique({ where: { farmId_kind: { farmId, kind } } }))?.last ?? 0);
+    return `${kind}-${String(last + 1).padStart(4, "0")}`;
+  }
 
-  function igp(farmId: string, date: string, time: string, ms: string, lines: [string, number, number?][], no?: number) {
+  async function igp(farmId: string, date: string, time: string, ms: string, lines: [string, number, number?][], no?: number) {
     const t = timeFor(date, time);
-    if (!t) return;
-    engine.saveIGP(
-      state,
+    if (!t) return null;
+    return saveIGP(
       {
-        farmId, date, time: t, preparedBy: userOf(farmId), idempotencyKey: key(), paperNo: paper(farmId, "IGP", no),
+        farmId, date, time: t, preparedBy: userOf(farmId), idempotencyKey: key(), paperNo: await paper(farmId, "IGP", no),
         source: { kind: "supplier", ms },
         biltyNo: String(between(1000, 9999)),
         truckNo: `LES-${between(1000, 9999)}`,
@@ -213,44 +171,40 @@ export function buildSeed(now = new Date()): MockState {
     );
   }
 
-  function transfer(fromId: string, toId: string, date: string, time: string, lines: [string, number][], driver: string, vehicle: string, no?: number) {
+  async function transfer(fromId: string, toId: string, date: string, time: string, lines: [string, number][], driver: string, vehicle: string, no?: number) {
     const t = timeFor(date, time);
     if (!t) return null;
-    const ogp = engine.saveOGP(
-      state,
+    const ogp = await saveOGP(
       {
-        farmId: fromId, date, time: t, preparedBy: userOf(fromId), idempotencyKey: key(), paperNo: paper(fromId, "OGP", no),
+        farmId: fromId, date, time: t, preparedBy: userOf(fromId), idempotencyKey: key(), paperNo: await paper(fromId, "OGP", no),
         to: { kind: "farm", farmId: toId }, driverName: driver, vehicleNo: vehicle,
         lines: lines.map(([itemId, qty]) => ({ itemId, qty })),
       },
       { no, at: at(date, t) },
     );
-    return ogp.transferId!;
+    return { id: ogp.transferId!, toFarmId: toId };
   }
 
-  function receive(transferId: string | null, date: string, time: string, received: number[], no?: number) {
-    if (!transferId) return;
+  async function receive(tr: { id: string; toFarmId: string } | null, date: string, time: string, received: number[], no?: number) {
+    if (!tr) return;
     const t = timeFor(date, time);
     if (!t) return;
-    const tr = state.transfers.find((x) => x.id === transferId)!;
-    engine.receiveTransfer(
-      state,
+    await receiveTransfer(
       {
-        farmId: tr.toFarmId, date, time: t, preparedBy: userOf(tr.toFarmId), idempotencyKey: key(), transferId,
-        paperNo: paper(tr.toFarmId, "IGP", no),
+        farmId: tr.toFarmId, date, time: t, preparedBy: userOf(tr.toFarmId), idempotencyKey: key(), transferId: tr.id,
+        paperNo: await paper(tr.toFarmId, "IGP", no),
         lines: received.map((qtyReceived) => ({ qtyReceived })),
       },
       { no, at: at(date, t) },
     );
   }
 
-  function sis(farm: Farm, date: string, time: string, shedRows: { feed: string; kg: number; male: number; female: number }[], lines: [string, number, string?][], no?: number) {
+  async function sis(farm: Farm, date: string, time: string, shedRows: { feed: string; kg: number; male: number; female: number }[], lines: [string, number, string?][], no?: number) {
     const t = timeFor(date, time);
     if (!t) return null;
-    return engine.saveSIS(
-      state,
+    return saveSIS(
       {
-        farmId: farm.id, date, time: t, preparedBy: userOf(farm.id), idempotencyKey: key(), paperNo: paper(farm.id, "SIS", no),
+        farmId: farm.id, date, time: t, preparedBy: userOf(farm.id), idempotencyKey: key(), paperNo: await paper(farm.id, "SIS", no),
         shedRows: shedRows.map((r, i) => ({ shedId: farm.sheds[i].id, feedItemId: r.feed, feedKg: r.kg, mortMale: r.male, mortFemale: r.female })),
         lines: lines.map(([itemId, qty, purpose]) => ({ itemId, qty, purpose })),
       },
@@ -261,84 +215,82 @@ export function buildSeed(now = new Date()): MockState {
   // ── scripted events (by day offset) ──
   const farm = (id: string) => farms.find((f) => f.id === id)!;
   const skipSis = new Set<string>();
-  const scripted: Record<number, () => void> = {
-    [-13]: () => {
+  const scripted: Record<number, () => Promise<void>> = {
+    [-13]: async () => {
       // SIS-203 at Patoki, from the recording: Feed All 23,739 → 14,941 KG, Diesel 2,550 → 2,465 LTR …
       skipSis.add("aw02:-13");
-      sis(
+      await sis(
         farm("aw02"), addDays(todayIso, -13), "11:15",
         [2200, 2200, 2199, 2199].map((kg, i) => ({ feed: "feed-all", kg, male: i % 2, female: 2 + i })),
         [["diesel", 85, "جنریٹر"], ["nylon-rope", 21], ["aqua-kair", 300], ["hcl", 60], ["accid-pro", 25], ["chips", 5], ["polythene", 3], ["brush", 2], ["holder", 1]],
         203,
       );
     },
-    [-12]: () => {
+    [-12]: async () => {
       // Hatchery OGP-46 → Patoki IGP-1662, from the recording.
       const date = addDays(todayIso, -12);
-      const t = transfer("awhatchery", "aw02", date, "07:30",
+      const t = await transfer("awhatchery", "aw02", date, "07:30",
         [["egg-boxes", 180], ["egg-tray", 9000], ["chappal", 90], ["uniform-worker", 10], ["uniform-assistant", 5], ["foil", 14], ["gentylo", 100]],
         "Ameen", "LES-9701", 46);
-      receive(t, date, "08:10", [180, 9000, 90, 10, 5, 14, 100], 1662);
+      await receive(t, date, "08:10", [180, 9000, 90, 10, 5, 14, 100], 1662);
     },
-    [-10]: () => {
+    [-10]: async () => {
       // Patoki OGP-1366: drill machine 6 → 5, to Layer-04 Khan.
       const date = addDays(todayIso, -10);
-      const t = transfer("aw02", "layer04", date, "14:20", [["drill", 1]], "Tariq", "LEA-3341", 1366);
-      receive(t, addDays(todayIso, -9), "09:05", [1]);
+      const t = await transfer("aw02", "layer04", date, "14:20", [["drill", 1]], "Tariq", "LEA-3341", 1366);
+      await receive(t, addDays(todayIso, -9), "09:05", [1]);
     },
-    [-6]: () => {
+    [-6]: async () => {
       // Short transfer: 200 LTR diesel sent, 195 received.
-      const t = transfer("aw05", "aw06", addDays(todayIso, -6), "08:00", [["diesel", 200]], "Shafiq", "LEB-2210");
-      receive(t, addDays(todayIso, -6), "12:40", [195]);
+      const t = await transfer("aw05", "aw06", addDays(todayIso, -6), "08:00", [["diesel", 200]], "Shafiq", "LEB-2210");
+      await receive(t, addDays(todayIso, -6), "12:40", [195]);
     },
-    [-5]: () => {
+    [-5]: async () => {
       // A slip saved twice by mistake; the second one is cancelled by the Accounts Admin.
       const date = addDays(todayIso, -5);
-      igp("aw06", date, "09:40", SUPPLIERS.general, [["gloves", 24], ["brush", 6]]);
-      igp("aw06", date, "09:42", SUPPLIERS.general, [["gloves", 24], ["brush", 6]]);
-      const dup = state.slips[state.slips.length - 1];
-      engine.cancelSlip(state, { slipId: dup.id, reason: "Entered twice / دو بار درج ہوا", by: ADMIN }, { at: at(date, "15:10") });
+      await igp("aw06", date, "09:40", SUPPLIERS.general, [["gloves", 24], ["brush", 6]]);
+      const dup = await igp("aw06", date, "09:42", SUPPLIERS.general, [["gloves", 24], ["brush", 6]]);
+      if (dup) await cancelSlip({ slipId: dup.id, reason: "Entered twice / دو بار درج ہوا", by: ADMIN_NAME }, { at: at(date, "15:10") });
     },
-    [-4]: () => {
+    [-4]: async () => {
       // In transit for more than 2 days.
-      transfer("aw01", "aw3a", addDays(todayIso, -4), "10:30", [["nylon-rope", 20]], "Iqbal", "LEC-7782");
+      await transfer("aw01", "aw3a", addDays(todayIso, -4), "10:30", [["nylon-rope", 20]], "Iqbal", "LEC-7782");
       // Return unused: 60 LTR diesel issued for the generator, 15 LTR brought back the same evening.
       const date = addDays(todayIso, -4);
-      const issued = sis(farm("aw01"), date, "08:15", [], [["diesel", 60, "جنریٹر"]]);
+      const issued = await sis(farm("aw01"), date, "08:15", [], [["diesel", 60, "جنریٹر"]]);
       if (issued) {
-        engine.returnUnused(
-          state,
+        await returnUnused(
           { sisId: issued.id, date, by: userOf("aw01"), idempotencyKey: key(), remarks: "جنریٹر جلدی ٹھیک ہو گیا", lines: [{ lineIndex: 0, qty: 15 }] },
           { at: at(date, "18:10") },
         );
       }
     },
-    [-3]: () => {
+    [-3]: async () => {
       // Corrected slip: diesel typed as 58 instead of 85.
       skipSis.add("aw02:-3");
       const date = addDays(todayIso, -3);
       const p = farm("aw02");
-      const slip = sis(p, date, "10:50",
+      const slip = await sis(p, date, "10:50",
         p.sheds.map((_, i) => ({ feed: "feed-all", kg: 2000 + i * 25, male: i === 0 ? 1 : 0, female: 3 })),
         [["diesel", 58, "جنریٹر"], ["chips", 6]]);
-      if (slip) engine.correctSlip(state, { slipId: slip.id, lines: [{ index: 0, qty: 85 }], reason: "Typed 58 instead of 85", by: ADMIN }, { at: at(date, "16:30") });
+      if (slip) await correctSlip({ slipId: slip.id, lines: [{ index: 0, qty: 85 }], reason: "Typed 58 instead of 85", by: ADMIN_NAME }, { at: at(date, "16:30") });
     },
-    [-1]: () => {
+    [-1]: async () => {
       const date = addDays(todayIso, -1);
       // Waiting at Patoki.
-      transfer("awhatchery", "aw02", date, "15:00", [["egg-tray", 9000], ["egg-boxes", 180], ["chappal", 50]], "Ameen", "LES-9701");
+      await transfer("awhatchery", "aw02", date, "15:00", [["egg-tray", 9000], ["egg-boxes", 180], ["chappal", 50]], "Ameen", "LES-9701");
       // Open correction request from AW-05.
       skipSis.add("aw05:-1");
       const a5 = farm("aw05");
-      const slip = sis(a5, date, "10:20",
+      const slip = await sis(a5, date, "10:20",
         a5.sheds.map((_, i) => ({ feed: "feed-all", kg: 2010 + i * 30, male: 1, female: 2 + i })),
         [["diesel", 40, "جنریٹر"], ["gloves", 4]]);
       if (slip) {
-        engine.requestCorrection(state, { slipId: slip.id, lineIndex: 1, requestedQty: 2, reason: "4 لکھا گیا، اصل میں 2 دستانے استعمال ہوئے", requestedBy: userOf("aw05") }, { at: at(date, "17:05") });
+        await requestCorrection({ slipId: slip.id, lineIndex: 1, requestedQty: 2, reason: "4 لکھا گیا، اصل میں 2 دستانے استعمال ہوئے", requestedBy: userOf("aw05") }, { at: at(date, "17:05") });
       }
     },
-    [0]: () => {
-      transfer("aw05", "aw02", todayIso, "09:00", [["drill", 1]], "Tariq", "LEA-3341");
+    [0]: async () => {
+      await transfer("aw05", "aw02", todayIso, "09:00", [["drill", 1]], "Tariq", "LEA-3341");
     },
   };
 
@@ -360,17 +312,17 @@ export function buildSeed(now = new Date()): MockState {
   // ── day by day ──
   for (let d = -13; d <= 0; d++) {
     const date = addDays(todayIso, d);
-    scripted[d]?.();
+    await scripted[d]?.();
 
     for (const f of farms) {
       const feedId = "feed-all";
 
       // Feed delivery when the farm is running low.
-      if (f.type !== "hatchery" && stockOf(f.id, feedId) < f.sheds.length * 2300 * 2) {
+      if (f.type !== "hatchery" && (await stockOf(f.id, feedId)) < f.sheds.length * 2300 * 2) {
         const qty = 25000;
-        igp(f.id, date, "08:30", SUPPLIERS.feed, [[feedId, qty, chance(0.15) ? qty - between(20, 80) : qty]]);
+        await igp(f.id, date, "08:30", SUPPLIERS.feed, [[feedId, qty, chance(0.15) ? qty - between(20, 80) : qty]]);
       }
-      if (stockOf(f.id, "diesel") < 600) igp(f.id, date, "08:50", SUPPLIERS.diesel, [["diesel", 2000]]);
+      if ((await stockOf(f.id, "diesel")) < 600) await igp(f.id, date, "08:50", SUPPLIERS.diesel, [["diesel", 2000]]);
 
       // Other deliveries now and then, sometimes short.
       if (chance(0.3)) {
@@ -382,26 +334,26 @@ export function buildSeed(now = new Date()): MockState {
             const qty = between(min, max);
             return [id, qty, chance(0.1) ? Math.max(0, qty - between(1, 3)) : qty];
           });
-        if (lines.length) igp(f.id, date, `${pick(["09", "10", "11"])}:${String(between(0, 59)).padStart(2, "0")}`, delivery.ms, lines);
+        if (lines.length) await igp(f.id, date, `${pick(["09", "10", "11"])}:${String(between(0, 59)).padStart(2, "0")}`, delivery.ms, lines);
       }
 
       // Daily Stock Issue Slip.
       const skip = skipSis.has(`${f.id}:${d}`) || (d === 0 && missingToday.has(f.id));
       if (!skip) {
-        const shedRows =
-          f.type === "hatchery"
-            ? []
-            : f.sheds.map(() => {
-                const kg = f.type === "layer" ? between(1000, 1600) : between(1600, 2300);
-                return {
-                  feed: feedId,
-                  kg: usable(f.id, itemById(feedId), kg),
-                  male: f.type === "layer" ? 0 : between(0, 3),
-                  female: between(0, f.type === "layer" ? 12 : 9),
-                };
-              });
+        const shedRows: { feed: string; kg: number; male: number; female: number }[] = [];
+        if (f.type !== "hatchery") {
+          for (let i = 0; i < f.sheds.length; i++) {
+            const kg = f.type === "layer" ? between(1000, 1600) : between(1600, 2300);
+            shedRows.push({
+              feed: feedId,
+              kg: await usable(f.id, itemById(feedId), kg),
+              male: f.type === "layer" ? 0 : between(0, 3),
+              female: between(0, f.type === "layer" ? 12 : 9),
+            });
+          }
+        }
         // Feed used comes off the same stock across sheds: keep the total within stock.
-        let feedLeft = stockOf(f.id, feedId);
+        let feedLeft = await stockOf(f.id, feedId);
         for (const r of shedRows) {
           r.kg = Math.max(0, Math.min(r.kg, feedLeft));
           feedLeft -= r.kg;
@@ -411,24 +363,23 @@ export function buildSeed(now = new Date()): MockState {
         for (let n = between(1, 4); n > 0; n--) {
           const [id, min, max] = pick(pool);
           if (lines.some(([l]) => l === id)) continue;
-          const qty = usable(f.id, itemById(id), between(min, max));
+          const qty = await usable(f.id, itemById(id), between(min, max));
           if (qty > 0) lines.push([id, qty, chance(0.4) ? pick(PURPOSES) : undefined]);
         }
         if (shedRows.length || lines.length) {
-          sis(f, date, `${pick(["10", "11"])}:${String(between(0, 59)).padStart(2, "0")}`, shedRows, lines);
+          await sis(f, date, `${pick(["10", "11"])}:${String(between(0, 59)).padStart(2, "0")}`, shedRows, lines);
         }
       }
 
       // Something goes out for repair now and then.
       if (chance(0.07)) {
         const id = pick(["drill", "fan-36", "battery"]);
-        if (stockOf(f.id, id) >= 1) {
+        if ((await stockOf(f.id, id)) >= 1) {
           const t = timeFor(date, "13:30");
           if (t) {
-            engine.saveOGP(
-              state,
+            await saveOGP(
               {
-                farmId: f.id, date, time: t, preparedBy: userOf(f.id), idempotencyKey: key(), paperNo: paper(f.id, "OGP"),
+                farmId: f.id, date, time: t, preparedBy: userOf(f.id), idempotencyKey: key(), paperNo: await paper(f.id, "OGP"),
                 to: { kind: "outside", ms: pick(REPAIR_SHOPS), reason: "repair" },
                 driverName: "", vehicleNo: "", lines: [{ itemId: id, qty: 1 }],
               },
@@ -439,6 +390,5 @@ export function buildSeed(now = new Date()): MockState {
       }
     }
   }
-
-  return state;
 }
+

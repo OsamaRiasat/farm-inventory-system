@@ -5,6 +5,8 @@
 
 **Not in:** real backend/DB/login/permissions, real item data (≈60 mock items), data migration. Excel export: farm stock report and item stock card download as CSV (opens in Excel); admin reports' Excel button is still not wired.
 
+**Since 24 Nov 2026 (after phase 1):** the real backend replaced the mock — PostgreSQL, username + password login, server-side rules and permissions (`09-backend-architecture.md`). Still not in: AWS hosting, opening balances from the client's counts, password reset.
+
 ## Build order (spec estimate: 7 weeks, 1 frontend dev)
 | Week | Build | Client sees |
 | --- | --- | --- |
@@ -36,6 +38,7 @@ Progress is tracked in `docs/progress.md`.
 | Phone models for testing | Test at 360 px |
 | View-only login for Head Office / Purchase? | Not built; keep actions role-gated so it's easy to add |
 | Return unused after an SIS: does the farm write a paper note for it? Can the Farm User do it without the Admin? | No paper note: system number `AW02-SIS-0484-R1`, no paper No. Farm User returns on their own SIS; only the Admin cancels a wrong return (21 Nov 2026) |
+| Backend stack and hosting (not named in requirements or spec) | Decided 24 Nov 2026: Next.js route handlers + PostgreSQL (Prisma 7), built. Hosting default: one Docker container on AWS App Runner, RDS in Mumbai — see `09-backend-architecture.md` |
 
 ## Answered (client issue list, 29–30 Oct 2026)
 | Question | Answer |

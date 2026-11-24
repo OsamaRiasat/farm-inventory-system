@@ -9,6 +9,7 @@ import { BackLink } from "./back-link";
 import { Bi } from "./bi";
 import { useCurrentFarm } from "./farm-gate";
 import { LangOrderToggle } from "./lang-order-toggle";
+import { SignOutButton } from "./sign-out-button";
 
 type Tab = "home" | "slips" | "stock";
 
@@ -43,7 +44,10 @@ export function FarmShell({ active, back, children }: { active?: Tab; back?: str
                 <div className="font-semibold">{farm.name}</div>
                 <div className="text-sm text-muted">{userName}</div>
               </div>
-              <LangOrderToggle />
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <LangOrderToggle />
+                <SignOutButton />
+              </div>
             </>
           )}
         </div>

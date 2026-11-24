@@ -1,9 +1,9 @@
 // C1 item search: English, Urdu, aliases, item number, spelling variants, recent items.
 import { expect, test } from "@playwright/test";
-import { fastMock } from "./helpers";
+import { signIn } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
-  await fastMock(page);
+  await signIn(page, { role: "admin" });
   await page.goto("/dev");
 });
 
@@ -35,6 +35,7 @@ test("no match says so in both languages", async ({ page }) => {
 test("a picked item shows up under Recent next time", async ({ page }) => {
   const input = page.locator('[data-kind="item"]').first();
   await input.fill("virkon");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Virkon Spray");
   await page.keyboard.press("Enter");
   await page.reload();
   await page.locator('[data-kind="item"]').first().focus();

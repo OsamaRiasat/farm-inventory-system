@@ -1,6 +1,6 @@
 // Whole tasks across screens: save for real, transfers between farms, corrections, stock count, admin.
 import { expect, test, type Page } from "@playwright/test";
-import { fillPaperNo, signIn } from "./helpers";
+import { fillPaperNo, signIn, userPage } from "./helpers";
 
 /** Quantity on the item's stock card (F9) at the signed-in farm. */
 async function stockOf(page: Page, itemId: string) {
@@ -68,6 +68,7 @@ test("SIS: no Feed & Mortality, Ledger Folio typed, summary sheet, Confirm with 
 test("save errors show in a banner and under the field; nothing is saved", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
   await page.goto("/farm/ogp/new");
+  await expect(page.locator('input[name="paperNo"]')).toBeVisible();
   await page.keyboard.press("Control+s");
   const alert = page.locator('[role="alert"]:not(#__next-route-announcer__)');
   await expect(alert).toContainText("Not saved. Please fix:");
@@ -79,7 +80,8 @@ test("save errors show in a banner and under the field; nothing is saved", async
 
 test("Not saved: red banner, everything typed stays", async ({ page }) => {
   await signIn(page, { role: "farm", farmId: "aw02" });
-  await page.addInitScript(() => localStorage.setItem("awfarms.mock.options", JSON.stringify({ latencyMs: 0, failSaves: true })));
+  // The network drops on Save.
+  await page.route("**/api/slips/igp", (route) => route.abort());
   await page.goto("/farm/igp/new");
   await fillPaperNo(page, "555");
   await page.locator('input[name="biltyNo"]').fill("555");
@@ -107,9 +109,8 @@ test("leaving a half-filled slip asks first; Stay keeps it", async ({ page }) =>
   await expect(page).toHaveURL(/\/farm$/);
 });
 
-test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, admin writes it off", async ({ context }) => {
-  const sender = await context.newPage();
-  await signIn(sender, { role: "farm", farmId: "aw02" });
+test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, admin writes it off", async ({ browser, baseURL }) => {
+  const sender = await userPage(browser, baseURL, { role: "farm", farmId: "aw02" });
   await sender.goto("/farm/ogp/new");
   await fillPaperNo(sender, "9555");
   await sender.locator('select[name="toFarm"]').selectOption("aw05");
@@ -126,8 +127,7 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   await expect(sender.locator(".print-frame")).not.toContainText(no);
   await expect(sender.locator("[data-qr]")).toHaveAttribute("data-qr", new RegExp(`/farm/igp/receive/T-${no}$`));
 
-  const receiver = await context.newPage();
-  await signIn(receiver, { role: "farm", farmId: "aw05" });
+  const receiver = await userPage(browser, baseURL, { role: "farm", farmId: "aw05" });
   await receiver.goto("/farm");
   await receiver.getByRole("link", { name: /OGP-9555/ }).click();
   await fillPaperNo(receiver, "9556");
@@ -136,8 +136,7 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   await expect(receiver).toHaveURL(/\/farm\/slips\/AW05-IGP-\d{4}\?saved=1/);
   await expect(receiver.getByText("Short by 2")).toBeVisible();
 
-  const admin = await context.newPage();
-  await signIn(admin, { role: "admin" });
+  const admin = await userPage(browser, baseURL, { role: "admin" });
   await admin.goto("/admin/transfers");
   await admin.getByRole("row", { name: new RegExp(no) }).click();
   await admin.getByLabel(/Reason/).fill("Two bags torn on the way");
@@ -145,12 +144,12 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   await expect(admin.getByText("Written off: Two bags torn on the way").first()).toBeVisible();
 });
 
-test("correction request: farm asks, admin approves pre-filled, original marked corrected", async ({ context }) => {
-  const farm = await context.newPage();
-  await signIn(farm, { role: "farm", farmId: "aw02" });
+test("correction request: farm asks, admin approves pre-filled, original marked corrected", async ({ browser, baseURL }) => {
+  const farm = await userPage(browser, baseURL, { role: "farm", farmId: "aw02" });
   await farm.goto("/farm/slips");
   await farm.getByRole("button", { name: "SIS", exact: true }).click();
   await farm.locator("ul.card a").first().click();
+  await expect(farm).toHaveURL(/\/farm\/slips\/[^/?]+$/);
   const slipUrl = farm.url();
   await farm.getByRole("button", { name: /Request correction/ }).click();
   const dialog = farm.locator("dialog[open]");
@@ -161,8 +160,7 @@ test("correction request: farm asks, admin approves pre-filled, original marked 
   await dialog.getByRole("button", { name: /Send request/ }).click();
   await expect(farm.getByText("Request sent to the Accounts Admin")).toBeVisible();
 
-  const admin = await context.newPage();
-  await signIn(admin, { role: "admin" });
+  const admin = await userPage(browser, baseURL, { role: "admin" });
   await admin.goto("/admin/corrections");
   await admin.getByRole("row", { name: /Wrote it twice/ }).getByRole("link", { name: /Approve/ }).click();
   const panel = admin.locator("form").filter({ has: admin.getByRole("button", { name: /Save correction/ }) });
@@ -263,9 +261,8 @@ test("setup: rename a farm and add an item; both appear in the audit log (sheds 
   await expect(page.getByRole("row", { name: /Farm Nine/ })).toBeVisible();
 });
 
-test("return unused: farm brings back diesel by keyboard, SIS shows Used, stock card row; admin cancels the return", async ({ context }) => {
-  const farm = await context.newPage();
-  await signIn(farm, { role: "farm", farmId: "aw02" });
+test("return unused: farm brings back diesel by keyboard, SIS shows Used, stock card row; admin cancels the return", async ({ browser, baseURL }) => {
+  const farm = await userPage(browser, baseURL, { role: "farm", farmId: "aw02" });
   const before = await stockOf(farm, "diesel");
   await farm.goto("/farm/sis/new");
   await fillPaperNo(farm, "9301");
@@ -277,6 +274,7 @@ test("return unused: farm brings back diesel by keyboard, SIS shows Used, stock 
 
   await farm.goto("/farm/slips?q=SIS-9301");
   await farm.locator("ul.card a").first().click();
+  await expect(farm).toHaveURL(/\/farm\/slips\/[^/?]+$/);
   const slipUrl = farm.url();
   await farm.getByRole("button", { name: /Return unused/ }).focus();
   await farm.keyboard.press("Enter");
@@ -303,8 +301,7 @@ test("return unused: farm brings back diesel by keyboard, SIS shows Used, stock 
   expect(await stockOf(farm, "diesel")).toBe(before - 6);
   await expect(farm.locator("tbody tr").filter({ hasText: "SIS-9301" }).filter({ hasText: "Returned" })).toContainText("+4");
 
-  const admin = await context.newPage();
-  await signIn(admin, { role: "admin" });
+  const admin = await userPage(browser, baseURL, { role: "admin" });
   await admin.goto(slipUrl.replace("/farm/", "/admin/"));
   await admin.getByRole("button", { name: /Cancel return/ }).click();
   const dialog = admin.locator("dialog[open]");

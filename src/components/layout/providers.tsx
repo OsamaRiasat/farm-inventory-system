@@ -1,14 +1,13 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
-import { api } from "@/lib/api";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { useState, type ReactNode } from "react";
 
+// Other users' saves show up when this tab comes back into focus, and on the live screens
+// (dashboard, waiting transfers, slip lists) every 30 s — see refetchInterval in src/lib/api/queries.ts.
 export function Providers({ children }: { children: ReactNode }) {
-  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }));
-
-  // Demo: a save in another tab (farm) shows up here (admin) without a reload.
-  useEffect(() => api.onExternalChange(() => client.invalidateQueries()), [client]);
-
+  const [client] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } }),
+  );
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }

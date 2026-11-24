@@ -1,0 +1,15 @@
+# Local PostgreSQL for development and tests: `npm run db:up`.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: awfarms
+      POSTGRES_PASSWORD: awfarms
+      POSTGRES_DB: awfarms
+      TZ: Asia/Karachi
+    ports:
+      - "5433:5432"
+    volumes:
+      - awfarms-db:/var/lib/postgresql/data
+volumes:
+  awfarms-db:

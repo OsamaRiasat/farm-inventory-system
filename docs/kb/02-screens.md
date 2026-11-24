@@ -4,7 +4,7 @@
 
 | ID | Screen | Route | Who | Purpose | P |
 | --- | --- | --- | --- | --- | --- |
-| S1 | Login | `/login` | Both | Mock: pick role + farm | P1 |
+| S1 | Login | `/login` | Both | Username + password (since 24 Nov 2026); Sign out on F1 and the admin top bar | P1 |
 | S2 | Print view | `/print/[slipId]` | Both | Paper layout, print / PDF | P1 |
 | F1 | Farm home | `/farm` | Farm | 3 slip buttons, waiting to receive, today's slips | P1 |
 | F2 | New IGP | `/farm/igp/new` | Farm | IGP from supplier / other | P1 |
@@ -26,7 +26,7 @@
 | A7 | Reports | `/admin/reports/[type]` | Admin | The 8 reports | P2 |
 | A8 | Farms | `/admin/setup/farms` | Admin | Edit/deactivate (sheds hidden for now — not handled separately) | P2 |
 | A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit | P2 |
-| A10 | Users | `/admin/setup/users` | Admin | Mock data only | P2 |
+| A10 | Users | `/admin/setup/users` | Admin | Read-only list (password reset not built yet) | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
 | A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
 

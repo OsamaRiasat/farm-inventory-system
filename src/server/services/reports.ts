@@ -1,13 +1,50 @@
-// A7 — the eight reports from the requirements, computed from the mock data.
-// Quantities come from movements, so corrections and cancellations are always included.
+// A7 — the eight reports from the requirements. Quantities come from movements, so corrections and
+// cancellations are always included. The data is loaded once per report into a snapshot; the logic is plain code.
 
 import { daysBetween, today } from "@/lib/dates";
 import { allBalances, farmBalances, stockCard } from "@/lib/stock";
-import type { OGP, Slip } from "@/types/domain";
-import type { ReportFilters, ReportResult, ReportRow, ReportType } from "../types";
-import type { MockState } from "./engine";
+import type { ReportFilters, ReportResult, ReportRow, ReportType } from "@/lib/api/types";
+import type { AuditEntry, Farm, Item, Movement, OGP, SISReturn, Slip, Transfer } from "@/types/domain";
+import { db } from "../db";
+import { farmInclude, returnInclude, slipInclude, toAudit, toFarm, toItem, toMovement, toReturn, toSlip, toTransfer } from "../mappers";
 
-export function buildReport(s: MockState, type: ReportType, f: ReportFilters): ReportResult {
+export type Snapshot = {
+  farms: Farm[];
+  items: Item[];
+  slips: Slip[];
+  transfers: Transfer[];
+  movements: Movement[];
+  returns: SISReturn[];
+  audit: AuditEntry[];
+};
+
+/** Everything a report may need. Fine for 11 farms; narrow by date / farm here if reports get slow. */
+async function loadSnapshot(): Promise<Snapshot> {
+  const [farms, items, slips, transfers, movements, returns, audit] = await Promise.all([
+    db().farm.findMany({ include: farmInclude, orderBy: { seq: "asc" } }),
+    db().item.findMany({ orderBy: { number: "asc" } }),
+    db().slip.findMany({ include: slipInclude }),
+    db().transfer.findMany(),
+    db().movement.findMany({ orderBy: { id: "asc" } }),
+    db().sisReturn.findMany({ include: returnInclude }),
+    db().auditEntry.findMany({ orderBy: { id: "asc" } }),
+  ]);
+  return {
+    farms: farms.map(toFarm),
+    items: items.map(toItem),
+    slips: slips.map(toSlip),
+    transfers: transfers.map(toTransfer),
+    movements: movements.map(toMovement),
+    returns: returns.map(toReturn),
+    audit: audit.map(toAudit),
+  };
+}
+
+export async function getReport(type: ReportType, filters: ReportFilters = {}): Promise<ReportResult> {
+  return buildReport(await loadSnapshot(), type, filters);
+}
+
+export function buildReport(s: Snapshot, type: ReportType, f: ReportFilters): ReportResult {
   const inRange = (date: string) => (!f.from || date >= f.from) && (!f.to || date <= f.to);
   const farmOk = (farmId?: string) => !f.farmId || farmId === f.farmId;
   const itemOk = (itemId: string) => {
@@ -235,7 +272,7 @@ export function buildReport(s: MockState, type: ReportType, f: ReportFilters): R
 }
 
 /** IGP: who it came from. OGP: where it went. */
-export function partyOf(s: MockState, slip: Slip) {
+export function partyOf(s: Snapshot, slip: Slip) {
   const farmName = (id?: string) => s.farms.find((f) => f.id === id)?.name ?? "";
   if (slip.type === "IGP") return slip.source.kind === "farm" ? farmName(slip.source.farmId) : (slip.source.ms ?? "");
   if (slip.type === "OGP") return slip.to.kind === "farm" ? farmName(slip.to.farmId) : (slip.to.ms ?? "");

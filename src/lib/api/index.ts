@@ -1,9 +1,9 @@
-// The only module screens use for data. Phase 1 points at the mock; later the same functions
-// call the real backend and no screen changes. See docs/kb/03-data-and-api.md.
+// The only module screens use for data: typed functions over the backend's /api routes.
+// See docs/kb/03-data-and-api.md for the contract.
 
-import { mockApi } from "./mock";
+import { httpApi } from "./http";
 
-export const api = mockApi;
+export const api = httpApi;
 export type Api = typeof api;
 
 export { ApiError } from "./errors";

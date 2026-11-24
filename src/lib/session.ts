@@ -1,52 +1,49 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { SIGNED_OUT_EVENT } from "@/lib/api/http";
 
-// Phase 1 mock login. Kept per browser tab (sessionStorage), so one tab can be a farm and another
-// the Accounts Admin during a demo. The real backend replaces this with proper sign-in.
+// Who is signed in, from the server's session cookie (GET /api/me). The gates (FarmGate, AdminGate) send
+// anyone signed out to the login; an API call answered "signed out" clears this at once.
 
 export type Session = { role: "farm"; farmId: string; userName: string } | { role: "admin"; userName: string };
 
-const KEY = "awfarms.session";
-const EVENT = "awfarms-session";
+export const SESSION_KEY = ["me"] as const;
 
-let cachedRaw: string | null = null;
-let cached: Session | null = null;
-
-function read(): Session | null {
-  let raw: string | null = null;
-  try {
-    raw = sessionStorage.getItem(KEY);
-  } catch {
-    // Blocked storage: signed out.
-  }
-  if (raw !== cachedRaw) {
-    cachedRaw = raw;
-    try {
-      cached = raw ? (JSON.parse(raw) as Session) : null;
-    } catch {
-      cached = null;
-    }
-  }
-  return cached;
+async function fetchMe(): Promise<Session | null> {
+  const res = await fetch("/api/me", { cache: "no-store", credentials: "same-origin" });
+  if (!res.ok) throw new Error(`/api/me ${res.status}`);
+  return (await res.json()) as Session | null;
 }
 
-function subscribe(onChange: () => void) {
-  window.addEventListener(EVENT, onChange);
-  return () => window.removeEventListener(EVENT, onChange);
-}
-
-export function setSession(session: Session | null) {
-  try {
-    if (session) sessionStorage.setItem(KEY, JSON.stringify(session));
-    else sessionStorage.removeItem(KEY);
-  } catch {
-    // Blocked storage: the session can't be kept.
-  }
-  window.dispatchEvent(new Event(EVENT));
-}
-
-/** undefined while rendering on the server, null when nobody is signed in. */
+/** undefined while loading, null when nobody is signed in. */
 export function useSession(): Session | null | undefined {
-  return useSyncExternalStore(subscribe, read, () => undefined);
+  const client = useQueryClient();
+  const { data } = useQuery({ queryKey: SESSION_KEY, queryFn: fetchMe, staleTime: Infinity, retry: 2 });
+
+  useEffect(() => {
+    const signedOut = () => client.setQueryData(SESSION_KEY, null);
+    window.addEventListener(SIGNED_OUT_EVENT, signedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, signedOut);
+  }, [client]);
+
+  return data;
+}
+
+/** Signs in; returns the session, or null for a wrong username / password. */
+export async function signIn(username: string, password: string): Promise<Session | null> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+    credentials: "same-origin",
+  });
+  if (res.status === 400) return null;
+  if (!res.ok) throw new Error(`login ${res.status}`);
+  return (await res.json()) as Session;
+}
+
+export async function signOut() {
+  await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
 }

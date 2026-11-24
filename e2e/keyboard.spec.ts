@@ -57,6 +57,7 @@ test("SIS: Ctrl+S shows before → after from live stock, focus on Confirm, Esc 
   await page.goto("/farm/sis/new");
   await page.locator('[data-kind="item"]').first().focus();
   await page.keyboard.type("diesel");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Diesel Stock");
   await page.keyboard.press("Enter");
   await page.keyboard.type("5");
   await page.keyboard.press("Control+s");

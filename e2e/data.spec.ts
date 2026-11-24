@@ -1,14 +1,26 @@
-// Screens read the seeded mock data through the API.
+// Screens read the seeded demo data through the API.
 import { expect, test } from "@playwright/test";
-import { fastMock, signIn } from "./helpers";
+import { DEMO_PASSWORD, signIn } from "./helpers";
 
-test("login as a farm user goes to that farm's home", async ({ page }) => {
-  await fastMock(page);
+test("login as a farm user goes to that farm's home; a wrong password is refused", async ({ page }) => {
   await page.goto("/login");
-  await page.getByRole("combobox").selectOption("aw05");
-  await page.getByRole("button", { name: /^Enter/ }).first().click();
+  await page.getByLabel(/Username/).fill("aw05");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("wrong");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "Wrong username or password" })).toBeVisible();
+  await expect(page).toHaveURL(/\/login$/);
+
+  await page.getByLabel(/Password/).fill(DEMO_PASSWORD);
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/farm$/);
   await expect(page.getByText("AW-05", { exact: true }).first()).toBeVisible();
+
+  // Sign out ends the session: farm screens go back to the login.
+  await page.getByRole("button", { name: /Sign out/ }).click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/farm");
+  await expect(page).toHaveURL(/\/login$/);
 });
 
 test("farm screens without a session go to the login", async ({ page }) => {
@@ -35,7 +47,7 @@ test("admin dashboard shows the seeded follow-ups", async ({ page }) => {
 });
 
 test("all-slips table: filter by No. finds the real SIS-203, sorts, keyboard opens", async ({ page }) => {
-  await fastMock(page);
+  await signIn(page, { role: "admin" });
   await page.goto("/dev");
   await page.locator("[data-search]").fill("AW02-SIS-0203");
   const rows = page.locator("table.table tbody tr");
@@ -47,7 +59,7 @@ test("all-slips table: filter by No. finds the real SIS-203, sorts, keyboard ope
 });
 
 test("print frame shows SIS-203 as on paper", async ({ page }) => {
-  await fastMock(page);
+  await signIn(page, { role: "admin" });
   await page.goto("/dev");
   const frame = page.locator(".print-frame");
   await expect(frame).toContainText("SUTLEJ FEEDS BREEDERS");

@@ -6,7 +6,7 @@ import { createItemSearch } from "@/lib/item-search";
 import type { Item } from "@/types/domain";
 import { api, type ReportFilters, type ReportType, type SlipFilters, type StockRow } from "./index";
 
-// TanStack Query hooks over the API. Screens use these, never the mock directly.
+// TanStack Query hooks over the API. Screens use these, never fetch directly.
 
 export const keys = {
   farms: ["farms"] as const,
@@ -28,6 +28,8 @@ export const keys = {
 };
 
 const REFERENCE_STALE = 5 * 60_000;
+/** Screens that show other people's work refresh on their own. */
+const LIVE = 30_000;
 
 export function useFarms() {
   return useQuery({ queryKey: keys.farms, queryFn: api.listFarms, staleTime: REFERENCE_STALE });
@@ -66,11 +68,11 @@ export function useStock(farmId: string | undefined) {
 }
 
 export function useWaitingTransfers(farmId: string | undefined) {
-  return useQuery({ queryKey: keys.waiting(farmId), queryFn: () => api.listWaitingTransfers(farmId!), enabled: !!farmId });
+  return useQuery({ queryKey: keys.waiting(farmId), queryFn: () => api.listWaitingTransfers(farmId!), enabled: !!farmId, refetchInterval: LIVE });
 }
 
 export function useSlips(filters: SlipFilters, enabled = true) {
-  return useQuery({ queryKey: keys.slips(filters), queryFn: () => api.listSlips(filters), enabled });
+  return useQuery({ queryKey: keys.slips(filters), queryFn: () => api.listSlips(filters), enabled, refetchInterval: LIVE });
 }
 
 export function useSlip(id: string) {
@@ -83,7 +85,7 @@ export function useReturns(slipId: string, enabled = true) {
 }
 
 export function useDashboard() {
-  return useQuery({ queryKey: keys.dashboard, queryFn: api.getDashboard });
+  return useQuery({ queryKey: keys.dashboard, queryFn: api.getDashboard, refetchInterval: LIVE });
 }
 
 export function useStockMatrix() {
@@ -95,11 +97,11 @@ export function useStockCard(farmId: string, itemId: string) {
 }
 
 export function useTransfers(filters: { farmId?: string } = {}) {
-  return useQuery({ queryKey: keys.transfers(filters), queryFn: () => api.listTransfers(filters) });
+  return useQuery({ queryKey: keys.transfers(filters), queryFn: () => api.listTransfers(filters), refetchInterval: LIVE });
 }
 
 export function useCorrectionRequests(filters: { farmId?: string; status?: "open" | "approved" | "rejected" } = {}) {
-  return useQuery({ queryKey: keys.corrections(filters), queryFn: () => api.listCorrectionRequests(filters) });
+  return useQuery({ queryKey: keys.corrections(filters), queryFn: () => api.listCorrectionRequests(filters), refetchInterval: LIVE });
 }
 
 export function useAudit(filters: { farmId?: string } = {}) {
@@ -123,7 +125,7 @@ export function useApiMutation<I, O>(fn: (input: I) => Promise<O>) {
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
-      void client.invalidateQueries();
+      void client.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "me" });
     },
   });
 }

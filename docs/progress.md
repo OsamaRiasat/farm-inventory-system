@@ -57,6 +57,16 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-11-21 — **Sheds hidden on A8.** Admin Farms page (now "Farms / فارمز") shows only name, code, type, active, Farm User; the shed list, Add shed, Rename / Deactivate shed are gone. Shed API (`addShed` / `updateShed`) and seeded sheds stay. Journey test now renames a farm instead of adding a shed. 72 pass.
 - 2026-11-21 — **Return unused after an SIS** (client use case: 1,000 LTR diesel issued, 800 used → 200 back). "Return unused / بچا ہوا واپس" on a saved SIS (F7 farm, A3 admin): sheet with Qty returned per line (≤ issued − returned), Return date, Remarks, live stock preview; keyboard: Enter / Ctrl+S / Esc. The SIS stays as issued and shows Returned + Used columns and a "Returned unused" list (also printed). Stock up on the return date; stock card row "SIS-… Returned". Admin cancels a wrong return with a reason. Engine: `returnUnused`, `cancelReturn`, `returnsOf`; correction can't go below returned; SIS cancel reverses issued − returned. New `SISReturn` type, `MOCK_VERSION` 4 with one seeded return (AW-01). Consumption report counts returns. Tests: +4 rules, +1 journey, +1 phone; 78 pass.
 
+- 2026-11-24 — **Backend: real database, login and server-side rules; mock removed.** Stack per `09-backend-architecture.md`, with Prisma instead of Drizzle.
+  - PostgreSQL 17 (Docker Compose, port 5433) + Prisma 7 (`prisma/schema.prisma`, first migration adds an append-only trigger on `AuditEntry` and a unique paper-No. index). Dates stay text in Pakistan time; `today()` / `nowStamp()` use `Asia/Karachi` explicitly.
+  - Engine ported to `src/server/services/` (slips, transfers, corrections / cancel, returns, stock counts, stock, reports, dashboard, setup). Every save: one transaction, advisory lock per farm touched, idempotency key, same Zod schema with a `RuleContext` loaded from the DB, number from `Counter`.
+  - 34 route handlers under `src/app/api/`; `src/lib/api/http.ts` keeps the old function names, so screens didn't change. Permissions: a Farm User only reaches their own farm (+ the other side of a transfer); admin-only actions 404 for them; `preparedBy` / `by` / farm taken from the session.
+  - Login: username + password (bcrypt), httpOnly session cookie, `GET /api/me`; S1 rebuilt (Enter → Password → sign in), Sign out on F1 and the admin top bar, `src/proxy.ts` redirects without a cookie. Messages added EN + UR.
+  - Seed: `db:seed:base` (farms, 1,970 items, logins with random passwords) and `db:seed` (+ the old demo history, through the services; logins `demo1234`). `/dev` demo controls removed.
+  - Bugs the network exposed: SIS summary sheet used 0 as "before" while stock was loading (blocked Confirm) — now fills in when stock arrives; F7 "Corrected on … by …" read the audit log, so a Farm User can read their own farm's entries.
+  - Live data: refetch on focus + every 30 s on dashboard, slips, transfers, corrections (replaces the cross-tab event).
+  - Tests: test DB reset + seeded before each run; rules on the services with a throwaway farm per test; `e2e/backend.spec.ts` (+9: races for the last stock, double receive, parallel retries, audit trigger, sign-in, farm scoping, error JSON). Journeys use one browser context per user. 87 pass, 3 runs green.
+
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`)
 - [ ] Stock count (F10) lists every item in the chosen category ("All" = 1,970 rows): consider counting by category only
@@ -67,9 +77,17 @@ Update this file at the end of each work session: what's done, what's next, deci
 - [ ] Optional SIS shed chip on Purpose of Use
 - [ ] Shared PDF file (react-pdf with the Urdu font) instead of sharing the print link
 - [ ] Testing roadmap gaps: print/PDF checks, screenshot baselines, axe, performance budget, fixed test clock
-- [ ] Then: Urdu review, real phone + printer, client demo — and the backend
+- [ ] Then: Urdu review, real phone + printer, client demo
+- [ ] **Hosting**: Dockerfile (`output: "standalone"`), AWS App Runner + RDS + Secrets Manager, `prisma migrate deploy` on release. The Vercel demo stops working without a database — point it at a hosted Postgres or move the demo to AWS
+- [ ] Next.js reported a security advisory for 16.4.3 during `next build`: upgrade Next.js
+- [ ] Opening balances: import the client's counts (CSV → movements `slipId: "opening"`), then the two-week pilot
+- [ ] Users: change / reset password (A10), add / deactivate users; today only the seed creates logins
+- [ ] Paging or date limits for `listSlips` and reports once there's a year of data
+- [ ] Optional: server-sent events instead of 30 s polling
 
 ## Decisions log
+- 2026-11-24 — Backend built: TypeScript route handlers in the same Next.js app + PostgreSQL with **Prisma 7** (chosen over Drizzle), full cutover, **mock removed** (one code path; the demo is a seeded database). Login = username + password with a DB session cookie (no Auth.js). Saves serialise per farm with Postgres advisory locks. Hosting (App Runner) still to do.
+- 2026-11-24 — Backend proposal written (`docs/kb/09-backend-architecture.md`): TypeScript in the same Next.js app (reuses engine + Zod schemas) over FastAPI; PostgreSQL; one container on AWS App Runner (moving off Vercel).
 - 2026-10-27 — Frontend only for now. Very simple visual design. Keyboard-first data entry (see `docs/kb/05-keyboard-entry.md`).
 - 2026-10-27 — F2 IGP header follows the **paper** order (Bilty No., Truck No., Driver Name, then M/s, then Demand No., D. Challan No., Dated); the spec's field table lists M/s first.
 - 2026-10-27 — Slip type chips show the code (IGP / OGP / SIS) in English only, like slip numbers.

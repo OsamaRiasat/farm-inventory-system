@@ -1,0 +1,335 @@
+// AW Farms Inventory — database. Shapes follow src/types/domain.ts (the API contract);
+// src/server/mappers.ts turns rows into those types.
+// Rules: balances come only from Movement; nothing is deleted; AuditEntry can't be changed (trigger in the
+// first migration). Dates and times are local Pakistan time stored as text ("2026-11-24", "10:40",
+// "2026-11-24T10:40:00"), exactly as the API sends them.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  // CommonJS so Playwright (rules tests) can load it too; Next.js bundles either.
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FarmType {
+  breeder
+  layer
+  hatchery
+}
+
+enum Unit {
+  KG
+  LTR
+  QTY
+  BG
+  ROLL
+  VIAL
+}
+
+enum Role {
+  farm
+  admin
+}
+
+enum SlipType {
+  IGP
+  OGP
+  SIS
+}
+
+enum SlipStatus {
+  saved
+  corrected
+  cancelled
+}
+
+enum TransferStatus {
+  in_transit
+  received
+  short
+  cancelled
+}
+
+enum ReturnStatus {
+  saved
+  cancelled
+}
+
+enum CorrectionStatus {
+  open
+  approved
+  rejected
+}
+
+// ── setup ────────────────────────────────────────────────────────────────
+
+model Farm {
+  id     String   @id
+  code   String   @unique
+  name   String
+  type   FarmType
+  active Boolean  @default(true)
+  /// Display order (the client's list order).
+  seq    Int      @default(autoincrement())
+  sheds  Shed[]
+  users  User[]
+}
+
+model Shed {
+  id     String  @id
+  farmId String
+  farm   Farm    @relation(fields: [farmId], references: [id])
+  name   String
+  active Boolean @default(true)
+  seq    Int     @default(autoincrement())
+
+  @@index([farmId])
+}
+
+model Item {
+  id       String   @id
+  /// Item No. = position in the client's workbook.
+  number   Int      @unique
+  name     String
+  nameUr   String   @default("")
+  aliases  String[]
+  category String
+  unit     Unit
+  isFeed   Boolean  @default(false)
+  active   Boolean  @default(true)
+}
+
+model User {
+  id           String    @id
+  name         String
+  username     String    @unique
+  passwordHash String
+  role         Role
+  farmId       String?
+  farm         Farm?     @relation(fields: [farmId], references: [id])
+  phone        String    @default("")
+  active       Boolean   @default(true)
+  sessions     Session[]
+}
+
+model Session {
+  /// sha256 of the cookie token; the token itself is never stored.
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+/// M/s names collected from IGPs.
+model Supplier {
+  name String @id
+}
+
+// ── slips ────────────────────────────────────────────────────────────────
+
+model Slip {
+  /// = no ("AW02-IGP-1663", corrections "AW02-IGP-1663-C1").
+  id          String      @id
+  no          String      @unique
+  paperNo     String
+  /// paperNo without spaces, upper case: unique per farm + type (see migration).
+  paperNoKey  String
+  type        SlipType
+  farmId      String
+  date        String
+  time        String
+  postedAt    String
+  preparedBy  String
+  status      SlipStatus  @default(saved)
+  correctionOf String?
+  correctedBy String?
+  transferId  String?
+  remarks     String?
+
+  // IGP
+  sourceKind   String?
+  sourceFarmId String?
+  sourceMs     String?
+  biltyNo      String?
+  truckNo      String?
+  demandNo     String?
+  challanNo    String?
+  challanDate  String?
+  // IGP + OGP
+  driverName   String?
+  // OGP
+  toKind       String?
+  toFarmId     String?
+  toMs         String?
+  toReason     String?
+  vehicleNo    String?
+  // SIS: feed & mortality per shed (old slips only)
+  shedRows     Json?
+
+  lines SlipLine[]
+
+  @@index([farmId, date])
+  @@index([date])
+  @@index([transferId])
+}
+
+model SlipLine {
+  slipId      String
+  slip        Slip    @relation(fields: [slipId], references: [id])
+  index       Int
+  itemId      String
+  /// OGP / SIS
+  qty         Float?
+  /// IGP
+  qtyChallan  Float?
+  qtyReceived Float?
+  weightKg    Float?
+  /// SIS
+  ledgerFolio String?
+  purpose     String?
+  shedId      String?
+
+  @@id([slipId, index])
+  @@index([itemId])
+}
+
+model Transfer {
+  id               String         @id
+  ogpId            String
+  igpId            String?
+  fromFarmId       String
+  toFarmId         String
+  status           TransferStatus
+  sentAt           String
+  receivedAt       String?
+  resolutionKind   String?
+  resolutionBy     String?
+  resolutionAt     String?
+  resolutionReason String?
+
+  @@index([toFarmId, status])
+  @@index([fromFarmId])
+}
+
+/// The only source of stock balances.
+model Movement {
+  id     Int    @id @default(autoincrement())
+  farmId String
+  itemId String
+  /// Slip id, SIS return id, stock count id, or "opening".
+  slipId String
+  date   String
+  qtyIn  Float  @default(0)
+  qtyOut Float  @default(0)
+
+  @@index([farmId, itemId])
+  @@index([slipId])
+}
+
+model SisReturn {
+  id           String            @id
+  no           String            @unique
+  sisId        String
+  farmId       String
+  date         String
+  postedAt     String
+  by           String
+  remarks      String?
+  status       ReturnStatus      @default(saved)
+  cancelledBy  String?
+  cancelledAt  String?
+  cancelReason String?
+  lines        SisReturnLine[]
+
+  @@index([sisId])
+}
+
+model SisReturnLine {
+  returnId  String
+  ret       SisReturn @relation(fields: [returnId], references: [id])
+  index     Int
+  lineIndex Int
+  itemId    String
+  qty       Float
+
+  @@id([returnId, index])
+}
+
+model StockCount {
+  id         String           @id
+  no         String           @unique
+  farmId     String
+  date       String
+  time       String
+  preparedBy String
+  reason     String
+  lines      StockCountLine[]
+}
+
+model StockCountLine {
+  countId    String
+  count      StockCount @relation(fields: [countId], references: [id])
+  index      Int
+  itemId     String
+  systemQty  Float
+  countedQty Float
+
+  @@id([countId, index])
+}
+
+model CorrectionRequest {
+  id           String           @id
+  slipId       String
+  farmId       String
+  lineIndex    Int
+  requestedQty Float
+  reason       String
+  requestedBy  String
+  at           String
+  status       CorrectionStatus @default(open)
+  note         String?
+  correctionId String?
+
+  @@index([farmId, status])
+}
+
+// ── control ──────────────────────────────────────────────────────────────
+
+/// Last slip number used per farm and kind (IGP, OGP, SIS, CNT).
+model Counter {
+  farmId String
+  kind   String
+  last   Int
+
+  @@id([farmId, kind])
+}
+
+/// A save retried with the same key returns the first result.
+model IdempotencyKey {
+  key      String @id
+  recordId String
+}
+
+/// Append-only: a trigger blocks UPDATE and DELETE.
+model AuditEntry {
+  id       Int     @id @default(autoincrement())
+  at       String
+  user     String
+  farmId   String?
+  action   String
+  recordId String
+  recordNo String
+  old      String?
+  new      String?
+  reason   String?
+
+  @@index([farmId])
+  @@index([at])
+}

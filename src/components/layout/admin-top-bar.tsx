@@ -6,6 +6,7 @@ import { tInline } from "@/lib/i18n";
 import { setAdminFarm, useAdminFarm } from "./admin-farm-filter";
 import { Bi } from "./bi";
 import { LangOrderToggle } from "./lang-order-toggle";
+import { SignOutButton } from "./sign-out-button";
 
 /** Admin top bar. The farm filter applies to every admin screen. */
 export function AdminTopBar() {
@@ -30,6 +31,7 @@ export function AdminTopBar() {
           <Bi id="login.admin" inline />
         </span>
         <LangOrderToggle />
+        <SignOutButton />
       </div>
     </header>
   );

@@ -45,7 +45,7 @@ Never use accounting words in the Farm User UI (debit, credit, adjustment, vendo
 
 Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses A1–A5, A7 with actions hidden.
 
-## Hard rules (enforce in the mock API **and** the form schemas)
+## Hard rules (enforce on the server **and** in the form schemas — the same Zod schemas)
 1. **No review step.** Save = final; stock changes immediately.
 2. **Stock never below zero.** Issue/OGP qty > on-hand → blocked with "Only 6 in stock".
 3. **Balances are calculated from movements**, never typed.

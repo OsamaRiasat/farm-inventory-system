@@ -3,10 +3,10 @@
 How the app is tested from now (end of week 2) to client sign-off, and after the backend arrives. Update the **Coverage** and **Rule map** tables as tests land.
 
 ## Principles
-1. **Every business rule has an automated test**, run on the engine (fast, no browser) *and* at least once through the screen.
+1. **Every business rule has an automated test**, run on the server services (fast, no browser) *and* at least once through the screen.
 2. **Every keyboard path has an end-to-end test.** Keyboard-first is the product's main promise; it breaks silently.
 3. **Test on the client's reality**: 360 px Android with throttled CPU, office PC at 1366 × 768, real A5/A4 printer, a native Urdu reader.
-4. **Deterministic data**: the seed is fixed; tests that change data use a fresh browser context, so they never depend on each other.
+4. **Deterministic data**: one test database (`TEST_DATABASE_URL`, default `awfarms_test`) is reset and seeded before every run (`e2e/global-setup.ts`). The `seed` project (`data.spec.ts`) checks the untouched demo first; everything else runs after it in parallel. Rules / backend tests make their own inactive throwaway farm (`testFarm()` in `e2e/db.ts`); screen tests use unique paper numbers. Two users side by side = two browser contexts (`userPage()`), since the session is a cookie.
 5. A week isn't done until `npm run test:e2e` passes and the new screens have tests.
 
 ## Test layers
@@ -14,7 +14,8 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | Layer | What | Tool | Where | Runs |
 | --- | --- | --- | --- | --- |
 | 1. Static | Types (incl. every Urdu key present), lint | `tsc`, ESLint | — | Every change |
-| 2. Rules | Engine + Zod schemas: stock, numbering, transfers, corrections, cancel, idempotency, seed invariants | Playwright (no browser, `rules` project) | `e2e/rules.spec.ts` | Every change, < 2 s |
+| 2. Rules | Server services + Zod schemas on the test database: stock, numbering, transfers, corrections, cancel, idempotency, seed invariants | Playwright (no browser, `rules` project) | `e2e/rules.spec.ts` | Every change, < 5 s |
+| 2a. Backend | Two saves at once (last stock, double receive), parallel retries, audit log can't change, sign-in, a Farm User only reaches their farm, Prepared by from the session, error JSON | Playwright (`rules` project; services + HTTP) | `e2e/backend.spec.ts` | Every change |
 | 3. Search | Item search cases: English, Urdu, mixed, number, alias, typo, recent | Playwright | `e2e/search.spec.ts` | Every change |
 | 4. Keyboard | Enter flow, line add/remove, pick, save, Esc, shortcuts, tables | Playwright (desktop) | `e2e/keyboard.spec.ts` | Every change |
 | 5. Journeys | A user's whole task across screens (farm saves → admin sees) | Playwright, 2 contexts | `e2e/journeys/*.spec.ts` (week 3+) | Every change |
@@ -73,16 +74,19 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 - Sign-off checklist (below) with the client.
 
 ### After phase 1 — when the real backend arrives
-- **Contract tests**: the same `rules.spec.ts` cases run against the mock and the real API (one suite, two adapters); same inputs give the same errors.
-- **Auth and permissions** server-side: a Farm User can't read or write another farm's data even by editing the URL or request.
-- **Concurrency**: two saves using the last stock at once, so exactly one wins; receiving a transfer twice at once.
-- **Idempotency** across network retries; **audit log** immutability.
+Done 24 Nov 2026 (the mock was removed, so there is one suite against the real backend):
+- ✓ `rules.spec.ts` cases moved to the server services; same inputs give the same message ids.
+- ✓ **Auth and permissions** server-side: a Farm User can't read or write another farm's data by editing the URL or request (`backend.spec.ts`).
+- ✓ **Concurrency**: three OGPs for the last drill → one saves; double receive → one IGP.
+- ✓ **Idempotency** across parallel retries; **audit log** immutability (trigger).
+
+Still to do:
 - **Migration**: opening balances loaded = the client's counts.
 - **Pilot (from the requirements)**: two weeks at one farm with paper and app side by side; daily reconcile app balances against the paper slips; go-live only when they match for two weeks.
 
 ## Rule map (from 01-domain.md)
 
-| # | Rule | Engine test | Screen test | Status |
+| # | Rule | Rules test (server services) | Screen test | Status |
 | --- | --- | --- | --- | --- |
 | 1 | Save is final, stock changes at once | IGP raises stock | IGP / SIS save journeys | ✓ |
 | 2 | Stock never below zero, "Only n in stock" | OGP/SIS over stock; same item on two lines | OGP keyboard test | ✓ |
@@ -116,14 +120,15 @@ Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 
 72 tests after A12 admin slip entry (21 Nov 2026): +4 in `e2e/admin-entry.spec.ts`, A12 added to the admin Back check.
 
 78 tests after Return unused (21 Nov 2026): +4 rules, +1 journey (farm by keyboard → admin cancels), +1 phone.
+87 tests after the backend (24 Nov 2026): rules on the real services, +9 backend (concurrency, idempotency, audit, sign-in, permissions), login test uses username + password + Sign out. 3 runs green.
 
 Still to add: print/PDF page checks (`page.pdf()`), screenshot baselines, axe accessibility, performance budget, fixed test clock.
 
 ## Infrastructure to add
-- **Fixed clock for tests**: the seed is built around "now", so a run just after midnight sees few slips "today". Add a mock option (e.g. `awfarms.mock.now`) that tests set, so dates are stable.
+- **Fixed clock for tests**: the seed is built around "now", so a run just after midnight sees few slips "today". The seed takes `SEED_NOW`; the server's "today" would need the same override for fully fixed dates.
 - **Test ids**: keep using roles and `data-kind` / `data-search`; add `data-testid` only where no stable role exists.
 - **CI**: the project isn't a git repository yet. Once it is, run `npm run test:e2e` on every push (GitHub Actions with Chrome); keep traces on failure.
-- **Journey helpers**: `asFarm(page, "aw02")`, `asAdmin(page)`, and a two-context helper for transfer tests.
+- ✓ **Journey helpers**: `signIn(page, …)` (API login) and `userPage(browser, baseURL, …)` for a second user in its own context (`e2e/helpers.ts`).
 
 ## Performance budget (low-end Android, Playwright 4× CPU throttle, Fast 3G)
 | Measure | Budget |

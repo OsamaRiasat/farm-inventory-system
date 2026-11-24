@@ -94,10 +94,3 @@ export type ReportResult = {
   /** Feed & mortality: one line per shed, daily mortality. */
   series?: { name: string; points: { date: string; value: number }[] }[];
 };
-
-export type MockOptions = {
-  /** Delay on every call, so loading states show. */
-  latencyMs: number;
-  /** Every save fails with "Not saved", to demo the error state. */
-  failSaves: boolean;
-};

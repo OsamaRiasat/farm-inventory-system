@@ -1,61 +1,84 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Bi } from "@/components/layout/bi";
-import { FarmPicker } from "@/components/ui/farm-picker";
-import { LoadError, Skeleton } from "@/components/ui/skeleton";
-import { useFarms } from "@/lib/api/queries";
-import { setSession } from "@/lib/session";
+import { SESSION_KEY, signIn, useSession } from "@/lib/session";
+import type { MsgId } from "@/lib/i18n";
 
-/** S1 — pick a role (and farm). Phase 1 only: no password. */
+/** S1 — username + password. Farm User → their farm's home; Accounts Admin → dashboard. */
 export function LoginForm() {
   const router = useRouter();
-  const farms = useFarms();
-  const [farmId, setFarmId] = useState("aw02");
+  const client = useQueryClient();
+  const [error, setError] = useState<MsgId | null>(null);
+  const [busy, setBusy] = useState(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const session = useSession();
 
-  function enterFarm(e: FormEvent) {
+  // Already signed in (opened "/" or the login again): straight to Home.
+  useEffect(() => {
+    if (session) router.replace(session.role === "admin" ? "/admin" : "/farm");
+  }, [session, router]);
+
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const farm = farms.data?.find((f) => f.id === farmId);
-    if (!farm) return;
-    setSession({ role: "farm", farmId: farm.id, userName: `${farm.code} Store Keeper` });
-    router.replace("/farm");
+    const form = new FormData(e.currentTarget);
+    setBusy(true);
+    setError(null);
+    try {
+      const session = await signIn(String(form.get("username") ?? ""), String(form.get("password") ?? ""));
+      if (!session) {
+        setError("err.wrongLogin");
+        passwordRef.current?.select();
+        return;
+      }
+      // A different user may have used this browser: start from fresh data.
+      client.clear();
+      client.setQueryData(SESSION_KEY, session);
+      router.replace(session.role === "admin" ? "/admin" : "/farm");
+    } catch {
+      setError("err.notSaved");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function enterAdmin() {
-    setSession({ role: "admin", userName: "Accounts Admin" });
-    router.replace("/admin");
+  /** Enter in Username moves to Password; Enter in Password signs in. */
+  function usernameEnter(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.key === "Enter" && (e.target as HTMLInputElement).name === "username") {
+      e.preventDefault();
+      passwordRef.current?.focus();
+    }
   }
 
   return (
-    <>
-      <form onSubmit={enterFarm} className="card flex flex-col gap-3 p-4">
-        <h2 className="font-semibold">
-          <Bi id="login.farmUser" />
-        </h2>
-        <label className="flex flex-col gap-1 text-sm font-medium">
-          <Bi id="login.pickFarm" />
-          {farms.isError ? (
-            <LoadError onRetry={() => farms.refetch()} />
-          ) : farms.data ? (
-            <FarmPicker farms={farms.data} value={farmId} onChange={setFarmId} autoFocus />
-          ) : (
-            <Skeleton className="h-12" />
-          )}
-        </label>
-        <button type="submit" className="btn btn-primary btn-lg" disabled={!farms.data}>
-          <Bi id="login.enter" inline />
-        </button>
-      </form>
-
-      <div className="card flex flex-col gap-3 p-4">
-        <h2 className="font-semibold">
-          <Bi id="login.admin" />
-        </h2>
-        <button type="button" className="btn btn-lg" onClick={enterAdmin}>
-          <Bi id="login.enter" inline />
-        </button>
-      </div>
-    </>
+    <form onSubmit={submit} onKeyDown={usernameEnter} className="card flex flex-col gap-3 p-4" autoComplete="on">
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        <Bi id="login.username" />
+        <input
+          name="username"
+          className="input"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          autoFocus
+          dir="ltr"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        <Bi id="login.password" />
+        <input ref={passwordRef} name="password" type="password" className="input" autoComplete="current-password" required dir="ltr" />
+      </label>
+      {error && (
+        <p role="alert" className="font-medium text-danger">
+          <Bi id={error} inline />
+        </p>
+      )}
+      <button type="submit" className="btn btn-primary btn-lg" disabled={busy} data-save>
+        <Bi id="login.signIn" inline />
+      </button>
+    </form>
   );
 }

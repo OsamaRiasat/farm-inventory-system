@@ -1,8 +1,8 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Printer, RotateCcw } from "lucide-react";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Printer } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
 import { CurrentFarmProvider } from "@/components/layout/farm-gate";
 import { StatusChip, type Status } from "@/components/layout/status-chip";
@@ -25,7 +25,6 @@ import { enterToNext } from "@/lib/keyboard/focus";
 import type { Item, SIS, Slip } from "@/types/domain";
 
 const SAMPLE_FARM = "aw02";
-const DEFAULT_OPTIONS = { latencyMs: 300, failSaves: false };
 
 const lineCols: LineCol[] = [
   { key: "item", label: "line.description", kind: "item", width: "2fr", required: true },
@@ -34,7 +33,7 @@ const lineCols: LineCol[] = [
   { key: "weight", label: "line.weight", kind: "weight", width: "0.8fr" },
 ];
 
-/** Component review page (replaces Storybook for now) + demo controls. Uses Patoki's live mock data. */
+/** Component review page (replaces Storybook for now). Uses Patoki's live data: sign in as admin or aw02 first. */
 export function DevGallery() {
   const farms = useFarms();
   const farm = farms.data?.find((f) => f.id === SAMPLE_FARM);
@@ -47,7 +46,6 @@ export function DevGallery() {
       <p className="text-sm text-muted">
         <Bi id="dev.sampleFarm" values={{ farm: farm.name }} inline />
       </p>
-      <DemoControls />
       <ItemSearchDemo />
       <Section title="dev.c2">
         <div className="grid max-w-md grid-cols-2 gap-3">
@@ -78,48 +76,6 @@ function Section({ title, children }: { title: MsgId; children: ReactNode }) {
       </h2>
       {children}
     </section>
-  );
-}
-
-function DemoControls() {
-  const client = useQueryClient();
-  const options = useSyncExternalStore(api.subscribeMockOptions, api.getMockOptions, () => DEFAULT_OPTIONS);
-  const [resetting, setResetting] = useState(false);
-  const change = (next: Partial<typeof options>) => api.setMockOptions(next);
-
-  return (
-    <Section title="dev.demo">
-      <div className="card flex flex-wrap items-end gap-4 p-4 text-sm">
-        <button
-          type="button"
-          className="btn"
-          disabled={resetting}
-          onClick={async () => {
-            setResetting(true);
-            await api.resetDemo();
-            await client.invalidateQueries();
-            setResetting(false);
-          }}
-        >
-          <RotateCcw size={18} aria-hidden />
-          <Bi id="dev.reset" inline />
-        </button>
-        <label className="flex flex-col gap-1">
-          <Bi id="dev.latency" />
-          <select className="input min-h-10 w-40" value={options.latencyMs} onChange={(e) => change({ latencyMs: Number(e.target.value) })}>
-            {[0, 300, 1500].map((ms) => (
-              <option key={ms} value={ms}>
-                {ms} ms
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex min-h-10 items-center gap-2">
-          <input type="checkbox" className="size-5" checked={options.failSaves} onChange={(e) => change({ failSaves: e.target.checked })} />
-          <Bi id="dev.failSaves" />
-        </label>
-      </div>
-    </Section>
   );
 }
 
