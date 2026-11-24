@@ -66,6 +66,7 @@ Update this file at the end of each work session: what's done, what's next, deci
   - Bugs the network exposed: SIS summary sheet used 0 as "before" while stock was loading (blocked Confirm) — now fills in when stock arrives; F7 "Corrected on … by …" read the audit log, so a Farm User can read their own farm's entries.
   - Live data: refetch on focus + every 30 s on dashboard, slips, transfers, corrections (replaces the cross-tab event).
   - Tests: test DB reset + seeded before each run; rules on the services with a throwaway farm per test; `e2e/backend.spec.ts` (+9: races for the last stock, double receive, parallel retries, audit trigger, sign-in, farm scoping, error JSON). Journeys use one browser context per user. 87 pass, 3 runs green.
+- 2026-11-24 — **Deployed with the backend on Vercel**: Neon Postgres (free, Singapore) via the Vercel Marketplace, functions in `sin1` (`vercel.json`), migrations + `db:seed:base` run once (no demo data). Logins handed to the developer once. See `docs/kb/09-backend-architecture.md` → Vercel.
 
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`)
