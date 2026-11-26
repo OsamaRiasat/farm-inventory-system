@@ -8,6 +8,7 @@ import type {
   Farm,
   IGP,
   Item,
+  ItemRequest,
   OGP,
   SIS,
   SISReturn,
@@ -23,6 +24,7 @@ import type {
   CorrectionInput,
   CorrectionRequestInput,
   Dashboard,
+  ItemRequestInput,
   ReportFilters,
   ReportResult,
   ReportType,
@@ -120,6 +122,15 @@ export const httpApi = {
   // ── admin ──
   getDashboard: () => get<Dashboard>("/dashboard"),
   getReport: (type: ReportType, filters: ReportFilters = {}) => get<ReportResult>(`/reports/${enc(type)}${qs(filters)}`),
+
+  // ── item requests (client #30) ──
+  requestItem: (input: ItemRequestInput) => post<ItemRequest>("/item-requests", input),
+  listItemRequests: (filters: { farmId?: string; status?: ItemRequest["status"] } = {}) =>
+    get<ItemRequest[]>(`/item-requests${qs(filters)}`),
+  approveItemRequest: (input: { requestId: string; item: Omit<Item, "id" | "number"> }) =>
+    post<Item>(`/item-requests/${enc(input.requestId)}/approve`, input.item),
+  rejectItemRequest: (input: { requestId: string; note: string }) =>
+    post<ItemRequest>(`/item-requests/${enc(input.requestId)}/reject`, { note: input.note }),
 
   // ── setup (A8, A9) ──
   updateFarm: (input: FarmPatch) => post<Farm>(`/farms/${enc(input.id)}`, input),

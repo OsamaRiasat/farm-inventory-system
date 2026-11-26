@@ -6,7 +6,7 @@ import { Bi } from "@/components/layout/bi";
 import { QtyInput } from "@/components/slip/qty-input";
 import { api, ApiError } from "@/lib/api";
 import { useApiMutation } from "@/lib/api/queries";
-import { allowsDecimals, fmtQty, parseQty } from "@/lib/format";
+import { fmtQty, parseQty } from "@/lib/format";
 import { t, type MsgId, type MsgValues } from "@/lib/i18n";
 import { enterToNext } from "@/lib/keyboard/focus";
 import type { CorrectionRequest, Item, Slip } from "@/types/domain";
@@ -106,7 +106,6 @@ export function CorrectPanel({
                         setError(null);
                       }}
                       suffix={item ? t(`unit.${item.unit}`).en : undefined}
-                      decimals={item ? allowsDecimals(item.unit) : true}
                       autoFocus={i === (request?.lineIndex ?? 0)}
                       aria-label={`${i + 1}. ${item?.name ?? ""}`}
                     />

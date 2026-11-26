@@ -23,7 +23,7 @@ export function AdminDashboard() {
   if (!dashboard.data) {
     return (
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {Array.from({ length: 5 }, (_, i) => (
             <Skeleton key={i} className="h-28" />
           ))}
@@ -41,7 +41,7 @@ export function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {tileList(tiles).map((tile) => {
           const flagged = tile.alert && tile.value > 0;
           return (
@@ -163,5 +163,6 @@ function tileList(tiles: Dashboard["tiles"]): { label: MsgId; value: number; hre
     { label: "dash.inTransitOld", value: tiles.inTransitOld, href: "/admin/transfers", alert: true },
     { label: "dash.shortfalls", value: tiles.shortfalls, href: "/admin/transfers", alert: true },
     { label: "dash.corrections", value: tiles.corrections, href: "/admin/corrections", alert: true },
+    { label: "dash.itemRequests", value: tiles.itemRequests, href: "/admin/setup/items?show=requested", alert: true },
   ];
 }

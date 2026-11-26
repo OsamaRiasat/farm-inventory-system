@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fmtQty } from "@/lib/format";
-import { checkItemAndUnit, positiveQty, remarks, required, type RuleContext } from "@/lib/validation";
+import { checkItem, positiveQty, remarks, required, type RuleContext } from "@/lib/validation";
 
 /** What is left on each SIS line: issued minus what already came back. */
 export type ReturnableLine = { itemId: string; issued: number; returned: number };
@@ -30,7 +30,7 @@ export function returnSchema(rules: RuleContext, sis: { date: string; lines: Ret
           return;
         }
         seen.add(l.lineIndex);
-        checkItemAndUnit(rules, line.itemId, [l.qty], ["lines", i], ctx);
+        checkItem(rules, line.itemId, ["lines", i], ctx);
         const left = returnable(line);
         if (l.qty > left) {
           ctx.addIssue({ code: "custom", message: "err.onlyReturnable", params: { n: fmtQty(left) }, path: ["lines", i, "qty"] });

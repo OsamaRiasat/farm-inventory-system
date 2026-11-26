@@ -119,8 +119,9 @@ test("transfer end to end: AW-02 sends, print has the QR, AW-05 receives short, 
   await sender.keyboard.type("10");
   await sender.keyboard.press("Control+s");
 
-  // OGP goes straight to the print view; the QR opens the waiting receipt at AW-05.
-  await expect(sender).toHaveURL(/\/print\/AW02-OGP-\d{4}\?saved=1/);
+  // Saved → Print on the banner; the QR opens the waiting receipt at AW-05.
+  await sender.locator('[role="status"]').getByRole("link", { name: /Print/ }).click();
+  await expect(sender).toHaveURL(/\/print\/AW02-OGP-\d{4}$/);
   const no = decodeURIComponent(sender.url().match(/print\/([^?]+)/)![1]);
   // The pass shows the farm's paper number; the system number stays behind the QR code.
   await expect(sender.locator(".print-frame")).toContainText("No. OGP-9555");

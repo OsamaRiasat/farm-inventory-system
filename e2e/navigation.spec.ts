@@ -122,14 +122,17 @@ test("OGP Remarks: saved, printed on the pass, and the form starts empty again",
   await page.locator('input[name="remarks"]:visible').fill("ڈرائیور کے ساتھ رسید بھیجی");
   await page.keyboard.press("Control+s");
 
-  await expect(page).toHaveURL(/\/print\/AW02-OGP-\d{4}\?saved=1/);
-  await expect(page.locator(".print-frame")).toContainText("Remarks");
-  await expect(page.locator(".print-frame")).toContainText("ڈرائیور کے ساتھ رسید بھیجی");
-
-  // The print view replaced the form, so Back goes to Home; a new OGP is empty.
-  await page.goBack();
-  await expect(page).toHaveURL(/\/farm$/);
-  await page.locator('a[href="/farm/ogp/new"]:visible').click();
+  // Client #29: saving stays on a blank OGP; the pass is one click away.
+  await expect(page).toHaveURL(/\/farm\/ogp\/new$/);
+  await expect(page.locator('[role="status"]:visible')).toContainText("OGP-9777");
   await expect(page.locator('input[name="paperNo"]:visible')).toHaveValue("");
   await expect(page.locator('input[name="remarks"]:visible')).toHaveValue("");
+
+  await page.locator('[role="status"]:visible').getByRole("link", { name: /Print/ }).click();
+  await expect(page).toHaveURL(/\/print\/AW02-OGP-\d{4}$/);
+  await expect(page.locator(".print-frame")).toContainText("Remarks");
+  await expect(page.locator(".print-frame")).toContainText("ڈرائیور کے ساتھ رسید بھیجی");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/farm\/ogp\/new$/);
+  await expect(page.locator('input[name="paperNo"]:visible')).toHaveValue("");
 });

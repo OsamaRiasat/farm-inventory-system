@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEv
 import { Bi } from "@/components/layout/bi";
 import { useCurrentFarm } from "@/components/layout/farm-gate";
 import { useItemMap, useStock } from "@/lib/api/queries";
-import { allowsDecimals, fmtQty, parseQty } from "@/lib/format";
+import { fmtQty, parseQty } from "@/lib/format";
 import { t, tInline, type MsgId } from "@/lib/i18n";
 import type { Item } from "@/types/domain";
 import { ItemPicker } from "./item-picker";
@@ -25,7 +25,7 @@ export type LineCol = {
 };
 
 export type LineRules = {
-  /** Qty Actual Received below challan → amber "Short by n" (still saveable). */
+  /** Qty Actual Received differs from the challan → amber "Short by n" / "More than challan by n" (still saveable). */
   shortfall?: boolean;
   /** Qty Actual Received above qty sent → blocked. */
   maxSent?: boolean;
@@ -55,7 +55,7 @@ const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "fol
  */
 export function SlipLines({ cols, title = "line.items", initial, fixed, showStock, rules = {}, receivedAll }: Props) {
   const uid = useId();
-  const { farm } = useCurrentFarm();
+  const { farm, area } = useCurrentFarm();
   const saveErrors = useSlipErrors();
   const items = useItemMap();
   const stock = useStock(showStock || rules.maxStock ? farm.id : undefined).data;
@@ -195,6 +195,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
                     invalid={check.invalid.has(c.key)}
                     farmId={farm.id}
                     stock={showStock ? stock : undefined}
+                    allowRequest={area === "farm"}
                     onItem={(picked) => update(row.id, { itemId: picked?.id ?? "" })}
                     onValue={(v) => setValue(row, c.key, v)}
                   />
@@ -254,6 +255,7 @@ function Cell({
   invalid,
   farmId,
   stock,
+  allowRequest,
   onItem,
   onValue,
 }: {
@@ -268,6 +270,7 @@ function Cell({
   invalid: boolean;
   farmId: string;
   stock?: Map<string, number>;
+  allowRequest: boolean;
   onItem: (item: Item | null) => void;
   onValue: (value: string) => void;
 }) {
@@ -293,7 +296,7 @@ function Cell({
               <input type="hidden" name={name} value={row.itemId} />
             </div>
           ) : (
-            <ItemPicker name={name} item={item} onPick={onItem} farmId={farmId} stock={stock} labelledBy={labelId} />
+            <ItemPicker name={name} item={item} onPick={onItem} farmId={farmId} stock={stock} labelledBy={labelId} allowRequest={allowRequest} />
           )}
         </div>
       );
@@ -328,7 +331,6 @@ function Cell({
             onChange={onValue}
             suffix={item ? t(`unit.${item.unit}`).en : undefined}
             suffixPhoneOnly={hasUnitCol}
-            decimals={item ? allowsDecimals(item.unit) : true}
             readOnly={col.readOnly}
             tabIndex={col.readOnly ? -1 : undefined}
             required={col.required && !col.readOnly}
@@ -342,7 +344,7 @@ function Cell({
       return (
         <div>
           {phoneLabel}
-          <QtyInput name={name} value={value} onChange={onValue} suffix="kg" decimals aria-labelledby={labelId} {...lastProps} />
+          <QtyInput name={name} value={value} onChange={onValue} suffix="kg" aria-labelledby={labelId} {...lastProps} />
         </div>
       );
     case "text":
@@ -380,7 +382,10 @@ function checkRow(row: Row, available: number | null, rules: LineRules): Check {
     check.messages.push({ id: "err.cannotReceiveMore", error: true, node: <Bi id="err.cannotReceiveMore" values={{ n: fmtQty(challan) }} /> });
   } else if (rules.shortfall && challan !== null && received !== null && received < challan) {
     check.warn = true;
-    check.messages.push({ id: "msg.shortBy", error: false, node: <Bi id="msg.shortBy" values={{ n: fmtQty(challan - received) }} /> });
+    check.messages.push({ id: "msg.shortBy", error: false, node: <Bi id="msg.shortBy" values={{ n: fmtQty(challan - received) }} /> });  } else if (rules.shortfall && challan !== null && received !== null && received > challan) {
+    // More received than the challan says: often a typo (4 vs 61). A warning only — client #24.
+    check.warn = true;
+    check.messages.push({ id: "msg.overBy", error: false, node: <Bi id="msg.overBy" values={{ n: fmtQty(received - challan) }} /> });
   }
   if (rules.maxStock && available !== null && qty !== null && qty > available) {
     check.invalid.add("qty");

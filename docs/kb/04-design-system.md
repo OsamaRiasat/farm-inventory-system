@@ -61,7 +61,7 @@ Farm screens designed at 360 px, Admin at 1366 px; both must work at every width
 | ID | Component | Key details |
 | --- | --- | --- |
 | C1 | Item search | EN name, UR name, alias, code; mixed input ("belt 89A", "فین بیلٹ"); normalise Urdu ی/ي and ک/ك; shows EN + UR + "in stock"; recent first. Full-screen sheet on phone, dropdown on desktop. **Fully keyboard operable.** |
-| C2 | Quantity input | `inputMode="decimal"`/`numeric`, thousands separators, decimals only for KG/LTR, unit fixed beside it (room sized to the unit; hidden from 768 px where the line table has a Unit column), error below. Qty columns never narrower than 6.5rem, weight 7rem |
+| C2 | Quantity input | `inputMode="decimal"`, thousands separators, decimals for every unit (client #21), unit fixed beside it (room sized to the unit; hidden from 768 px where the line table has a Unit column), error below. Qty columns never narrower than 6.5rem, weight 7rem |
 | C3 | Slip lines | Card per line on phone, table row ≥ 640. Add/remove line, auto S. No. |
 | C4 | Slip header | Title, No., Farm, Date, Time — same on every slip, bilingual title |
 | C5 | Bilingual label `<Bi>` | Both texts, order from user setting |

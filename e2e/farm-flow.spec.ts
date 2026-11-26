@@ -37,7 +37,7 @@ test("a slip left without saving opens empty next time", async ({ page }) => {
   await expect(page.locator('input[name="biltyNo"]')).toHaveValue("");
 });
 
-test("OGP saved → pass has New slip; Back goes Home, and Home is the end of Back", async ({ page }) => {
+test("OGP saved → stays on a blank OGP (client #29); Back goes Home, and Home is the end of Back", async ({ page }) => {
   await page.goto("/farm");
   await home(page);
   await page.keyboard.press("2");
@@ -46,9 +46,7 @@ test("OGP saved → pass has New slip; Back goes Home, and Home is the end of Ba
   await pickItem(page, "chips");
   await page.keyboard.type("1");
   await page.keyboard.press("Control+s");
-  await expect(page).toHaveURL(/\/print\/.+\?saved=1/);
-
-  await page.getByRole("link", { name: /New slip/ }).click();
+  await expect(page.locator('[role="status"]')).toContainText("OGP-9123");
   await expect(page).toHaveURL(/\/farm\/ogp\/new$/);
   await expect(page.locator('input[name="paperNo"]')).toHaveValue("");
   await expect(page.locator('select[name="toFarm"]')).toHaveValue("");
@@ -159,5 +157,8 @@ test("farm stock: items at 0 stay hidden until searched for or asked for (1,970 
   await expect(rows.first()).toContainText("Generator Items"); // no Urdu name yet: the category shows instead
   await page.locator("[data-search]").fill("");
   await showZero.click();
-  await expect(rows).toHaveCount(1970);
+  // Every active item (1,970 seeded, plus any an approved item request added meanwhile — client #30 test).
+  const items = (await (await page.request.get("/api/items")).json()) as { active: boolean }[];
+  expect(items.length).toBeGreaterThanOrEqual(1970);
+  await expect(rows).toHaveCount(items.filter((i) => i.active).length);
 });

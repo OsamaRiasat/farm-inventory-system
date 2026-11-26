@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, remarks, slipBase, text, type RuleContext } from "@/lib/validation";
+import { checkItem, checkSlipBase, checkStock, optionalText, positiveQty, remarks, slipBase, text, type RuleContext } from "@/lib/validation";
 
 const destination = z.discriminatedUnion(
   "kind",
@@ -31,7 +31,7 @@ export function ogpSchema(rules: RuleContext) {
       if (v.to.kind === "farm" && v.to.farmId === v.farmId) {
         ctx.addIssue({ code: "custom", message: "err.sameFarm", path: ["to", "farmId"] });
       }
-      v.lines.forEach((l, i) => checkItemAndUnit(rules, l.itemId, [l.qty], ["lines", i], ctx));
+      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
       checkStock(
         rules,
         v.lines.map((l, i) => ({ itemId: l.itemId, qty: l.qty, path: ["lines", i, "qty"] })),

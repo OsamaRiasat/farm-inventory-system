@@ -9,19 +9,18 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange"> &
   onChange: (value: string) => void;
   /** Unit shown inside the field, fixed. */
   suffix?: string;
-  decimals?: boolean;
   invalid?: boolean;
   /** Hide the unit from 768px up, where the line table has its own Unit column. */
   suffixPhoneOnly?: boolean;
 };
 
-/** C2 quantity input: digits only, numeric keypad, thousands separators added on blur. */
-export function QtyInput({ value, onChange, suffix, decimals, invalid, suffixPhoneOnly, className, ...rest }: Props) {
+/** C2 quantity input: digits and one decimal point (any unit, client #21), thousands separators added on blur. */
+export function QtyInput({ value, onChange, suffix, invalid, suffixPhoneOnly, className, ...rest }: Props) {
   return (
     <div className="input-wrap" style={suffix ? ({ "--suffix-len": suffix.length } as CSSProperties) : undefined}>
       <input
         type="text"
-        inputMode={decimals ? "decimal" : "numeric"}
+        inputMode="decimal"
         enterKeyHint="next"
         autoComplete="off"
         {...rest}
@@ -34,7 +33,7 @@ export function QtyInput({ value, onChange, suffix, decimals, invalid, suffixPho
         )}
         aria-invalid={invalid || undefined}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(decimals ? /[^\d.,]/g : /[^\d,]/g, ""))}
+        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ""))}
         onBlur={() => {
           const n = parseQty(value);
           if (n !== null) onChange(fmtQty(n));

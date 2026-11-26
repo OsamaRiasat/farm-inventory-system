@@ -3,9 +3,11 @@
 
 import { ApiError } from "@/lib/api/errors";
 import { createItemSearch } from "@/lib/item-search";
-import type { Farm, Item } from "@/types/domain";
-import { db } from "../db";
-import { farmInclude, toFarm, toItem, toUser } from "../mappers";
+import type { ItemRequestInput } from "@/lib/api/types";
+import { nowStamp } from "@/lib/dates";
+import { UNITS, type Farm, type Item, type ItemRequest } from "@/types/domain";
+import { db, type Tx } from "../db";
+import { farmInclude, toFarm, toItem, toItemRequest, toUser } from "../mappers";
 import { audit, getFarm, inTx } from "../repo";
 
 export type FarmPatch = { id: string; name: string; type: Farm["type"]; active: boolean; by: string };
@@ -83,42 +85,111 @@ export function updateShed(input: { id: string; name: string; active: boolean; b
 
 /** Adds an item (id omitted) or edits one. The unit can't change once the item has stock movements. */
 export async function saveItem(input: ItemInput): Promise<Item> {
-  const item = await inTx(async (tx) => {
+  const item = await inTx((tx) => writeItem(tx, input));
+  search = null;
+  return item;
+}
+
+async function writeItem(tx: Tx, input: ItemInput): Promise<Item> {
+  const name = input.name.trim();
+  if (!name || !input.nameUr.trim() || !input.category.trim()) throw new ApiError("err.required");
+  const dup = await tx.item.findFirst({
+    where: { name: { equals: name, mode: "insensitive" }, ...(input.id ? { NOT: { id: input.id } } : {}) },
+    select: { id: true },
+  });
+  if (dup) throw new ApiError("err.duplicateName");
+  const fields = {
+    name,
+    nameUr: input.nameUr.trim(),
+    aliases: input.aliases.map((a) => a.trim()).filter(Boolean),
+    category: input.category.trim(),
+    unit: input.unit,
+    isFeed: input.isFeed,
+    active: input.active,
+  };
+  if (input.id) {
+    const row = await tx.item.findUnique({ where: { id: input.id } });
+    if (!row) throw new ApiError("err.notFound");
+    if (row.unit !== fields.unit && (await tx.movement.count({ where: { itemId: row.id }, take: 1 }))) throw new ApiError("err.unitLocked");
+    const old = `${row.name} · ${row.unit} · ${row.category}${row.active ? "" : " (inactive)"}`;
+    const saved = await tx.item.update({ where: { id: row.id }, data: fields });
+    await audit(tx, {
+      user: input.by, action: "setup", recordId: saved.id, recordNo: saved.name,
+      old, new: `${saved.name} · ${saved.unit} · ${saved.category}${saved.active ? "" : " (inactive)"}`,
+    });
+    return toItem(saved);
+  }
+  const max = await tx.item.aggregate({ _max: { number: true } });
+  const saved = await tx.item.create({
+    data: { id: `item-${crypto.randomUUID().slice(0, 8)}`, number: (max._max.number ?? 0) + 1, ...fields },
+  });
+  await audit(tx, { user: input.by, action: "setup", recordId: saved.id, recordNo: saved.name, new: `${saved.name} · ${saved.unit} · ${saved.category}` });
+  return toItem(saved);
+}
+
+// ── item requests (client #30) ──
+// A farm asks for an item that isn't in the list. It is not an Item (not in search, not on slips) until the
+// Admin approves it; approving creates the Item with the Admin's final name / Urdu name / category / unit.
+
+export async function requestItem(input: ItemRequestInput & { farmId: string; requestedBy: string }): Promise<ItemRequest> {
+  return inTx(async (tx) => {
     const name = input.name.trim();
-    if (!name || !input.nameUr.trim() || !input.category.trim()) throw new ApiError("err.required");
-    const dup = await tx.item.findFirst({
-      where: { name: { equals: name, mode: "insensitive" }, ...(input.id ? { NOT: { id: input.id } } : {}) },
+    if (!name || !input.category.trim()) throw new ApiError("err.required");
+    if (!UNITS.includes(input.unit)) throw new ApiError("err.required");
+    if (await tx.item.findFirst({ where: { name: { equals: name, mode: "insensitive" } }, select: { id: true } })) {
+      throw new ApiError("err.itemExists");
+    }
+    const waiting = await tx.itemRequest.findFirst({
+      where: { farmId: input.farmId, status: "pending", name: { equals: name, mode: "insensitive" } },
       select: { id: true },
     });
-    if (dup) throw new ApiError("err.duplicateName");
-    const fields = {
-      name,
-      nameUr: input.nameUr.trim(),
-      aliases: input.aliases.map((a) => a.trim()).filter(Boolean),
-      category: input.category.trim(),
-      unit: input.unit,
-      isFeed: input.isFeed,
-      active: input.active,
-    };
-    if (input.id) {
-      const row = await tx.item.findUnique({ where: { id: input.id } });
-      if (!row) throw new ApiError("err.notFound");
-      if (row.unit !== fields.unit && (await tx.movement.count({ where: { itemId: row.id }, take: 1 }))) throw new ApiError("err.unitLocked");
-      const old = `${row.name} · ${row.unit} · ${row.category}${row.active ? "" : " (inactive)"}`;
-      const saved = await tx.item.update({ where: { id: row.id }, data: fields });
-      await audit(tx, {
-        user: input.by, action: "setup", recordId: saved.id, recordNo: saved.name,
-        old, new: `${saved.name} · ${saved.unit} · ${saved.category}${saved.active ? "" : " (inactive)"}`,
-      });
-      return toItem(saved);
-    }
-    const max = await tx.item.aggregate({ _max: { number: true } });
-    const saved = await tx.item.create({
-      data: { id: `item-${crypto.randomUUID().slice(0, 8)}`, number: (max._max.number ?? 0) + 1, ...fields },
+    if (waiting) throw new ApiError("err.alreadyRequested");
+    const row = await tx.itemRequest.create({
+      data: {
+        id: `ir-${crypto.randomUUID()}`,
+        farmId: input.farmId,
+        name,
+        nameUr: input.nameUr.trim(),
+        category: input.category.trim(),
+        unit: input.unit,
+        requestedBy: input.requestedBy,
+        at: nowStamp(),
+      },
     });
-    await audit(tx, { user: input.by, action: "setup", recordId: saved.id, recordNo: saved.name, new: `${saved.name} · ${saved.unit} · ${saved.category}` });
-    return toItem(saved);
+    await audit(tx, { user: input.requestedBy, farmId: input.farmId, action: "request_item", recordId: row.id, recordNo: name, new: `${name} · ${row.unit} · ${row.category}` });
+    return toItemRequest(row);
+  });
+}
+
+export async function listItemRequests(f: { farmId?: string; status?: ItemRequest["status"] } = {}): Promise<ItemRequest[]> {
+  const rows = await db().itemRequest.findMany({
+    where: { ...(f.farmId ? { farmId: f.farmId } : {}), ...(f.status ? { status: f.status } : {}) },
+    orderBy: { at: "desc" },
+  });
+  return rows.map(toItemRequest);
+}
+
+/** Creates the item (the Admin may change any field first) and closes the request, in one transaction. */
+export async function approveItemRequest(input: { requestId: string; item: Omit<ItemInput, "id" | "by">; by: string }): Promise<Item> {
+  const item = await inTx(async (tx) => {
+    const request = await tx.itemRequest.findUnique({ where: { id: input.requestId } });
+    if (!request || request.status !== "pending") throw new ApiError("err.notFound");
+    const created = await writeItem(tx, { ...input.item, by: input.by });
+    await tx.itemRequest.update({ where: { id: request.id }, data: { status: "approved", itemId: created.id } });
+    await audit(tx, { user: input.by, farmId: request.farmId, action: "approve_item", recordId: request.id, recordNo: created.name });
+    return created;
   });
   search = null;
   return item;
+}
+
+export function rejectItemRequest(input: { requestId: string; note: string; by: string }): Promise<ItemRequest> {
+  return inTx(async (tx) => {
+    const request = await tx.itemRequest.findUnique({ where: { id: input.requestId } });
+    if (!request || request.status !== "pending") throw new ApiError("err.notFound");
+    if (!input.note.trim()) throw new ApiError("err.enterReason");
+    const row = await tx.itemRequest.update({ where: { id: request.id }, data: { status: "rejected", note: input.note.trim() } });
+    await audit(tx, { user: input.by, farmId: request.farmId, action: "reject_item", recordId: request.id, recordNo: request.name, reason: row.note ?? "" });
+    return toItemRequest(row);
+  });
 }

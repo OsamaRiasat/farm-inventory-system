@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItemAndUnit, required, type RuleContext } from "@/lib/validation";
+import { checkItem, required, type RuleContext } from "@/lib/validation";
 
 /** F10 Stock count: counted quantities replace the system's; a reason is required. */
 export function stockCountSchema(rules: RuleContext) {
@@ -16,7 +16,7 @@ export function stockCountSchema(rules: RuleContext) {
         .min(1, "err.noLines"),
     })
     .superRefine((v, ctx) => {
-      v.lines.forEach((l, i) => checkItemAndUnit(rules, l.itemId, [l.countedQty], ["lines", i], ctx));
+      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
     });
 }
 

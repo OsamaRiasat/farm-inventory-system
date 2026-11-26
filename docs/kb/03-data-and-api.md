@@ -4,7 +4,7 @@ The UI talks **only** to `src/lib/api`. Since 24 Nov 2026 those functions call t
 
 ## Types (from the spec — put in `src/types/domain.ts`)
 ```ts
-type Unit = 'KG' | 'LTR' | 'QTY' | 'BG' | 'ROLL' | 'VIAL';
+type Unit = 'KG' | 'LTR' | 'QTY' | 'BG' | 'ROLL' | 'VIAL' | 'MAUND'; // any unit takes decimals (client #21)
 type SlipType = 'IGP' | 'OGP' | 'SIS';
 type SlipStatus = 'saved' | 'corrected' | 'cancelled';
 
@@ -66,6 +66,8 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 - `SlipFilters.no` matches the system **or** paper number.
 - `getStockCard` rows' `ref` is the paper number (`slipNo()`: paper No. + `-C1` on corrections).
 - Home's "Today's slips" means **posted** today (`postedAt`), not dated today. Admin "Slips today" / missing-SIS still use `date`.
+- **Item requests (client #30, 26 Nov 2026):** `ItemRequest { id, farmId, name, nameUr, category, unit, requestedBy, at, status: 'pending'|'approved'|'rejected', note?, itemId? }`. `requestItem({ name, nameUr, category, unit })` — name + category required; refused when an item already has that name (`err.itemExists`) or the farm already asked for it (`err.alreadyRequested`). Not an `Item` (not in search, not on slips) until `approveItemRequest`, which creates the Item through the same rules as `saveItem` (Urdu name required, unique name) in the same transaction and stores `itemId`. Reject needs a note. Audit: `request_item` / `approve_item` / `reject_item`. `Dashboard.tiles.itemRequests` = pending count.
+- **Units (26 Nov 2026):** `MAUND` added (Rice Husk moved from BG by migration, client #23). The whole-number rule (`err.wholeNumber` for Qty items) is gone: every unit takes decimals (client #21).
 - **Remarks (21 Nov 2026):** `IGP.remarks?` and `OGP.remarks?` — optional, trimmed, ≤ 200 characters (`err.remarksTooLong`, path `remarks`), blank → not stored. Accepted by `saveIGP`, `saveOGP` and `receiveTransfer`. Corrections keep it unchanged. Shown on F7 / A3 and printed only when present. Not searched by `SlipFilters` (yet).
 - **Return unused (21 Nov 2026):** new type `SISReturn { id, no, sisId, farmId, date, postedAt, by, lines: {lineIndex, itemId, qty}[], remarks?, status: "saved" | "cancelled", cancelled? }`. API: `listReturns(slipId)` (all versions of that SIS, oldest first, cancelled included), `returnUnused({ sisId, date, by, remarks?, lines: [{lineIndex, qty}], idempotencyKey })`, `cancelReturn({ returnId, reason, by })`. Rules in `src/features/sis/return-schema.ts`. Number `<SIS system no. without -Cn>-R<n>`; no paper No. Movements point at the return id (stock up; cancel = same id, stock down). `StockCardRow.returnOf` = the SIS to open. Errors: `err.onlyReturnable {n}`, `err.returnBeforeIssue`, `err.noReturnQty`, `err.belowReturned {n}` (correction), `err.returnClosed`. Audit actions `return` / `cancel_return` (recordId = the SIS). Consumption report counts returns against their SIS (use = issued − returned).
 - Excel export is done in the browser as CSV (UTF-8 with BOM so Excel shows Urdu) from data the screens already have; no API function. A backend may later serve real `.xlsx`.
@@ -84,6 +86,8 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 | listWaitingTransfers · listTransfers · listCorrectionRequests · listAudit | `GET /api/transfers/waiting?farmId` · `/api/transfers?farmId` · `/api/corrections?farmId&status` · `/api/audit?farmId` | own farm / Admin |
 | saveIGP · saveOGP · saveSIS · saveStockCount · receiveTransfer | `POST /api/slips/{igp,ogp,sis}` · `/api/stock-counts` · `/api/transfers/receive` | own farm / Admin (any farm) |
 | returnUnused · requestCorrection | `POST /api/returns` · `/api/corrections` | own farm's slip / Admin |
+| requestItem · listItemRequests | `POST /api/item-requests` (Farm User; farm + name from the session) · `GET /api/item-requests?farmId&status` | own farm / Admin |
+| approveItemRequest · rejectItemRequest | `POST /api/item-requests/[id]/approve` (body = the final item fields) · `/api/item-requests/[id]/reject` (`note`) | Admin |
 | correctSlip · cancelSlip · cancelReturn · rejectCorrection · resolveShortfall | `POST /api/slips/[id]/{correct,cancel}` · `/api/returns/[id]/cancel` · `/api/corrections/[id]/reject` · `/api/transfers/[id]/resolve` | Admin |
 | updateFarm · addShed · updateShed · saveItem | `POST /api/farms/[id]` · `/api/sheds` · `/api/sheds/[id]` · `/api/items` | Admin |
 | (session) | `POST /api/auth/login` `{username, password}` · `POST /api/auth/logout` · `GET /api/me` → the `Session` or null | — |
@@ -103,7 +107,7 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 - "Today" and posted-on stamps are Pakistan time (`Asia/Karachi` in `src/lib/dates.ts`), whatever the server's time zone.
 
 ## Database (`prisma/schema.prisma`, PostgreSQL, Prisma 7)
-`Farm`, `Shed`, `Item`, `User`, `Session`, `Supplier` · `Slip` (header columns per type, `shedRows` JSON for old SIS) + `SlipLine` (by index) · `Transfer` · `Movement` · `SisReturn` + lines · `StockCount` + lines · `CorrectionRequest` · `Counter` · `IdempotencyKey` · `AuditEntry`. Dates and times are text in the API's own format. `src/server/mappers.ts` turns rows into the domain types above.
+`Farm`, `Shed`, `Item`, `User`, `Session`, `Supplier` · `Slip` (header columns per type, `shedRows` JSON for old SIS) + `SlipLine` (by index) · `Transfer` · `Movement` · `SisReturn` + lines · `StockCount` + lines · `CorrectionRequest` · `ItemRequest` · `Counter` · `IdempotencyKey` · `AuditEntry`. Dates and times are text in the API's own format. `src/server/mappers.ts` turns rows into the domain types above.
 
 ## Seed (`prisma/seed.ts` → `src/server/seed/base.ts`, `demo.ts`, `farms.json`, `items.json`)
 

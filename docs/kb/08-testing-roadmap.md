@@ -21,6 +21,7 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 5. Journeys | A user's whole task across screens (farm saves → admin sees) | Playwright, 2 contexts | `e2e/journeys/*.spec.ts` (week 3+) | Every change |
 | 6. Phone | 360 px: cards, full-screen search, no horizontal scroll, touch targets ≥ 48 px | Playwright (phone project) | `e2e/phone.spec.ts` | Every change |
 | 6a. Navigation | Back on every page but the two homes; Back = history back, direct open → up without stacking; forms (IGP, stock count) empty after Back / forward / same link; OGP Remarks saved + printed | Playwright (desktop) | `e2e/navigation.spec.ts` | Every change |
+| 6b. Client issues 20–30 | Item search ↑/↓ highlight + Enter; Tab can't leave an unpicked item; 0.5 of a Qty item; over-challan warning; next slip keeps the last date; item request → approve → searchable; + farm-only | Playwright (desktop) | `e2e/client-issues.spec.ts` | Every change |
 | 6b. Qty widths | Big numbers fit every slip qty box at 360 / 768 / 1024 / 1280 px (1,000,000; 100,000 on phone and for weight) | Playwright (desktop) | `e2e/qty-width.spec.ts` | Every change |
 | 7. Visual | Screenshot baselines of key screens, EN-first and UR-first | `toHaveScreenshot` | `e2e/visual.spec.ts` (week 4) | Before each client demo |
 | 8. Accessibility | Labels, focus order, contrast, dialogs | `@axe-core/playwright` + manual keyboard pass | `e2e/a11y.spec.ts` (week 5) | Weekly |
@@ -102,7 +103,8 @@ Still to do:
 | 10 | Shortfall is amber, still saves | Transfer → short | Transfer journey (short, written off) | ✓ |
 | 11 | In transit > 2 days flagged | — | Admin dashboard test | Screen ✓ |
 | 12 | Double save → one slip | Idempotency test | Save button disabled while saving; key per slip | Engine ✓ |
-| — | Whole numbers only for Qty items | Whole-number test | Week 3 | Engine ✓ |
+| — | Decimals for every unit (client #21; was whole numbers for Qty) | Decimal test | `client-issues.spec.ts` 0.5 Qty | ✓ |
+| — | Item requests (client #30): not an item until approved; duplicates refused; reject needs a reason | Item request test | Farm requests → Admin approves on A9 → farm finds it; + only for the farm | ✓ |
 | 13 | Return unused: ≤ issued − returned, date between issue date and today, once per key, saved SIS only; admin cancel never below zero; correction not below returned; SIS cancel reverses issued − returned | 4 return tests + seed example | `journeys.spec.ts`: keyboard return (over-limit message, stock preview, Used column, stock card row) → admin cancels; `phone.spec.ts`: sheet fits 360 px | ✓ |
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |

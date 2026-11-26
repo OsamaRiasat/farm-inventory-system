@@ -183,6 +183,23 @@ dialog.sheet::backdrop {
 }
 
 @layer components {
+/* C1 search options: the highlighted one is solid green, readable at a glance (client #20). */
+.combo-option {
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-line);
+  padding: 8px 12px;
+}
+.combo-option:last-child {
+  border-bottom: 0;
+}
+.combo-option[aria-selected="true"] {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.combo-option[aria-selected="true"] * {
+  color: inherit;
+}
+
 /* Admin tables */
 .table {
   width: 100%;

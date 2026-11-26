@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { allowsDecimals, fmtQty } from "@/lib/format";
-import { t, type MsgId, type MsgValues } from "@/lib/i18n";
+import { fmtQty } from "@/lib/format";
+import { type MsgId, type MsgValues } from "@/lib/i18n";
 import en from "@/messages/en.json";
 import type { Item, SlipType } from "@/types/domain";
 
@@ -43,14 +43,10 @@ export const zeroOrMore = z.number({ error: "err.required" }).min(0, "err.requir
 
 type Ctx = z.RefinementCtx;
 
-export function checkItemAndUnit(rules: RuleContext, itemId: string, qtys: number[], path: (string | number)[], ctx: Ctx) {
-  const item = rules.item(itemId);
-  if (!item) {
+/** The line must name a known item. Any quantity may have decimals (client #21: 0.5 ROLL, 0.5 Qty). */
+export function checkItem(rules: RuleContext, itemId: string, path: (string | number)[], ctx: Ctx) {
+  if (!rules.item(itemId)) {
     ctx.addIssue({ code: "custom", message: "err.pickItem", path: [...path, "itemId"] });
-    return;
-  }
-  if (!allowsDecimals(item.unit) && qtys.some((q) => !Number.isInteger(q))) {
-    ctx.addIssue({ code: "custom", message: "err.wholeNumber", params: { unit: t(`unit.${item.unit}`).en }, path });
   }
 }
 

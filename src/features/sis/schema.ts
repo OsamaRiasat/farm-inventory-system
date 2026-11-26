@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItemAndUnit, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
+import { checkItem, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
 
 const count = z.number({ error: "err.required" }).int("err.wholeNumber").min(0, "err.required");
 
@@ -41,7 +41,7 @@ export function sisSchema(rules: RuleContext) {
           ctx.addIssue({ code: "custom", message: "err.pickItem", path: ["shedRows", i, "feedItemId"] });
         }
       });
-      v.lines.forEach((l, i) => checkItemAndUnit(rules, l.itemId, [l.qty], ["lines", i], ctx));
+      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
       checkStock(
         rules,
         [

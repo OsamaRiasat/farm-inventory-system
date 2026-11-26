@@ -8,6 +8,7 @@ import { db } from "@/server/db";
 import { cancelSlip, correctSlip } from "@/server/services/corrections";
 import { cancelReturn, listReturns, returnUnused } from "@/server/services/returns";
 import { getSlipById, receiveTransfer, saveIGP, saveOGP, saveSIS } from "@/server/services/slips";
+import { approveItemRequest, listItemRequests, rejectItemRequest, requestItem } from "@/server/services/setup";
 import { stock, testFarm, unique } from "./db";
 
 // Saves without a seed time happen "now", so the slip date is today (any past date is allowed).
@@ -89,18 +90,26 @@ test("OGP and SIS can't take stock below zero — same message as the screen", a
   expect(err2?.id).toBe("err.onlyInStock");
 });
 
-test("whole numbers only for Qty items; nothing is saved when a rule fails", async () => {
+test("decimals for any unit (client #21: 0.5 of a Qty item); nothing is saved when a rule fails", async () => {
   const farmId = await testFarm();
+  await saveIGP({
+    ...base(), farmId, idempotencyKey: key(), paperNo: key(),
+    source: { kind: "supplier", ms: "X" },
+    lines: [{ itemId: "gloves", qtyChallan: 0.5, qtyReceived: 0.5 }],
+  });
+  expect(await stock(farmId, "gloves")).toBe(0.5);
+
+  const other = await testFarm();
   const err = await errorOf(() =>
     saveIGP({
-      ...base(), farmId, idempotencyKey: key(), paperNo: key(),
+      ...base(), farmId: other, idempotencyKey: key(), paperNo: key(),
       source: { kind: "supplier", ms: "X" },
-      lines: [{ itemId: "gloves", qtyChallan: 1.5, qtyReceived: 1.5 }],
+      lines: [{ itemId: "gloves", qtyChallan: 1, qtyReceived: 1 }, { itemId: "no-such-item", qtyChallan: 1, qtyReceived: 1 }],
     }),
   );
-  expect(err?.id).toBe("err.wholeNumber");
-  expect(await db().slip.count({ where: { farmId } })).toBe(0);
-  expect(await db().counter.count({ where: { farmId } })).toBe(0);
+  expect(err?.id).toBe("err.pickItem");
+  expect(await db().slip.count({ where: { farmId: other } })).toBe(0);
+  expect(await db().counter.count({ where: { farmId: other } })).toBe(0);
 });
 
 test("transfer: OGP puts goods in transit, receiving can't exceed what was sent, shortfall marks it short", async () => {
@@ -265,7 +274,6 @@ test("return unused: 1,000 issued, 200 back → stock +200, used 800; the SIS st
   // Partial returns add up; more than is left is refused with the screen's words.
   await giveBack(sis.id, [{ lineIndex: 0, qty: 50 }]);
   expect(await errorOf(() => giveBack(sis.id, [{ lineIndex: 0, qty: 751 }]))).toEqual({ id: "err.onlyReturnable", values: { n: "750" } });
-  expect((await errorOf(() => giveBack(sis.id, [{ lineIndex: 1, qty: 1.5 }])))?.id).toBe("err.wholeNumber");
   expect((await errorOf(() => giveBack(sis.id, [])))?.id).toBe("err.noReturnQty");
   expect(await stock(farmId, "diesel")).toBe(1250);
 });
@@ -327,4 +335,30 @@ test("return unused: a cancelled return that would take stock below zero is refu
   const r = await giveBack(sis.id, [{ lineIndex: 0, qty: 5 }]);
   await saveSIS({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "diesel", qty: 5 }] });
   expect((await errorOf(() => cancelReturn({ returnId: r.id, reason: "x", by: "Admin" })))?.id).toBe("err.wouldGoNegative");
+});
+
+test("item request (client #30): not an item until approved; duplicates refused; approve creates it, reject needs a reason", async () => {
+  const farmId = await testFarm();
+  const name = unique("Zebra hose");
+  const ask = (n = name) => requestItem({ name: n, nameUr: "", category: "Shed Items", unit: "QTY", farmId, requestedBy: "Farm" });
+
+  const request = await ask();
+  expect(request).toMatchObject({ status: "pending", farmId, name });
+  expect(await db().item.count({ where: { name } })).toBe(0);
+  expect((await errorOf(() => ask(name.toUpperCase())))?.id).toBe("err.alreadyRequested");
+  expect((await errorOf(() => ask("Diesel Stock")))?.id).toBe("err.itemExists");
+  expect((await errorOf(() => ask(" ")))?.id).toBe("err.required");
+
+  // The Admin's edits win; Urdu is required to add it, like any item.
+  const final = { name: `${name} 1"`, nameUr: "", aliases: [], category: "Shed Items", unit: "ROLL" as const, isFeed: false, active: true };
+  expect((await errorOf(() => approveItemRequest({ requestId: request.id, item: final, by: "Admin" })))?.id).toBe("err.required");
+  const item = await approveItemRequest({ requestId: request.id, item: { ...final, nameUr: "زیبرا پائپ" }, by: "Admin" });
+  expect(item).toMatchObject({ name: final.name, unit: "ROLL", active: true });
+  expect((await listItemRequests({ farmId }))[0]).toMatchObject({ status: "approved", itemId: item.id });
+  expect((await errorOf(() => approveItemRequest({ requestId: request.id, item: final, by: "Admin" })))?.id).toBe("err.notFound");
+
+  const other = await ask(unique("Odd thing"));
+  expect((await errorOf(() => rejectItemRequest({ requestId: other.id, note: " ", by: "Admin" })))?.id).toBe("err.enterReason");
+  expect(await rejectItemRequest({ requestId: other.id, note: "Use Nylon Rope", by: "Admin" })).toMatchObject({ status: "rejected", note: "Use Nylon Rope" });
+  expect(await db().auditEntry.count({ where: { farmId, action: { in: ["request_item", "approve_item", "reject_item"] } } })).toBe(4);
 });

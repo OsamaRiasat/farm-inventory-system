@@ -16,10 +16,10 @@ const cols: LineCol[] = [
   { key: "weight", label: "line.weight", kind: "weight", width: "minmax(7rem, 0.8fr)" },
 ];
 
-/** F4 New Outward Gate Pass. Qty can't exceed stock. After saving → print view (the driver needs the pass). */
+/** F4 New Outward Gate Pass. Qty can't exceed stock. After saving: a blank OGP with "Saved — Print / View" (client #29). */
 export function OgpForm() {
   return (
-    <SlipForm slipType="OGP" build={buildOgp} save={api.saveOGP} afterSave="print">
+    <SlipForm slipType="OGP" build={buildOgp} save={api.saveOGP}>
       <SlipHeader type="OGP" />
       <section className="card mb-4 grid gap-4 p-4 sm:grid-cols-2">
         <div className="sm:col-span-2">

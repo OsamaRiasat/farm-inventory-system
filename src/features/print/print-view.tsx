@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, CircleCheck, Plus, Printer, Share2 } from "lucide-react";
+import { ChevronLeft, Printer, Share2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { Bi } from "@/components/layout/bi";
 import { PrintFrame } from "@/components/slip/print-frame";
@@ -35,7 +34,7 @@ export function qrTarget(slip: Slip, origin: string) {
 }
 
 /** S2 — the slip in its paper layout, A5 (default) or A4, with print and share. */
-export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: boolean }) {
+export function PrintView({ slipId }: { slipId: string }) {
   const router = useRouter();
   const session = useSession();
   const slip = useSlip(slipId);
@@ -103,25 +102,6 @@ export function PrintView({ slipId, justSaved }: { slipId: string; justSaved: bo
         </button>
       </div>
 
-      {justSaved && slip.data && (
-        <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary bg-success-bg p-3 print:hidden">
-          <span className="flex items-center gap-2 font-medium">
-            <CircleCheck className="shrink-0 text-primary" aria-hidden />
-            <Bi id="print.savedHint" values={{ no: slipNo(slip.data) }} />
-          </span>
-          {session && (
-            // Replaces this page, so Back from the new slip goes Home (or All slips), not to this pass.
-            <Link
-              href={session.role === "admin" ? `/admin/slips/new/${slip.data.type.toLowerCase()}` : `/farm/${slip.data.type.toLowerCase()}/new`}
-              replace
-              className="btn btn-primary min-h-10"
-            >
-              <Plus size={18} aria-hidden />
-              <Bi id="slip.newSlip" inline />
-            </Link>
-          )}
-        </div>
-      )}
 
       {slip.isError ? (
         <LoadError onRetry={() => slip.refetch()} />

@@ -51,7 +51,7 @@ Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses
 3. **Balances are calculated from movements**, never typed.
 4. **System numbers automatic, per farm**: `AW05-SIS-0484`, `AW02-IGP-1663`, `AW02-OGP-1367`. The farm also types the **paper slip No.** (required); it is unique per farm and slip type ("No. IGP-0123 is already saved. Check the number."). Farm screens and prints show the paper No.
 5. Every slip has farm, paper No., date, time, posted-on stamp, system number, preparedBy.
-5a. **Slip date** (arrival / dispatch / issue) is today by default and can be changed: **never after today** ("Date can't be after today"); **any earlier date is allowed**, previous months included (client issue #18, 6 Nov 2026). The stock check is against today's stock, whatever the date.
+5a. **Slip date** (arrival / dispatch / issue) is today by default and can be changed: **never after today** ("Date can't be after today"); **any earlier date is allowed**, previous months included (client issue #18, 6 Nov 2026). A new slip starts on the date of the last slip saved in that browser tab (client #27 — posting a batch of old slips), with an amber "Not today's date" when it isn't today; sign out or a new tab starts at today. The stock check is against today's stock, whatever the date.
 6. **Unit comes from the item** and cannot be changed on a line.
 7. **Nothing is deleted.** Corrections point to the original; cancel reverses stock with a reason.
 8. An OGP whose transfer is already received **cannot be cancelled**.
@@ -68,7 +68,7 @@ OGP (farm A → farm B) creates a Transfer `in_transit`. Farm B sees it under "W
 AW-01, AW-02 Patoki Farm, AW-04, AW-05, AW-06, AW-3A, AW-3B, AW-Hatchery, AW Layer-01 Jagoki, AW Layer-03 Imran Bhullar, Layer-04 Khan. Type: breeder | layer | hatchery. Print header: "SUTLEJ FEEDS BREEDERS" or "SUTLEJ FEEDS LAYER" by farm type.
 
 ## Units
-`KG | LTR | QTY | BG | ROLL | VIAL`. Urdu on slips: عدد (pieces), کلو, لیٹر, گڈی. Decimals only for KG and LTR.
+`KG | LTR | QTY | BG | ROLL | VIAL | MAUND`. Urdu on slips: عدد (pieces), کلو, لیٹر, گڈی, من (Maund — Rice Husk, client #23). **Decimals for every unit** (0.5 ROLL, 0.5 Qty — client #21, 26 Nov 2026; up to 3 places).
 
 ## Out of scope (v1)
 Money/prices, data migration, approval step, low-stock alerts, POs, egg/bird sales, flock records (incl. mortality — removed from the SIS, 30 Oct 2026), HR, offline mode, native app, QuickBooks sync.

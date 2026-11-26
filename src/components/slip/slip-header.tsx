@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { useState, type ReactNode } from "react";
 import { Bi } from "@/components/layout/bi";
 import { slipTypeStyle, TypeChip } from "@/components/layout/type-chip";
+import { startDate } from "@/lib/slip-date";
 import { useClock } from "@/lib/use-clock";
 import { useCurrentFarm } from "@/components/layout/farm-gate";
 import type { SlipType } from "@/types/domain";
@@ -47,7 +48,7 @@ export function SlipHeader({ type, subtitle }: { type: SlipType; subtitle?: Reac
             </label>
           </dt>
           <dd>
-            <DateField />
+            <DateField farmId={farm.id} />
           </dd>
         </div>
         <div>
@@ -105,22 +106,34 @@ function PaperNoField({ type }: { type: SlipType }) {
   );
 }
 
-/** The slip's date: today by default, any earlier date (previous months too), never ahead. Submitted as "date". */
-function DateField() {
+/**
+ * The slip's date: any earlier date (previous months too), never ahead. Submitted as "date".
+ * Starts at the date of the last slip saved in this tab (client #27), else today; "Not today" when it differs.
+ */
+function DateField({ farmId }: { farmId: string }) {
   const iso = useClock("iso");
   const invalid = useSlipErrors().some((e) => e.path[0] === "date");
+  const start = iso ? startDate(farmId, iso) : "";
+  const [picked, setPicked] = useState<string | null>(null);
+  const value = picked ?? start;
   return (
     <span className="flex flex-col gap-1">
       <input
-        key={iso}
+        key={iso + start}
         id="slip-date"
         type="date"
         name="date"
-        defaultValue={iso}
+        defaultValue={start}
+        onChange={(e) => setPicked(e.target.value)}
         max={iso || undefined}
         aria-invalid={invalid || undefined}
         className={clsx("input num min-h-10 w-auto", invalid && "border-2 border-danger")}
       />
+      {iso && value && value !== iso && (
+        <span className="text-sm font-medium text-warning">
+          <Bi id="slip.notToday" inline />
+        </span>
+      )}
       <FieldError path="date" />
     </span>
   );

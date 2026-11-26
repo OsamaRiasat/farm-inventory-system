@@ -6,7 +6,6 @@
 // "return unused" and one open correction request.
 
 import { addDays, farmNow } from "@/lib/dates";
-import { allowsDecimals } from "@/lib/format";
 import type { Farm, Item, Unit } from "@/types/domain";
 import { db } from "../db";
 import { balancesOf } from "../repo";
@@ -112,6 +111,8 @@ export async function seedDemo(now = new Date()) {
         return between(20, 300);
       case "ROLL":
         return between(2, 12);
+      case "MAUND":
+        return between(10, 80);
       default:
         return between(2, 60);
     }
@@ -146,7 +147,8 @@ export async function seedDemo(now = new Date()) {
   /** A quantity the farm can actually spare, or 0. */
   async function usable(farmId: string, item: Item, wanted: number) {
     const qty = Math.min(wanted, await stockOf(farmId, item.id));
-    return allowsDecimals(item.unit) ? Math.floor(qty * 10) / 10 : Math.floor(qty);
+    // Demo history: weighed / measured items get one decimal, counted items whole numbers.
+    return item.unit === "KG" || item.unit === "LTR" ? Math.floor(qty * 10) / 10 : Math.floor(qty);
   }
   const itemById = (id: string) => items.find((i) => i.id === id)!;
   /** The farm's paper slip number: the same digits as the system number the save will get. */

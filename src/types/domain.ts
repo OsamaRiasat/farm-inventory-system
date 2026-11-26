@@ -1,7 +1,8 @@
 // Data shapes from the design spec — the contract the backend will implement.
 // See docs/kb/03-data-and-api.md before changing anything here.
 
-export type Unit = "KG" | "LTR" | "QTY" | "BG" | "ROLL" | "VIAL";
+export const UNITS = ["KG", "LTR", "QTY", "BG", "ROLL", "VIAL", "MAUND"] as const;
+export type Unit = (typeof UNITS)[number];
 export type SlipType = "IGP" | "OGP" | "SIS";
 export type SlipStatus = "saved" | "corrected" | "cancelled";
 export type FarmType = "breeder" | "layer" | "hatchery";
@@ -172,6 +173,23 @@ export interface StockCount {
   lines: { itemId: string; systemQty: number; countedQty: number }[];
 }
 
+/** A farm's request for an item that isn't in the list (client #30). Becomes an Item only when the Admin approves. */
+export interface ItemRequest {
+  id: string;
+  farmId: string;
+  name: string;
+  nameUr: string;
+  category: string;
+  unit: Unit;
+  requestedBy: string;
+  at: string; // ISO date-time
+  status: "pending" | "approved" | "rejected";
+  /** Admin's note on a rejection. */
+  note?: string;
+  /** The item created on approval. */
+  itemId?: string;
+}
+
 export interface AuditEntry {
   id: string;
   at: string; // ISO date-time
@@ -188,6 +206,9 @@ export interface AuditEntry {
     | "request_correction"
     | "reject_correction"
     | "resolve_shortfall"
+    | "request_item"
+    | "approve_item"
+    | "reject_item"
     | "setup"
     | "reset_demo";
   recordId: string;

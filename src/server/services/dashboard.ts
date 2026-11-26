@@ -9,7 +9,7 @@ const IN_TRANSIT_ALERT_DAYS = 2;
 
 export async function getDashboard(): Promise<Dashboard> {
   const day = today();
-  const [todays, inTransit, shortfalls, corrections, farms, latest] = await Promise.all([
+  const [todays, inTransit, shortfalls, corrections, itemRequests, farms, latest] = await Promise.all([
     db().slip.findMany({
       where: { date: day, status: { not: "cancelled" }, correctionOf: null },
       select: { farmId: true, type: true, time: true },
@@ -17,6 +17,7 @@ export async function getDashboard(): Promise<Dashboard> {
     db().transfer.findMany({ where: { status: "in_transit" }, select: { sentAt: true } }),
     db().transfer.count({ where: { status: "short", resolutionKind: null } }),
     db().correctionRequest.count({ where: { status: "open" } }),
+    db().itemRequest.count({ where: { status: "pending" } }),
     db().farm.findMany({ where: { active: true }, orderBy: { seq: "asc" }, select: { id: true } }),
     db().slip.findMany({ where: { correctionOf: null }, include: slipInclude, orderBy: [{ date: "desc" }, { time: "desc" }], take: 20 }),
   ]);
@@ -27,6 +28,7 @@ export async function getDashboard(): Promise<Dashboard> {
       inTransitOld: inTransit.filter((t) => daysBetween(t.sentAt.slice(0, 10), day) > IN_TRANSIT_ALERT_DAYS).length,
       shortfalls,
       corrections,
+      itemRequests,
     },
     farmsToday: farms.map((f) => {
       const mine = todays.filter((x) => x.farmId === f.id);

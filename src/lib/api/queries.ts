@@ -22,6 +22,7 @@ export const keys = {
   stockCard: (farmId: string, itemId: string) => ["stockCard", farmId, itemId] as const,
   transfers: (filters: { farmId?: string }) => ["transfers", filters] as const,
   corrections: (filters: { farmId?: string; status?: string }) => ["corrections", filters] as const,
+  itemRequests: (filters: { status?: string }) => ["itemRequests", filters] as const,
   audit: (filters: { farmId?: string }) => ["audit", filters] as const,
   users: ["users"] as const,
   report: (type: string, filters: object) => ["report", type, filters] as const,
@@ -98,6 +99,11 @@ export function useStockCard(farmId: string, itemId: string) {
 
 export function useTransfers(filters: { farmId?: string } = {}) {
   return useQuery({ queryKey: keys.transfers(filters), queryFn: () => api.listTransfers(filters), refetchInterval: LIVE });
+}
+
+/** New-item requests from farms (client #30): A9 "Requested" and the dashboard tile. */
+export function useItemRequests(filters: { status?: "pending" | "approved" | "rejected" } = {}) {
+  return useQuery({ queryKey: keys.itemRequests(filters), queryFn: () => api.listItemRequests(filters), refetchInterval: LIVE });
 }
 
 export function useCorrectionRequests(filters: { farmId?: string; status?: "open" | "approved" | "rejected" } = {}) {

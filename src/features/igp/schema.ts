@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { fmtQty } from "@/lib/format";
-import { checkItemAndUnit, checkSlipBase, optionalText, positiveQty, remarks, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
+import { checkItem, checkSlipBase, optionalText, positiveQty, remarks, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
 
 const igpLine = z.object({
   itemId: z.string(),
@@ -29,7 +29,7 @@ export function igpSchema(rules: RuleContext) {
     })
     .superRefine((v, ctx) => {
       checkSlipBase(rules, "IGP", v, ctx);
-      v.lines.forEach((l, i) => checkItemAndUnit(rules, l.itemId, [l.qtyChallan, l.qtyReceived], ["lines", i], ctx));
+      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
     });
 }
 
@@ -58,7 +58,7 @@ export function receiveSchema(rules: RuleContext, sent: { itemId: string; qty: n
             path: ["lines", i, "qtyReceived"],
           });
         }
-        checkItemAndUnit(rules, line.itemId, [l.qtyReceived], ["lines", i], ctx);
+        checkItem(rules, line.itemId, ["lines", i], ctx);
       });
     });
 }

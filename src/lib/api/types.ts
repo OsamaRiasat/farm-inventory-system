@@ -1,5 +1,5 @@
 import type { MsgId } from "@/lib/i18n";
-import type { Movement, OGP, IGP, Slip, SlipStatus, SlipType, Transfer } from "@/types/domain";
+import type { Movement, OGP, IGP, Slip, SlipStatus, SlipType, Transfer, Unit } from "@/types/domain";
 
 // API-only shapes (filters, results). Domain shapes live in src/types/domain.ts.
 
@@ -43,7 +43,7 @@ export type TransferView = { transfer: Transfer; ogp: OGP; igp?: IGP };
 export type FarmToday = { farmId: string; igp: number; ogp: number; sis: number; lastSlipTime: string | null };
 
 export type Dashboard = {
-  tiles: { slipsToday: number; inTransit: number; inTransitOld: number; shortfalls: number; corrections: number };
+  tiles: { slipsToday: number; inTransit: number; inTransitOld: number; shortfalls: number; corrections: number; itemRequests: number };
   farmsToday: FarmToday[];
   latest: Slip[];
 };
@@ -65,6 +65,9 @@ export type CorrectionRequestInput = {
   reason: string;
   requestedBy: string;
 };
+
+/** Farm User asks for a new item (client #30); the farm and the name come from the session. */
+export type ItemRequestInput = { name: string; nameUr: string; category: string; unit: Unit };
 
 export type ReportType =
   | "stock-on-hand"

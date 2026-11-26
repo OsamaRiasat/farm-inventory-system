@@ -7,7 +7,7 @@ Every screen designs its empty, loading and error states, not only the filled on
 | Loading | Any list or slip | Skeleton rows in the content's shape, never blank |
 | Empty | Lists, waiting to receive, search | One line + next action: "No slips today. Start with the buttons above." |
 | Saving | Save button | Spinner, disabled — second tap does nothing |
-| Saved | After any slip | Green banner "IGP-0123 saved" (the paper No.) + Print / View / New slip. Form clears. OGP: the print view's banner has New slip |
+| Saved | After any slip | Green banner "IGP-0123 saved" (the paper No.) + Print / View / New slip. Form clears — OGP too (client #29), Print on the banner |
 | Not saved | Connection lost | Red banner "Not saved. Check internet and tap Save again." Everything typed stays |
 | Field error | Under a field | Red text: "Only 6 in stock", "Enter Qty Actual Received" |
 | Shortfall | IGP line, transfer | Amber row + "Short by 3". Not an error — slip can be saved |

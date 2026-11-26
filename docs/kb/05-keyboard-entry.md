@@ -5,9 +5,9 @@
 ## Core behaviour on every slip form
 | Key | Effect |
 | --- | --- |
-| `Tab` / `Shift+Tab` | Natural order = paper order (header → lines → footer). Never a positive `tabIndex` |
+| `Tab` / `Shift+Tab` | Natural order = paper order (header → lines → footer). Never a positive `tabIndex`. In item search, Tab picks the highlighted option and won't leave typed text that isn't an item (client #22) |
 | — | On desktop the slip opens with focus in **No.** (the paper slip's number), then the slip's date |
-| `Enter` in a text/number field | Move to the next field (like Tab). Never submits the form by accident. Skips buttons marked `data-enter-skip` (Time "change"), which `Tab` still reaches |
+| `Enter` in a text/number field | Move to the next field (like Tab). Item search: Enter picks; on "No item found" a Farm User's Enter opens Request a new item (client #30). Never submits the form by accident. Skips buttons marked `data-enter-skip` (Time "change"), which `Tab` still reaches |
 | `Enter` in the **last field of a line** | Add a new empty line and focus its Item search |
 | `Enter` in an **empty** Item search on a new line | Leave the lines: IGP / OGP / receive → **Remarks**, then `Enter` → Save; SIS → Save |
 | `Ctrl/⌘ + Enter` or `Ctrl/⌘ + S` | Save (opens the Summary sheet on SIS) |
@@ -50,7 +50,7 @@ Implemented in week 2: `?` (list, both areas), `/` (focuses the element marked `
 `↑` / `↓` move the row highlight, `Enter` opens the row, `/` focuses search, `[` / `]` previous / next page.
 
 ## After saving
-Focus moves to the saved banner's primary action ("New slip"), so the next slip can start with `Enter`. OGP goes to Print view; `Ctrl/⌘ + P` prints.
+Focus moves to the saved banner, whose primary action is "New slip"; IGP, OGP and SIS all stay on a blank form (OGP: Print is on the banner, client #29); `Ctrl/⌘ + P` prints from the print view.
 
 ## Implementation notes
 - Put the shared logic in `src/lib/keyboard/` (e.g. `useEnterToNext`, `useShortcut`, a slip-form focus manager). Don't scatter `onKeyDown` handlers.

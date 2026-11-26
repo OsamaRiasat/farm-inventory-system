@@ -1433,7 +1433,7 @@
   {"id": "remote-sal-digital-thermameter", "number": 1432, "name": "Remote Sal Digital thermameter", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},
   {"id": "renchset-chabi", "number": 1433, "name": "Renchset Chabi", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},
   {"id": "ressichem", "number": 1434, "name": "RESSICHEM", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},
-  {"id": "rice-husk", "number": 1435, "name": "Rice Husk", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "BG", "isFeed": false},
+  {"id": "rice-husk", "number": 1435, "name": "Rice Husk", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "MAUND", "isFeed": false},
   {"id": "ring-iron", "number": 1436, "name": "Ring Iron", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},
   {"id": "ring-pana-all", "number": 1437, "name": "Ring Pana All", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},
   {"id": "rivet-box", "number": 1438, "name": "Rivet Box", "nameUr": "", "aliases": [], "category": "Stock in Store", "unit": "QTY", "isFeed": false},

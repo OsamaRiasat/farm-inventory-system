@@ -19,6 +19,7 @@ import { slipNo } from "@/lib/slips";
 import { paperNoOf, type FieldError } from "@/lib/validation";
 import type { Item, Slip, SlipType } from "@/types/domain";
 import { SlipErrorsContext, toFormErrors } from "./slip-errors";
+import { rememberSlipDate } from "@/lib/slip-date";
 
 export type SlipFormData = ReturnType<typeof readSlipForm>;
 export type BaseInput = { farmId: string; paperNo: string; date: string; time: string; preparedBy: string; idempotencyKey: string };
@@ -30,9 +31,9 @@ type Summary = { rows: { item: Item; before: number; used: number }[]; mortMale:
 /**
  * Wraps a slip's fields: Enter moves to the next field, Ctrl/⌘+S saves, sticky Save + Prepared by,
  * the C9 summary sheet (SIS), and the saved / not saved / field-error states.
- * After saving: "next" clears the form for another slip, "print" opens the print view (OGP),
- * "detail" opens the saved slip (receive transfer). Those two replace the form in the browser history,
- * so Back from them goes where the form came from, not to a filled-in form.
+ * After saving: "next" clears the form for another slip and shows Saved — Print / View / New slip;
+ * "detail" opens the saved slip (receive transfer), replacing the form in the browser history,
+ * so Back from it goes where the form came from, not to a filled-in form.
  * Next.js keeps a page you leave alive (hidden), so the form starts empty again whenever it is hidden.
  */
 export function SlipForm({
@@ -47,7 +48,7 @@ export function SlipForm({
   withSummary?: boolean;
   build: (form: SlipFormData, base: BaseInput) => BuiltInput;
   save: (input: unknown) => Promise<Slip>;
-  afterSave?: "next" | "print" | "detail";
+  afterSave?: "next" | "detail";
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -138,8 +139,8 @@ export function SlipForm({
     try {
       const slip = await mutation.mutateAsync(input);
       setDirty(false);
+      rememberSlipDate(farm.id, base.date);
       idempotencyKey.current = newIdempotencyKey();
-      if (afterSave === "print") return router.replace(`/print/${encodeURIComponent(slip.id)}?saved=1`);
       if (afterSave === "detail") return router.replace(`${slipHref(area, slip.id)}?saved=1`);
       setSaved(slip);
       setFormKey((k) => k + 1);

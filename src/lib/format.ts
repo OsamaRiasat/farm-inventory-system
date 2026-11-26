@@ -1,5 +1,3 @@
-import type { Unit } from "@/types/domain";
-
 const qtyFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
 
 /** 9000 → "9,000". Always English digits. */
@@ -13,11 +11,6 @@ export function parseQty(text: string): number | null {
   if (trimmed === "") return null;
   const n = Number(trimmed);
   return Number.isNaN(n) ? null : n;
-}
-
-/** Decimals are allowed only for weighed or measured units. */
-export function allowsDecimals(unit: Unit) {
-  return unit === "KG" || unit === "LTR";
 }
 
 /** Normalises text for item search: case, Arabic vs Urdu letter forms, diacritics. */

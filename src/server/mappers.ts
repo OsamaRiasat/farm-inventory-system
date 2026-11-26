@@ -8,6 +8,7 @@ import type {
   Farm,
   IGP,
   Item,
+  ItemRequest,
   Movement,
   OGP,
   SIS,
@@ -273,6 +274,22 @@ export function toCorrection(r: Prisma.CorrectionRequestModel): CorrectionReques
     status: r.status,
     note: opt(r.note),
     correctionId: opt(r.correctionId),
+  });
+}
+
+export function toItemRequest(r: Prisma.ItemRequestModel): ItemRequest {
+  return clean<ItemRequest>({
+    id: r.id,
+    farmId: r.farmId,
+    name: r.name,
+    nameUr: r.nameUr,
+    category: r.category,
+    unit: r.unit,
+    requestedBy: r.requestedBy,
+    at: r.at,
+    status: r.status,
+    note: opt(r.note),
+    itemId: opt(r.itemId),
   });
 }
 

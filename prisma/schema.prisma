@@ -28,6 +28,7 @@ enum Unit {
   BG
   ROLL
   VIAL
+  MAUND
 }
 
 enum Role {
@@ -61,6 +62,12 @@ enum ReturnStatus {
 
 enum CorrectionStatus {
   open
+  approved
+  rejected
+}
+
+enum ItemRequestStatus {
+  pending
   approved
   rejected
 }
@@ -297,6 +304,26 @@ model CorrectionRequest {
   note         String?
   correctionId String?
 
+  @@index([farmId, status])
+}
+
+/// A farm asks for an item that isn't in the list (client #30). Not an Item until the Admin approves it.
+model ItemRequest {
+  id          String            @id
+  farmId      String
+  name        String
+  nameUr      String            @default("")
+  category    String
+  unit        Unit
+  requestedBy String
+  at          String
+  status      ItemRequestStatus @default(pending)
+  /// Admin's note on a rejection.
+  note        String?
+  /// The item created on approval.
+  itemId      String?
+
+  @@index([status])
   @@index([farmId, status])
 }
 

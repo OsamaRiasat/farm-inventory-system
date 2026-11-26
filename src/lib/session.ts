@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { SIGNED_OUT_EVENT } from "@/lib/api/http";
+import { forgetSlipDates } from "./slip-date";
 
 // Who is signed in, from the server's session cookie (GET /api/me). The gates (FarmGate, AdminGate) send
 // anyone signed out to the login; an API call answered "signed out" clears this at once.
@@ -45,5 +46,6 @@ export async function signIn(username: string, password: string): Promise<Sessio
 }
 
 export async function signOut() {
+  forgetSlipDates();
   await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
 }

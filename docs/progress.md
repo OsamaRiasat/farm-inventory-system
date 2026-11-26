@@ -68,8 +68,20 @@ Update this file at the end of each work session: what's done, what's next, deci
   - Tests: test DB reset + seeded before each run; rules on the services with a throwaway farm per test; `e2e/backend.spec.ts` (+9: races for the last stock, double receive, parallel retries, audit trigger, sign-in, farm scoping, error JSON). Journeys use one browser context per user. 87 pass, 3 runs green.
 - 2026-11-24 — **Deployed with the backend on Vercel**: Neon Postgres (free, Singapore) via the Vercel Marketplace, functions in `sin1` (`vercel.json`), migrations + `db:seed:base` run once (no demo data). Logins handed to the developer once. See `docs/kb/09-backend-architecture.md` → Vercel.
 
+- 2026-11-26 — **Client issues 20–30 (sheet rows of 24–25 Nov)** — tracker now in `docs/client-issues.md` (decisions + status per row, for parallel sessions).
+  - #20 item search: the highlighted option is solid green (`.combo-option`) and scrolls into view with ↑ / ↓ (it was a faint tint, easy to miss). #22 Tab picks the highlighted option; typed text that isn't a picked item can't be left with Tab / Enter.
+  - #21 decimals for every unit (0.5 Qty / ROLL): `QtyInput` always takes a dot; the server's whole-number rule is gone (`checkItemAndUnit` → `checkItem`, `allowsDecimals` removed).
+  - #23 unit `MAUND` (من); Rice Husk BG → MAUND (seed + migration `20261126000001_rice_husk_maund`). Existing Rice Husk movements on the live DB keep their numbers, now read as Maund.
+  - #24 IGP: received above challan → amber "n more than the challan — check the quantities" (warning only, developer's call).
+  - #27 a new slip starts on the last saved slip's date in this tab (`src/lib/slip-date.ts`, sessionStorage per farm, cleared on sign out), amber "Not today's date".
+  - #29 OGP saves like IGP / SIS: blank form + "saved" banner with Print / View / New slip; print view's just-saved banner and `?saved=1` removed.
+  - #30 item requests: Farm User's "+" beside item search / Enter on "No item found" → Request a new item dialog (portal; Enter / Ctrl+S / Esc). `ItemRequest` table + `/api/item-requests` (+ `/[id]/approve`, `/[id]/reject`); approve creates the Item in the same transaction via the `saveItem` rules. A1 tile "New item requests" → A9 **Requested** tab (approve with edits / reject with reason). Audit `request_item` / `approve_item` / `reject_item`.
+  - Skipped (developer): #25, #31. Waiting for the client: #26 (bag ↔ kg for feed), #28 (duplicate items).
+  - Tests: `e2e/client-issues.spec.ts` (6) + item-request service test; whole-number test now a decimal test; OGP tests follow the banner's Print link; F8 count test reads the item count from the API. 94 pass, 3 runs green (one earlier run had 2 admin-entry saves time out once; not reproduced).
+  - Deploy needs `prisma migrate deploy` on Neon (3 migrations).
 ## Next
-- [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`)
+- [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`) — #26 / #28 in `client-issues.md`
+- [ ] Item requests: show the farm its rejected requests + the Admin's note (now only the audit log has it)
 - [ ] Stock count (F10) lists every item in the chosen category ("All" = 1,970 rows): consider counting by category only
 - [ ] Client to check the new slip header (paper No. + dates) and the SIS without feed on their phone
 - [ ] Admin reports: wire their Excel button to the same CSV export

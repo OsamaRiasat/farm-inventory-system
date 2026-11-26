@@ -19,6 +19,10 @@ type Props<T> = {
   initialHeading?: ReactNode;
   /** Shown when something is typed and nothing matches. */
   noResults?: ReactNode;
+  /** Enter on typed text that matches nothing (e.g. open "Request a new item", client #30). */
+  onNoMatch?: (text: string) => void;
+  /** Beside the input, e.g. a "+" button. */
+  after?: ReactNode;
   /** Open the list as soon as the field gets focus. */
   openOnFocus?: boolean;
   /** Below 640px the open search takes the whole screen (C1 on phone). */
@@ -33,6 +37,7 @@ type Props<T> = {
  * Keyboard-first search box: type to open, ↑ / ↓ to move, Enter to pick and jump to the next field,
  * Esc to close. Typed results pre-select the first match; initial options (recent items) need ↓ first,
  * so Enter in an empty field still falls through to the form (next field, or Save on an empty line).
+ * Tab picks the highlighted option; with text typed but nothing picked, Tab stays here (client #22).
  */
 export function Combobox<T>({
   search,
@@ -44,6 +49,8 @@ export function Combobox<T>({
   initialOptions,
   initialHeading,
   noResults,
+  onNoMatch,
+  after,
   openOnFocus,
   sheetOnPhone,
   kind,
@@ -56,24 +63,32 @@ export function Combobox<T>({
   const [text, setText] = useState(defaultText);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // The text is an option's name (picked, or given as defaultText), not just typed letters.
+  const [picked, setPicked] = useState(!!defaultText);
 
   const query = text.trim();
   const results = !open ? [] : query ? search(query).slice(0, limit) : (initialOptions?.() ?? []).slice(0, limit);
   const showHeading = open && !query && results.length > 0 && initialHeading;
   const showNoResults = open && !!query && results.length === 0 && noResults;
   const sheet = sheetOnPhone && open;
-  // -1 = nothing highlighted.
   const hasList = results.length > 0 || !!showNoResults;
+
+  // -1 = nothing highlighted.
+  const current = active < 0 || results.length === 0 ? -1 : Math.min(active, results.length - 1);
+
+  // ↑ / ↓ keep the highlighted option visible in a list that scrolls.
+  useEffect(() => {
+    if (current >= 0) document.getElementById(`${listId}-${current}`)?.scrollIntoView({ block: "nearest" });
+  }, [current, listId]);
 
   // A list opening near the bottom of the screen scrolls into view (above the sticky Save bar).
   useEffect(() => {
     if (hasList) listRef.current?.scrollIntoView({ block: "nearest" });
   }, [hasList]);
 
-  const current = active < 0 || results.length === 0 ? -1 : Math.min(active, results.length - 1);
-
   function pick(option: T) {
     setText(getText(option));
+    setPicked(true);
     setOpen(false);
     onPick(option);
     if (inputRef.current) focusNext(inputRef.current);
@@ -90,6 +105,19 @@ export function Combobox<T>({
     } else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && current >= 0) {
       e.preventDefault();
       pick(results[current]);
+    } else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && query && !picked) {
+      // Typed but nothing to pick: don't move on without an item (client #22).
+      e.preventDefault();
+      if (results.length === 0 && onNoMatch) onNoMatch(query);
+      else setOpen(true);
+    } else if (e.key === "Tab" && !e.shiftKey && !picked && query) {
+      // Typed but not picked: take the highlighted option, or stay here until one is chosen.
+      e.preventDefault();
+      if (current >= 0 && results[current]) pick(results[current]);
+      else {
+        setOpen(true);
+        setActive(0);
+      }
     } else if (e.key === "Escape" && open) {
       e.preventDefault();
       setOpen(false);
@@ -126,6 +154,7 @@ export function Combobox<T>({
           }}
           onChange={(e) => {
             setText(e.target.value);
+            setPicked(false);
             setOpen(true);
             setActive(e.target.value.trim() ? 0 : -1);
             onPick(null);
@@ -133,6 +162,7 @@ export function Combobox<T>({
           onKeyDown={onKeyDown}
           onBlur={() => setOpen(false)}
         />
+        {after}
         {sheet && (
           <button
             type="button"
@@ -166,7 +196,7 @@ export function Combobox<T>({
                 id={`${listId}-${i}`}
                 role="option"
                 aria-selected={i === current}
-                className={clsx("cursor-pointer border-b border-line px-3 py-2 last:border-b-0", i === current && "bg-primary-soft")}
+                className="combo-option"
                 onMouseEnter={() => setActive(i)}
                 onMouseDown={(e) => {
                   e.preventDefault();

@@ -13,7 +13,7 @@ import { newIdempotencyKey } from "@/features/form-data";
 import { api, ApiError } from "@/lib/api";
 import { useApiMutation, useItems, useStock } from "@/lib/api/queries";
 import { nowTime, today } from "@/lib/dates";
-import { allowsDecimals, fmtQty, parseQty } from "@/lib/format";
+import { fmtQty, parseQty } from "@/lib/format";
 import { t, tInline, type MsgId, type MsgValues } from "@/lib/i18n";
 import { enterToNext } from "@/lib/keyboard/focus";
 import { useSaveShortcut } from "@/lib/keyboard/use-shortcut";
@@ -169,7 +169,6 @@ export function StockCountForm() {
                       setCounted((c) => ({ ...c, [item.id]: v }));
                       setError(null);
                     }}
-                    decimals={allowsDecimals(item.unit)}
                     aria-label={`${item.name} — ${tInline("count.counted")}`}
                   />
                 </div>

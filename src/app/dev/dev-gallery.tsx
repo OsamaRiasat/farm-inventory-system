@@ -49,7 +49,7 @@ export function DevGallery() {
       <ItemSearchDemo />
       <Section title="dev.c2">
         <div className="grid max-w-md grid-cols-2 gap-3">
-          <QtyDemo unit="KG" decimals />
+          <QtyDemo unit="KG" />
           <QtyDemo unit="Qty" />
         </div>
       </Section>
@@ -94,12 +94,12 @@ function ItemSearchDemo() {
   );
 }
 
-function QtyDemo({ unit, decimals }: { unit: string; decimals?: boolean }) {
+function QtyDemo({ unit }: { unit: string }) {
   const [value, setValue] = useState("");
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="font-medium">{unit}</span>
-      <QtyInput value={value} onChange={setValue} suffix={unit} decimals={decimals} />
+      <QtyInput value={value} onChange={setValue} suffix={unit} />
     </label>
   );
 }

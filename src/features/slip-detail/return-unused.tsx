@@ -10,7 +10,7 @@ import { returnable, returnSchema, type ReturnableLine } from "@/features/sis/re
 import { api, ApiError } from "@/lib/api";
 import { useApiMutation, useStock } from "@/lib/api/queries";
 import { today } from "@/lib/dates";
-import { allowsDecimals, fmtQty, parseQty } from "@/lib/format";
+import { fmtQty, parseQty } from "@/lib/format";
 import { t, type MsgId, type MsgValues } from "@/lib/i18n";
 import { enterToNext } from "@/lib/keyboard/focus";
 import { REMARKS_MAX, toFieldErrors } from "@/lib/validation";
@@ -170,7 +170,6 @@ export function ReturnUnusedDialog({ slip, items, lines, by, onSaved }: Props & 
                           setError(null);
                         }}
                         suffix={unit || undefined}
-                        decimals={item ? allowsDecimals(item.unit) : true}
                         invalid={!!lineError}
                       />
                       {qty !== null && qty > 0 && onHand !== undefined && !lineError && (

@@ -16,7 +16,7 @@
 | F8 | Farm stock | `/farm/stock` | Farm | Items with qty on hand | P1 |
 | F9 | Item stock card | `/farm/stock/[itemId]` | Farm | Movements + running balance | P2 |
 | F10 | Stock count | `/farm/stock-count/new` | Farm | Physical count, differences, reason | P2 |
-| A1 | Dashboard | `/admin` | Admin | Tiles, farms today, latest slips | P1 |
+| A1 | Dashboard | `/admin` | Admin | Tiles (incl. New item requests → A9 Requested), farms today, latest slips | P1 |
 | A2 | All slips | `/admin/slips` | Admin | All farms, filters | P1 |
 | A3 | Slip detail | `/admin/slips/[id]` | Admin | F7 + Correct + Cancel | P1 |
 | A4 | Stock | `/admin/stock` | Admin | Farm × item matrix + All Farms + In transit | P1 |
@@ -25,15 +25,17 @@
 | A6 | Correction requests | `/admin/corrections` | Admin | Approve (→ correct flow) / Reject | P2 |
 | A7 | Reports | `/admin/reports/[type]` | Admin | The 8 reports | P2 |
 | A8 | Farms | `/admin/setup/farms` | Admin | Edit/deactivate (sheds hidden for now — not handled separately) | P2 |
-| A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit | P2 |
+| A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit; **Requested** tab (`?show=requested`) — farms' new-item requests: open one → edit → Approve and add / Reject with a reason | P2 |
 | A10 | Users | `/admin/setup/users` | Admin | Read-only list (password reset not built yet) | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
 | A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
 
 ## Farm User details
 - **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = CSV download, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
-- **Back:** every screen has a **Back** link (top left) except the two homes — F1 and A1 — and Login. Back returns to the page you came from (`router.back()`, history doesn't grow); a page opened directly (link, bookmark, QR) goes up instead and replaces itself: detail → its list (F7 → F6, F9 → F8, A3 → A2, A4 card → A4), anything else → Home / Dashboard. On a slip with typed data it asks "Leave without saving?" first. Saving an OGP / receiving a transfer replaces the form in history; login replaces itself. Component: `BackLink` (`src/components/layout/back-link.tsx`); admin pages get it from the layout (`AdminBack`).
-- **Slip header/footer (F2–F5):** bilingual title. **No.** = `IGP-` / `OGP-` / `SIS-` + a box for the paper slip's number (required, first field). Farm (auto), **Posted on** (today, auto), the slip's **date** — "Arrival date" (IGP), "Dispatch date" (OGP), "Issue date" (SIS) — today by default, changeable to any earlier date (previous months too), never future; Time auto with "change". Footer: Prepared by + sticky 56 px Save.
+- **Back:** every screen has a **Back** link (top left) except the two homes — F1 and A1 — and Login. Back returns to the page you came from (`router.back()`, history doesn't grow); a page opened directly (link, bookmark, QR) goes up instead and replaces itself: detail → its list (F7 → F6, F9 → F8, A3 → A2, A4 card → A4), anything else → Home / Dashboard. On a slip with typed data it asks "Leave without saving?" first. Receiving a transfer replaces the form in history; login replaces itself. Component: `BackLink` (`src/components/layout/back-link.tsx`); admin pages get it from the layout (`AdminBack`).
+- **Slip header/footer (F2–F5):** bilingual title. **No.** = `IGP-` / `OGP-` / `SIS-` + a box for the paper slip's number (required, first field). Farm (auto), **Posted on** (today, auto), the slip's **date** — "Arrival date" (IGP), "Dispatch date" (OGP), "Issue date" (SIS) — today by default, changeable to any earlier date (previous months too), never future; Time auto with "change". The date starts on the last slip saved in this tab (client #27; "Not today's date" in amber). Footer: Prepared by + sticky 56 px Save.
+- **Item search on a line (C1, client #20 #22 #30):** the highlighted option is solid green and stays in view while ↑ / ↓ move; Enter or Tab picks it. Typed text that isn't a picked item never moves on: Tab / Enter stay in the box (an empty box still moves on, so an empty last line → Remarks / Save). **Farm User only:** a **+** beside the box, and Enter on "No item found", open **Request a new item** (Name pre-filled, Urdu name, Category, Unit; Enter → next, Ctrl/⌘+S sends, Esc closes). It is *not* added to the list: "Request sent for … It will be in the list once the Admin approves it." The Admin sees a **New item requests** tile on A1 and approves on A9.
+- **Qty vs challan (IGP, client #24):** Qty Actual Received above the challan → amber "n more than the challan — check the quantities" (a warning, still saveable); below → amber "Short by n".
 - **Every visit starts an empty slip**: Next.js keeps a page you leave alive (React `<Activity>`), so `SlipForm` clears itself whenever it is hidden — by Back, the phone's Back, forward, or opening the same link again — and after a save. Same for every other form: stock count, correction / cancel / request panels on F7 / A3, shortfall write-off (A5), reject note (A6), farm and item editors (A8 / A9) — via `ResetOnHide` / `useOnHide` (`src/lib/on-hide.tsx`). Slip forms are `autocomplete="off"` so the browser doesn't refill them either. List filters are kept (going back to a list keeps its search).
 
 ### F2 New IGP — fields in paper order
@@ -68,7 +70,7 @@ Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-fil
 | Line: Weight | Number + kg | No |
 | Remarks | Text, Urdu ok, ≤ 200 characters, after the lines | No |
 
-After save → go straight to Print view (driver needs the pass), replacing the form in history. The saved banner there has **New slip** (opens an empty OGP).
+After save → a blank OGP with the green "OGP-0123 saved" banner: **Print** (the driver's pass) / View / New slip — like IGP and SIS (client #29, 25 Nov 2026; it used to jump to the print view).
 
 ### F5 New SIS
 **Items** only: S. No. auto, Name of Item (C1 with in-stock; feed is picked here like any item), Quantity used (≤ stock; 9 rem wide so "15,413 KG" shows), Ledger Folio (**typed** — the storekeeper's own ledger page), Purpose of Use (wide text). Lines are a table from 768 px, cards below.
@@ -90,7 +92,7 @@ Layout: left sidebar (Dashboard, Slips, Stock, Transfers, Corrections, Reports, 
 
 - **A1:** five clickable tiles — Slips today, In transit, In transit > 2 days, Open shortfalls, Correction requests. "Farms today" table (11 rows: IGP, OGP, SIS ✓ or amber "missing", last slip time). Latest 20 slips (time, farm, No., type, first item).
 - **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No. **New slip ▾** above the table: Inward Gate Pass / Outward Gate Pass / Stock Issue Slip / Stock count (↑ ↓ Enter, Esc closes) → A12.
-- **A12:** the admin types in a paper slip received from a farm. Farm picked in the top bar → used straight away; "All farms" → "Which farm is this slip from?" first (Enter continues). Then the farm's own form (same fields, paper No. required, same rules and messages) with an "Entering slip for AW-05 · Change farm" bar; the farm is fixed once the form opens, Change farm asks "Leave without saving?" and clears it. Prepared by = the admin's name (the audit log shows the admin). After saving, View opens A3; the OGP pass's New slip comes back to A12. Receiving a transfer stays with the farm (not in A12).
+- **A12:** the admin types in a paper slip received from a farm. Farm picked in the top bar → used straight away; "All farms" → "Which farm is this slip from?" first (Enter continues). Then the farm's own form (same fields, paper No. required, same rules and messages) with an "Entering slip for AW-05 · Change farm" bar; the farm is fixed once the form opens, Change farm asks "Leave without saving?" and clears it. Prepared by = the admin's name (the audit log shows the admin). After saving, View opens A3; New slip on the saved banner starts another. Receiving a transfer stays with the farm (not in A12).
 - **A3:** F7 + **Correct** (editable qtys + required reason → before/after diff) + **Cancel** (reason; warns/blocks for received transfers) + Return unused / Cancel return on an SIS. Original ↔ correction linked both ways.
 - **A4:** all-farms matrix (items × 11 farms + All Farms + In transit), sticky first column + header, category filter, search. One farm → F8 list with stock card links.
 - **A5:** OGP No., From, To, Sent, Received, Status, Shortfall, Age (days). Row opens sent vs received side by side + **Resolve** (write off with reason / keep open).
