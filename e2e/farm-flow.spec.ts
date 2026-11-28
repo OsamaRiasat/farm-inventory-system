@@ -101,13 +101,13 @@ test("Home Find: / focuses it; a paper No. or an item finds the slips, with the 
 test("Excel: full stock report from Home, one item's report for a date range", async ({ page }) => {
   await page.goto("/farm");
   const [stock] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Excel/ }).click()]);
-  expect(stock.suggestedFilename()).toMatch(/^AW-02-stock-\d{4}-\d{2}-\d{2}\.csv$/);
+  expect(stock.suggestedFilename()).toMatch(/^AW-02-stock-\d{4}-\d{2}-\d{2}\.xlsx$/);
 
   await page.goto("/farm/stock/diesel");
   await page.getByRole("button", { name: /Last 7 days/ }).click();
   await expect(page.locator("tbody tr").last()).toContainText("Opening balance");
   const [card] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Excel/ }).click()]);
-  expect(card.suggestedFilename()).toMatch(/Diesel-Stock.*\.csv$/);
+  expect(card.suggestedFilename()).toMatch(/Diesel-Stock.*\.xlsx$/);
 });
 
 test("slip date: arrival date can be changed; a future date is refused with the rule's words", async ({ page }) => {

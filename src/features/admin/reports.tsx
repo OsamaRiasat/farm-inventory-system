@@ -16,6 +16,7 @@ import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import type { ReportColumn, ReportRow, ReportType } from "@/lib/api";
 import { useFarms, useItemMap, useReport } from "@/lib/api/queries";
 import { addDays, fmtDate, fmtStamp, today } from "@/lib/dates";
+import { addTableSheet, downloadXlsx, groupByCategory, type XlsxCell, type XlsxColumn, type XlsxRow } from "@/lib/export";
 import { fmtQty } from "@/lib/format";
 import { t, tInline, type MsgId } from "@/lib/i18n";
 import type { SlipType } from "@/types/domain";
@@ -34,7 +35,12 @@ const FIELDS: Record<ReportType, ("dates" | "item" | "type" | "category")[]> = {
   corrections: ["dates"],
 };
 
-/** A7 — one page per report: same filter bar, a table, Print / PDF (Excel comes later). */
+/** Excel column width per cell kind. */
+const WIDTH: Record<ReportColumn["kind"], number> = {
+  text: 22, qty: 13, date: 12, stamp: 18, slip: 22, type: 7, status: 12, action: 18, farm: 12, item: 32, unit: 8,
+};
+
+/** A7 — one page per report: same filter bar, a table, Print / PDF and Excel (.xlsx). */
 export function Reports({ type }: { type: ReportType }) {
   const router = useRouter();
   const farmId = useAdminFarm();
@@ -78,6 +84,57 @@ export function Reports({ type }: { type: ReportType }) {
     }
   }
 
+  /** A cell as Excel shows it: numbers stay numbers, the rest as on screen (English). */
+  function excelCell(col: ReportColumn, row: ReportRow): XlsxCell {
+    const v = row[col.key];
+    if (v === null || v === undefined || v === "") return "";
+    switch (col.kind) {
+      case "qty":
+        return typeof v === "number" ? v : String(v);
+      case "date":
+        return fmtDate(String(v));
+      case "stamp":
+        return fmtStamp(String(v));
+      case "status":
+        return t(`status.${v}` as MsgId).en;
+      case "action":
+        return t(`audit.${v}` as MsgId).en;
+      case "farm":
+        return farms.find((f) => f.id === v)?.code ?? String(v);
+      case "item":
+        return items.get(String(v))?.name ?? String(v);
+      case "unit":
+        return t(`unit.${v}` as MsgId).en;
+      default:
+        return String(v);
+    }
+  }
+
+  function exportExcel() {
+    const data = report.data;
+    if (!data || data.note) return;
+    const title = t(`report.${type}`).en;
+    const farmName = farms.find((f) => f.id === farmId)?.name ?? "All farms";
+    const range = usesDates && filters.from ? `${fmtDate(filters.from)} – ${fmtDate(filters.to ?? today())}` : "";
+    // A report with a category column is grouped like the stock report: merged category rows, no Category column.
+    const grouped = data.columns.some((c) => c.key === "category");
+    const cols = data.columns.filter((c) => !(grouped && c.key === "category"));
+    const cells = (row: ReportRow) => cols.map((c) => excelCell(c, row));
+    const rows: XlsxRow[] = grouped ? groupByCategory(data.rows, (r) => String(r.category ?? ""), cells) : data.rows.map(cells);
+    if (data.totals) {
+      rows.push({ total: cols.map((c, i) => (data.totals?.[c.key] !== undefined ? excelCell(c, data.totals) : i === 0 ? "Total" : "")) });
+    }
+    const columns: XlsxColumn[] = cols.map((c) => ({ header: t(c.label).en, width: WIDTH[c.kind], kind: c.kind === "qty" ? "qty" : "text" }));
+    const filtersText = [filters.category, filters.itemId && items.get(filters.itemId)?.name, filters.type].filter(Boolean).join(" · ");
+    void downloadXlsx([title, farmName, filtersText, filters.from && usesDates ? `${filters.from} to ${filters.to ?? today()}` : today()].filter(Boolean).join(" "), (wb) =>
+      addTableSheet(wb, title, {
+        title: [title, [farmName, range, filtersText].filter(Boolean).join(" · ")],
+        columns,
+        rows,
+      }),
+    );
+  }
+
   const columns: Column<ReportRow>[] = (report.data?.columns ?? []).map((col) => ({
     key: col.key,
     header: <Bi id={col.label} />,
@@ -112,7 +169,7 @@ export function Reports({ type }: { type: ReportType }) {
             <Printer size={18} aria-hidden />
             <Bi id="rep.printPdf" inline />
           </button>
-          <button type="button" className="btn" disabled title={tInline("rep.excel")}>
+          <button type="button" className="btn" disabled={!report.data || !!report.data.note} onClick={exportExcel}>
             <FileSpreadsheet size={18} aria-hidden />
             <Bi id="rep.excel" inline />
           </button>

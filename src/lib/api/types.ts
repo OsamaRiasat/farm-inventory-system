@@ -36,6 +36,8 @@ export type StockCardRow = Movement & {
   kind: SlipType | "COUNT" | "OPENING";
   /** Set on a "Return unused" row: the SIS the items came back from (open this, not the movement's id). */
   returnOf?: string;
+  /** Feed: bags on the slip's lines for this item (client #26). Not on correction rows (those move the difference). */
+  bags?: number;
 };
 
 export type TransferView = { transfer: Transfer; ogp: OGP; igp?: IGP };

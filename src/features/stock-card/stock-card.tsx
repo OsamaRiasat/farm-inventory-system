@@ -9,7 +9,7 @@ import { TypeChip } from "@/components/layout/type-chip";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useItemMap, useStockCard } from "@/lib/api/queries";
 import { addDays, fmtDate, today } from "@/lib/dates";
-import { downloadCsv } from "@/lib/export";
+import { addTableSheet, downloadXlsx, type XlsxColumn, type XlsxRow } from "@/lib/export";
 import { fmtQty } from "@/lib/format";
 import { t, type MsgId } from "@/lib/i18n";
 
@@ -52,15 +52,33 @@ export function StockCard({ farmId, itemId, slipHrefBase }: { farmId: string; it
   function exportExcel() {
     if (!item) return;
     const label = (m: (typeof all)[number]) => (m.kind === "OPENING" ? "Opening balance" : m.returnOf ? `${m.ref} ${t("ret.cardLabel").en}` : m.ref);
-    downloadCsv(`${farmId} ${item.name} ${range.from || "start"} to ${range.to || today()}`, [
-      ["Item", item.name, item.nameUr, unit],
-      ["From", range.from ? fmtDate(range.from) : "", "To", range.to ? fmtDate(range.to) : fmtDate(today())],
-      [],
-      ["Date", "No.", "Type", "In", "Out", "In stock"],
-      ...(opening !== null ? [[fmtDate(range.from), "Opening balance", "", "", "", opening]] : []),
-      ...inRange.map((m) => [fmtDate(m.date), label(m), m.kind, m.qtyIn || "", m.qtyOut || "", m.balance]),
-      ["", "Total", "", totalIn, totalOut, ""],
-    ]);
+    const kindLabel = (m: (typeof all)[number]) => (m.kind === "OPENING" ? "" : m.kind === "COUNT" ? "Count" : m.kind);
+    // Feed: a Bags column next to the KG (client #26).
+    const feed = item.isFeed;
+    const columns: XlsxColumn[] = [
+      { header: "Date", width: 12 },
+      { header: "No.", width: 24 },
+      { header: "Type", width: 8 },
+      { header: `In (${unit})`, width: 12, kind: "qty" },
+      { header: `Out (${unit})`, width: 12, kind: "qty" },
+      ...(feed ? [{ header: "Bags", width: 8, kind: "qty" } as const] : []),
+      { header: `In stock (${unit})`, width: 14, kind: "qty" },
+    ];
+    const bagsCell = (m?: (typeof all)[number]) => (feed ? [m?.bags ?? ""] : []);
+    const rows: XlsxRow[] = [
+      ...(opening !== null ? [[fmtDate(range.from), "Opening balance", "", "", "", ...bagsCell(), opening]] : []),
+      ...inRange.map((m) => [fmtDate(m.date), label(m), kindLabel(m), m.qtyIn || "", m.qtyOut || "", ...bagsCell(m), m.balance]),
+      { total: ["", "Total", "", totalIn, totalOut, ...bagsCell(), inRange.at(-1)?.balance ?? opening ?? ""] },
+    ];
+    const from = range.from ? fmtDate(range.from) : "Start";
+    const to = fmtDate(range.to || today());
+    void downloadXlsx(`${farmId} ${item.name} ${range.from || "start"} to ${range.to || today()}`, (wb) =>
+      addTableSheet(wb, "Stock card", {
+        title: [`${item.name}${item.nameUr ? ` — ${item.nameUr}` : ""}`, `Item No. ${item.number} · ${item.category} · Unit: ${unit}`, `${from} – ${to}`],
+        columns,
+        rows,
+      }),
+    );
   }
 
   return (
@@ -179,6 +197,11 @@ export function StockCard({ farmId, itemId, slipHrefBase }: { farmId: string; it
                         <TypeChip type={m.kind} />
                         <span className="num whitespace-nowrap">{m.ref}</span>
                         {m.returnOf && <Bi id="ret.cardLabel" inline className="text-sm" />}
+                        {m.bags ? (
+                          <span className="text-sm text-muted">
+                            (<Bi id="line.nBags" values={{ n: fmtQty(m.bags) }} inline />)
+                          </span>
+                        ) : null}
                       </Link>
                     )}
                   </td>

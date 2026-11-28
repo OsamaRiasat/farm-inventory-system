@@ -78,7 +78,7 @@ export function HomeExport() {
             type="button"
             className="btn"
             disabled={!loaded}
-            onClick={() => exportStock(farm, stockRows((items.data ?? []).filter((i) => i.active), stock.data))}
+            onClick={() => void exportStock(farm, stockRows((items.data ?? []).filter((i) => i.active), stock.data))}
           >
             <FileSpreadsheet size={18} aria-hidden />
             <Bi id="export.excel" inline />

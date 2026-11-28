@@ -109,7 +109,7 @@ Still to do:
 | 13 | Return unused: ≤ issued − returned, date between issue date and today, once per key, saved SIS only; admin cancel never below zero; correction not below returned; SIS cancel reverses issued − returned | 4 return tests + seed example | `journeys.spec.ts`: keyboard return (over-limit message, stock preview, Used column, stock card row) → admin cancels; `phone.spec.ts`: sheet fits 360 px | ✓ |
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
-| — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), CSV downloads, Last 7 days opening balance | ✓ |
+| — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), .xlsx downloads, Last 7 days opening balance; `excel.spec.ts` opens the files: merged category rows, no Category column, item count = screen, stock card Bags + total, admin report grouped | ✓ |
 | — | Admin enters a farm's slip (A12): same rules, Prepared by = admin | — | `admin-entry.spec.ts`: New slip menu by keyboard → choose farm → IGP saved as AW05-…; top-bar farm preselected + "Only n in stock"; Change farm asks first; admin stock count | ✓ |
 | — | 1,970-item list usable on a phone | — | `farm-flow.spec.ts`: F8 hides items at 0 until searched / asked; category shown when no Urdu name. `search.spec.ts` on the client's names | ✓ |
 

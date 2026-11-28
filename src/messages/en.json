@@ -285,7 +285,7 @@
   "rep.by": "By",
   "rep.rows": "{n} rows",
   "rep.printPdf": "Print / PDF",
-  "rep.excel": "Excel (later)",
+  "rep.excel": "Excel",
   "rep.chartTitle": "Daily mortality per shed (Mort Male + Mort Female)",
   "rep.chartPickFarm": "Pick one farm in the top bar to see the chart per shed.",
   "report.stock-on-hand": "Stock on hand",

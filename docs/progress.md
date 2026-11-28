@@ -82,12 +82,15 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-11-28 — **Tracker + T01** — `TRACKER.md` + `scripts/tracker.sh` for parallel sessions, one plan per task in `docs/plans/` (T01–T06 from the developer's list).
   - T01: "Request a new item" ("+" and Enter on "No item found") only on the IGP; `SlipLines` takes `allowRequest` (default off), only `igp-form.tsx` passes it. OGP / SIS / receive-transfer / admin entry don't offer it. Test: `e2e/client-issues.spec.ts` "T01 …"; the #30 farm-only test now uses the IGP. 95 pass.
   - T02 (client #28): migration `20261128000000_dedupe_items` merges the 23 same-name items (Stock in Store copy kept, else lowest Item No.; Liquid Soap → QTY copy). Slip lines, movements, returns, counts and item requests move to the kept item; aliases merged; one audit row per merge (user "System"); unique index on `lower(btrim(name))`. Wrapped in BEGIN / COMMIT (Prisma runs migration statements one by one). Verified on a scratch copy of the demo DB with movements on both copies: 1,947 items, no orphans, every per-name balance unchanged. Seed `items.json` 1,970 → 1,947. `saveItem` / approve map the index's P2002 to `err.duplicateName`. Seed changed the random demo history, so tests no longer hard-code the hatchery's OGP-0047. 97 pass.
+- 2026-11-28 — **T03 Feed bags (client #26)** — `SlipLine.bags` (migration `20261128000001_slip_line_bags`). Feed All lines (`isFeed`) take a whole number of **Bags** next to the KG on IGP, OGP, SIS and receive (pre-filled from the OGP); required, "Enter the number of bags". Other items never keep bags. Stock stays KG. Bags show on the SIS summary, slip detail / print (column only when a line has bags), admin correction (editable), stock card rows "(50 bags)". Enter order per row (Qty Received → Bags → Weight). Playwright port via `PW_PORT` for parallel sessions.
+- 2026-11-28 — **T06 Excel .xlsx** — `exceljs` 4.4.0 (dynamic import on click). Farm stock report (Home + F8) grouped by category with merged shaded rows, no Category column; stock card with header block, opening row, bold total, Bags for feed; Admin reports' Excel button wired (stock on hand grouped too). CSV export removed. Tests: `e2e/excel.spec.ts` opens the files. 103 pass.
+
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`) — #26 / #28 in `client-issues.md`
 - [ ] Item requests: show the farm its rejected requests + the Admin's note (now only the audit log has it)
 - [ ] Stock count (F10) lists every item in the chosen category ("All" = 1,970 rows): consider counting by category only
 - [ ] Client to check the new slip header (paper No. + dates) and the SIS without feed on their phone
-- [ ] Admin reports: wire their Excel button to the same CSV export
+- [x] Admin reports: Excel button wired (.xlsx, T06, 28 Nov 2026)
 - [ ] Client to confirm Return unused: no paper note for returns? Farm User allowed without the Admin? (defaults in `07`)
 - [ ] Return unused: "Returned" chip on F6 / A2 slip cards (not built yet)
 - [ ] Optional SIS shed chip on Purpose of Use
@@ -120,7 +123,7 @@ Update this file at the end of each work session: what's done, what's next, deci
 - 2026-11-03 — Slip date changeable up to 30 days back, never future (**superseded 2026-11-16**: no lower limit, client #18); stock is checked against today's stock regardless of the date. Posted-on stamp kept separately.
 - 2026-11-03 — SIS Feed & Mortality removed (client: mortality isn't stock, feed is an item). API still accepts and shows old shed rows.
 - 2026-11-03 — No slip drafts: a slip left without saving starts empty next time (replaces the planned sessionStorage draft).
-- 2026-11-03 — Excel export = CSV generated in the browser (no backend, no extra library).
+- 2026-11-03 — ~~Excel export = CSV generated in the browser (no backend, no extra library).~~ Superseded 28 Nov 2026 (T06): formatted `.xlsx` via `exceljs` (pinned 4.4.0, loaded on click), stock grouped by category with merged rows.
 - 2026-11-05 — Demo uses the client's 1,970 items as written; units and missing Urdu names are our defaults until the client confirms.
 - 2026-11-21 — Back = browser history back (was: "up" to a fixed parent). A page opened directly has no in-app history, so Back goes up and replaces itself. Admin list pages get Back too (→ Dashboard), per "Back everywhere except Home".
 - 2026-11-21 — Remarks: one optional note per IGP / OGP (not per line), label "Remarks / ریمارکس", after the lines. Not on SIS (it has Purpose of Use per line). The paper slips' field lists show no remarks box — confirm label and position with the client.

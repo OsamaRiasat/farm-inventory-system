@@ -3,7 +3,7 @@
 ## Phase 1 scope
 **In:** every screen (responsive), all three slips end to end in the browser (fill, validate, save, view, print), balances recalculated from mock data, transfers between two mock farms, print + PDF share, mock role switch, typed API module the backend will implement unchanged.
 
-**Not in:** real backend/DB/login/permissions, real item data (≈60 mock items), data migration. Excel export: farm stock report and item stock card download as CSV (opens in Excel); admin reports' Excel button is still not wired.
+**Not in:** real backend/DB/login/permissions, real item data (≈60 mock items), data migration. Excel export: formatted .xlsx for the farm stock report (grouped by category), the item stock card and every admin report (28 Nov 2026).
 
 **Since 24 Nov 2026 (after phase 1):** the real backend replaced the mock — PostgreSQL, username + password login, server-side rules and permissions (`09-backend-architecture.md`). Still not in: AWS hosting, opening balances from the client's counts, password reset.
 

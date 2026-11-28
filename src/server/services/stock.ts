@@ -35,10 +35,13 @@ export async function getStockCard(farmId: string, itemId: string): Promise<Stoc
     (
       await db().slip.findMany({
         where: { id: { in: [...ids, ...returns.map((r) => r.sisId)] } },
-        select: { id: true, no: true, paperNo: true, type: true },
+        select: { id: true, no: true, paperNo: true, type: true, correctionOf: true },
       })
     ).map((s) => [s.id, s]),
   );
+  const bagLines = await db().slipLine.findMany({ where: { slipId: { in: ids }, itemId, bags: { not: null } }, select: { slipId: true, bags: true } });
+  const bags = new Map<string, number>();
+  for (const l of bagLines) bags.set(l.slipId, (bags.get(l.slipId) ?? 0) + (l.bags ?? 0));
   const countNo = new Map(counts.map((c) => [c.id, c.no]));
   return stockCard(movements, farmId, itemId).map((m): StockCardRow => {
     const sisId = returnOf.get(m.slipId);
@@ -52,6 +55,7 @@ export async function getStockCard(farmId: string, itemId: string): Promise<Stoc
       ...m,
       ref: slip ? slipNo(slip) : (count ?? "Opening balance"),
       kind: slip?.type ?? (count ? "COUNT" : "OPENING"),
+      ...(slip && !slip.correctionOf && bags.get(slip.id) ? { bags: bags.get(slip.id) } : {}),
     };
   });
 }

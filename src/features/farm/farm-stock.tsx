@@ -9,7 +9,7 @@ import { useCurrentFarm } from "@/components/layout/farm-gate";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { useItems, useStock } from "@/lib/api/queries";
 import { fmtDate, today } from "@/lib/dates";
-import { downloadCsv, takePrintFlag } from "@/lib/export";
+import { addTableSheet, downloadXlsx, groupByCategory, takePrintFlag } from "@/lib/export";
 import { fmtQty, normalizeSearch } from "@/lib/format";
 import { t, tInline } from "@/lib/i18n";
 import type { Farm, Item } from "@/types/domain";
@@ -25,12 +25,26 @@ export function filterItems(items: Item[], query: string, category: string, incl
   );
 }
 
-/** Stock report for Excel: one row per item, in the order the screen shows. */
+/** Stock report for Excel (.xlsx): the rows on screen, grouped under a merged category row (A–Z), items by name. */
 export function exportStock(farm: Farm, rows: { item: Item; qty: number }[]) {
-  downloadCsv(`${farm.code} stock ${today()}`, [
-    ["Item No.", "Item", "Item (Urdu)", "Category", "In stock", "Unit"],
-    ...rows.map(({ item, qty }) => [item.number, item.name, item.nameUr, item.category, qty, t(`unit.${item.unit}`).en]),
-  ]);
+  const byName = [...rows].sort((a, b) => a.item.name.localeCompare(b.item.name));
+  return downloadXlsx(`${farm.code} stock ${today()}`, (wb) =>
+    addTableSheet(wb, "Stock", {
+      title: [farm.name, `Stock on ${fmtDate(today())}`],
+      columns: [
+        { header: "Item No.", width: 10 },
+        { header: "Item", width: 34 },
+        { header: "Item (Urdu)", width: 26, kind: "urdu" },
+        { header: "In stock", width: 14, kind: "qty" },
+        { header: "Unit", width: 8 },
+      ],
+      rows: groupByCategory(
+        byName,
+        (r) => r.item.category,
+        ({ item, qty }) => [item.number, item.name, item.nameUr, qty, t(`unit.${item.unit}`).en],
+      ),
+    }),
+  );
 }
 
 /** Items with their stock, items at 0 last. */
@@ -70,7 +84,7 @@ export function FarmStock() {
           <Bi id="stock.title" />
         </h1>
         <div className="flex flex-wrap gap-2 print:hidden">
-          <button type="button" className="btn" disabled={!loaded} onClick={() => exportStock(farm, rows)}>
+          <button type="button" className="btn" disabled={!loaded} onClick={() => void exportStock(farm, rows)}>
             <FileSpreadsheet size={18} aria-hidden />
             <Bi id="export.excel" inline />
           </button>
