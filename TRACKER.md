@@ -57,12 +57,12 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 
 | ID | Priority | Status | Owner | Updated | Commit | Verified | Title | Plan | Client # |
 |---|---|---|---|---|---|---|---|---|---|
-| T01 | High | committed | s-t01-igp-request | 2026-11-28 07:37 | 34b380a | pass 11-28 07:37 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
-| T02 | High | committed | s-batch1 | 2026-11-28 07:45 | 241e6ee | pass 11-28 07:45 | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
-| T03 | High | committed | s-t03t06 | 2026-11-28 08:04 | cc34e39 | pass 11-28 07:52 | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
-| T04 | Normal | committed | s-batch1 | 2026-11-28 08:12 | 7b831ed | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
-| T05 | Normal | committed | s-batch1 | 2026-11-28 08:12 | 7b831ed | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
-| T06 | Normal | committed | s-t03t06 | 2026-11-28 08:04 | 61e8201 | pass 11-28 08:02 | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
+| T01 | High | deployed | s-batch1 | 2026-11-28 08:21 | 34b380a | pass 11-28 08:21 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
+| T02 | High | deployed | s-batch1 | 2026-11-28 08:21 | 241e6ee | pass 11-28 08:21 | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
+| T03 | High | deployed | s-batch1 | 2026-11-28 08:21 | cc34e39 | pass 11-28 08:21 | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
+| T04 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 7b831ed | pass 11-28 08:21 | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
+| T05 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 7b831ed | pass 11-28 08:21 | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
+| T06 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 61e8201 | pass 11-28 08:21 | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
 
 **Overlap to watch**
 - T02 and T03 both add a Prisma migration. Whoever lands second rebases and gives theirs the later timestamp folder name.
@@ -114,3 +114,17 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 08:09 · T04 · note · by s-batch1 · merging 232380f to main (rebase in worktree ../farm-inventory-worktrees/t04-t05-merge, branch t04-t05-merge), developer asked; please don't rebase t04-t05-search-users meanwhile
 - 2026-11-28 08:12 · T04 · worked → committed · by s-batch1 · commit 7b831ed · rebased s-t04t05's 232380f onto main (only progress.md conflicted, kept both), ff-merged; e2e 111/111 on own DB + port; not pushed
 - 2026-11-28 08:12 · T05 · worked → committed · by s-batch1 · commit 7b831ed · same commit as T04; not pushed
+- 2026-11-28 08:18 · T01 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T02 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T03 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T04 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T05 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T06 · committed → deployed · by s-batch1 · pushed 6594b23, Vercel prod Ready (farm-inventory-system-seven.vercel.app); Neon backup taken, migrate deploy of dedupe_items + slip_line_bags OK
+- 2026-11-28 08:18 · T02 · note · by s-batch1 · LIVE DB: 1,971 → 1,948 items, 23 merges + 23 audit rows, 0 orphans, 12 rows moved to kept copies, all 300 item/farm balances identical to the pre-migration backup (farm-inventory-backups/neon-before-batch1-20261128.dump)
+- 2026-11-28 08:18 · T03 · note · by s-batch1 · LIVE DB: SlipLine.bags column present
+- 2026-11-28 08:21 · T01 · verify pass · by s-batch1 · LIVE aw01: + on IGP, none on OGP / SIS
+- 2026-11-28 08:21 · T02 · verify pass · by s-batch1 · LIVE: API 1,948 items, no duplicate names, Regulator once (Stock in Store); balances identical to backup
+- 2026-11-28 08:21 · T03 · verify pass · by s-batch1 · LIVE aw01: Feed All on IGP and SIS shows Bags box, none before an item is picked (not saved)
+- 2026-11-28 08:21 · T04 · verify pass · by s-batch1 · LIVE aw01 F6: 'royal office' → IGP-2125 + IGP-2090, 'exchange' → OGP-2103, 'new filter' → IGP-2105 (remarks)
+- 2026-11-28 08:21 · T05 · verify pass · by s-batch1 · LIVE admin: added verify-test (aw01), signed in, Set new password → old pw refused / new works, deactivated → can't sign in, 0 sessions left; audit add_user/set_password/edit_user. verify-test left inactive on live
+- 2026-11-28 08:21 · T06 · verify pass · by s-batch1 · LIVE: farm stock .xlsx 17 merged category rows, 296 items = screen; admin stock-on-hand .xlsx 20 merged ranges, no Category column. Still to open in real Excel by the developer
