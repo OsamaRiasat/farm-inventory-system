@@ -1,11 +1,12 @@
 import { clsx } from "clsx";
-import { ArrowDownToLine, ArrowUpFromLine, ClipboardList, type LucideIcon } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, ClipboardList, Egg, type LucideIcon } from "lucide-react";
 import type { SlipType } from "@/types/domain";
 
 export const slipTypeStyle: Record<SlipType, { icon: LucideIcon; text: string; bg: string; border: string }> = {
   IGP: { icon: ArrowDownToLine, text: "text-igp", bg: "bg-igp", border: "border-igp" },
   OGP: { icon: ArrowUpFromLine, text: "text-ogp", bg: "bg-ogp", border: "border-ogp" },
   SIS: { icon: ClipboardList, text: "text-sis", bg: "bg-sis", border: "border-sis" },
+  DR: { icon: Egg, text: "text-dr", bg: "bg-dr", border: "border-dr" },
 };
 
 /** C6 type chip: colour + icon + the slip's short code. */

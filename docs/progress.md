@@ -89,6 +89,13 @@ Update this file at the end of each work session: what's done, what's next, deci
   - T05: A10 Users — Add user, edit (name, username, phone, role, farm, active), Set new password (separate block). `POST /api/users`, `/api/users/[id]`, `/api/users/[id]/password`; rules in `src/features/admin/user-schema.ts`. New password / deactivate signs the user out everywhere; can't deactivate / demote yourself; last active Admin stays; audit `add_user` / `edit_user` / `set_password`. `User` now carries `username`.
   - Tests: `e2e/slip-search.spec.ts` (1), `e2e/users.spec.ts` (5); `testFarmUser()` in `e2e/db.ts`. 100 tests green.
 
+- 2026-11-28 — **T07 Daily Report (DR) + Current Assets items** (developer's request)
+  - New slip type `DR` in the same `Slip` table (7 count columns): F1 button "Daily Report / روزانہ رپورٹ" (key 4) → `/farm/dr/new`; admin A12 `/admin/slips/new/dr`. Header like every slip (paper No. `DR-…`, Report date). Live "Eggs added to stock" = Total − Hatching − Market − Discarded; trays / box recorded only.
+  - Rules `src/features/daily-report/schema.ts` run in the browser (new `validate` prop on `SlipForm`) and in `saveDR` (`src/server/services/slips.ts`, `POST /api/slips/dr`): whole numbers ≥ 0, sum ≤ Total, one per farm per date. One movement (Eggs) or none. `AW02-DR-0001` from Counter. Correct / Request correction refused for DR; Cancel works.
+  - Shown everywhere slips are: F6 chips + item search ("Eggs: +750"), A2 type filter, F7 / A3 / print (`DrBody`), stock card, audit, A1 "Farms today" DR column, new A7 report "Daily reports" (Excel + totals). Gate register now IGP / OGP only.
+  - Items: migration `20261128000002_daily_report` (enum value, columns, Eggs / Plastic Tray / Eggs Box in "Current Assets" only if the name isn't there; Gatta Tray reused). Seed `items.json` → 1,950 items. Demo seeds Daily Reports at every layer / breeder farm with a separate PRNG.
+  - Tests: +5 rules, `e2e/daily-report.spec.ts` (4), +1 phone. Full suite 121; the only failure in the full run was the existing T01 item-request test, which passes alone (load flake).
+
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`) — #26 / #28 in `client-issues.md`
 - [ ] Item requests: show the farm its rejected requests + the Admin's note (now only the audit log has it)
@@ -102,12 +109,14 @@ Update this file at the end of each work session: what's done, what's next, deci
 - [ ] Testing roadmap gaps: print/PDF checks, screenshot baselines, axe, performance budget, fixed test clock
 - [ ] Then: Urdu review, real phone + printer, client demo
 - [ ] **Hosting**: Dockerfile (`output: "standalone"`), AWS App Runner + RDS + Secrets Manager, `prisma migrate deploy` on release. The Vercel demo stops working without a database — point it at a hosted Postgres or move the demo to AWS
-- [ ] Next.js reported a security advisory for 16.4.3 during `next build`: upgrade Next.js
+- [ ] Next.js reported a security advisory for 16.4.3 during `next build`: upgrade Next.js (still shown 28 Nov 2026)
+- [ ] Client to confirm the Daily Report defaults (one per date, paper DR book, trays never stock, no correction) — `07`
 - [ ] Opening balances: import the client's counts (CSV → movements `slipId: "opening"`), then the two-week pilot
 - [ ] Paging or date limits for `listSlips` and reports once there's a year of data
 - [ ] Optional: server-sent events instead of 30 s polling
 
 ## Decisions log
+- 2026-11-28 — Daily Report is a fourth slip type in the `Slip` table (not a separate table), so lists, detail, print, audit, stock card and cancel reuse the slip code. Its only stock effect is stored as its one derived line (Eggs). Not correctable: cancel + re-enter.
 - 2026-11-24 — Backend built: TypeScript route handlers in the same Next.js app + PostgreSQL with **Prisma 7** (chosen over Drizzle), full cutover, **mock removed** (one code path; the demo is a seeded database). Login = username + password with a DB session cookie (no Auth.js). Saves serialise per farm with Postgres advisory locks. Hosting (App Runner) still to do.
 - 2026-11-24 — Backend proposal written (`docs/kb/09-backend-architecture.md`): TypeScript in the same Next.js app (reuses engine + Zod schemas) over FastAPI; PostgreSQL; one container on AWS App Runner (moving off Vercel).
 - 2026-10-27 — Frontend only for now. Very simple visual design. Keyboard-first data entry (see `docs/kb/05-keyboard-entry.md`).

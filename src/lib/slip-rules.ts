@@ -15,7 +15,7 @@ export function formatNo(farm: Pick<Farm, "code">, kind: string, n: number) {
 
 /** Only gate passes can belong to a transfer. */
 export function transferIdOf(slip: Slip) {
-  return slip.type === "SIS" ? undefined : slip.transferId;
+  return slip.type === "IGP" || slip.type === "OGP" ? slip.transferId : undefined;
 }
 
 /** Stock effect of a slip's lines (positive = into the farm). */
@@ -30,6 +30,9 @@ export function slipDeltas(slip: Slip): { itemId: string; delta: number }[] {
         ...slip.shedRows.map((r) => ({ itemId: r.feedItemId, delta: -r.feedKg })),
         ...slip.lines.map((l) => ({ itemId: l.itemId, delta: -l.qty })),
       ];
+    case "DR":
+      // Daily Report: its one line is the eggs left after hatching, market and discarded — into stock.
+      return slip.lines.map((l) => ({ itemId: l.itemId, delta: l.qty }));
   }
 }
 

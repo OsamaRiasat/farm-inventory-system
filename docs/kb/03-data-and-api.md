@@ -5,7 +5,7 @@ The UI talks **only** to `src/lib/api`. Since 24 Nov 2026 those functions call t
 ## Types (from the spec — put in `src/types/domain.ts`)
 ```ts
 type Unit = 'KG' | 'LTR' | 'QTY' | 'BG' | 'ROLL' | 'VIAL' | 'MAUND'; // any unit takes decimals (client #21)
-type SlipType = 'IGP' | 'OGP' | 'SIS';
+type SlipType = 'IGP' | 'OGP' | 'SIS' | 'DR';   // DR = Daily Report (T07)
 type SlipStatus = 'saved' | 'corrected' | 'cancelled';
 
 interface Farm { id: string; code: string; name: string; type: 'breeder' | 'layer' | 'hatchery'; sheds: Shed[]; active: boolean }
@@ -46,6 +46,14 @@ interface SIS extends SlipBase {
   lines: { itemId: string; qty: number; bags?: number; ledgerFolio?: string; purpose?: string; shedId?: string }[]; // ledgerFolio: storekeeper's ledger page, typed
 }
 
+interface DR extends SlipBase {                  // Daily Report (T07, 28 Nov 2026) — one per farm per date
+  type: 'DR';
+  eggsReceived: number; hatchingEggs: number; marketEggs: number; discardedEggs: number;  // whole numbers ≥ 0
+  gattaTray: number; plasticTray: number; eggsBox: number;                               // recorded only
+  lines: { itemId: string; qty: number }[];  // derived: [{ Eggs, eggsReceived − hatching − market − discarded }], [] when 0
+  remarks?: string;
+}
+
 interface Transfer { id: string; ogpId: string; igpId?: string; fromFarmId: string; toFarmId: string; status: 'in_transit' | 'received' | 'short'; sentAt: string; receivedAt?: string }
 interface Movement { id: string; farmId: string; itemId: string; slipId: string; date: string; qtyIn: number; qtyOut: number }
 ```
@@ -72,6 +80,8 @@ Added in week 2: `listSuppliers` · `listUsers` · `getStockMatrix` (A4) · `lis
 - **Return unused (21 Nov 2026):** new type `SISReturn { id, no, sisId, farmId, date, postedAt, by, lines: {lineIndex, itemId, qty}[], remarks?, status: "saved" | "cancelled", cancelled? }`. API: `listReturns(slipId)` (all versions of that SIS, oldest first, cancelled included), `returnUnused({ sisId, date, by, remarks?, lines: [{lineIndex, qty}], idempotencyKey })`, `cancelReturn({ returnId, reason, by })`. Rules in `src/features/sis/return-schema.ts`. Number `<SIS system no. without -Cn>-R<n>`; no paper No. Movements point at the return id (stock up; cancel = same id, stock down). `StockCardRow.returnOf` = the SIS to open. Errors: `err.onlyReturnable {n}`, `err.returnBeforeIssue`, `err.noReturnQty`, `err.belowReturned {n}` (correction), `err.returnClosed`. Audit actions `return` / `cancel_return` (recordId = the SIS). Consumption report counts returns against their SIS (use = issued − returned).
 - Excel export is a real, formatted `.xlsx` built in the browser with `exceljs` (loaded on click, `src/lib/export.ts`: `downloadXlsx` + `addTableSheet`) from data the screens already have; no API function. Title block, bold frozen header repeated on print, thin borders, `#,##0` numbers right-aligned, Urdu column right-to-left in Noto Nastaliq, A4 fit to width. Stock report (farm Home + F8) and Admin stock on hand: **items grouped by category** — one merged, shaded row per category (A–Z), no Category column. Stock card: header block, opening row, bold total, Bags column for feed. Admin reports: every report's Excel button (28 Nov 2026, T06).
 
+- **Daily Report (T07, 28 Nov 2026):** `saveDR(input)` → `POST /api/slips/dr` (own farm / Admin any farm; `farmId`, `preparedBy` from the session). Input = slip base (`paperNo` "DR-0123", `date`, `time`, `idempotencyKey`) + `eggsReceived` (required) + `hatchingEggs`, `marketEggs`, `discardedEggs`, `gattaTray`, `plasticTray`, `eggsBox` (default 0) + `remarks?`. Schema `drSchema` in `src/features/daily-report/schema.ts` (`DrInput`). Errors: `err.drEggsOver {n, total}` (path `eggsReceived`), `err.drDateUsed {date, no}` (path `date`; another non-cancelled DR of this farm on that date), `err.drWhole`, `err.zeroOrMore`, `err.required`, plus the slip base errors. The server works out the one line (Eggs, found by name) and adds one movement; Counter kind `DR` → `AW02-DR-0001`. `correctSlip` / `requestCorrection` refuse a DR with `err.drNoCorrection`; `cancelSlip` works as for any slip. `SlipFilters.type` accepts `"DR"`. `FarmToday.dr` = Daily Reports dated today. `getReport("daily-reports")` lists them with totals.
+
 Screens call these through TanStack Query hooks in `src/lib/api/queries.ts`. Every API error is an `ApiError` with a message id (+ values and field errors), so the screen shows the rule's own words.
 
 ## HTTP endpoints (`src/app/api/**/route.ts`)
@@ -84,7 +94,7 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 | getStock · getStockCard | `GET /api/stock?farmId` · `/api/stock/card?farmId&itemId` | own farm / Admin |
 | listSlips · getSlip · listReturns | `GET /api/slips?filters` · `/api/slips/[id]` · `/api/slips/[id]/returns` | own farm (+ the other side of a transfer) / Admin |
 | listWaitingTransfers · listTransfers · listCorrectionRequests · listAudit | `GET /api/transfers/waiting?farmId` · `/api/transfers?farmId` · `/api/corrections?farmId&status` · `/api/audit?farmId` | own farm / Admin |
-| saveIGP · saveOGP · saveSIS · saveStockCount · receiveTransfer | `POST /api/slips/{igp,ogp,sis}` · `/api/stock-counts` · `/api/transfers/receive` | own farm / Admin (any farm) |
+| saveIGP · saveOGP · saveSIS · saveDR · saveStockCount · receiveTransfer | `POST /api/slips/{igp,ogp,sis,dr}` · `/api/stock-counts` · `/api/transfers/receive` | own farm / Admin (any farm) |
 | returnUnused · requestCorrection | `POST /api/returns` · `/api/corrections` | own farm's slip / Admin |
 | requestItem · listItemRequests | `POST /api/item-requests` (Farm User; farm + name from the session) · `GET /api/item-requests?farmId&status` | own farm / Admin |
 | saveUser · setUserPassword | `POST /api/users` (add) · `/api/users/[id]` (edit; password ignored) · `/api/users/[id]/password` | Admin |
@@ -101,7 +111,7 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 - Every save runs the **same Zod schema** as the form (`src/features/*/schema.ts`) with a `RuleContext` loaded from the database (the items on the slip, their balances, today, the paper No. lookup), so messages match the screen exactly.
 - **One transaction per save, holding a lock per farm it touches** (`withFarmLock`, Postgres advisory locks, sorted). Two saves racing for the last stock run one after the other: one wins, the other gets "Only 0 in stock". Receive / cancel / correct of a transfer's gate pass lock both farms.
 - Idempotency key per save (`IdempotencyKey` table): a retry returns the first result, even when sent at the same time.
-- Numbers from `Counter` (farm × IGP / OGP / SIS / CNT), inside the farm lock.
+- Numbers from `Counter` (farm × IGP / OGP / SIS / DR / CNT), inside the farm lock.
 - Slip date any day up to today (no lower limit); paper No. unique per farm + type (`checkSlipBase`; plus a partial unique index as a backstop).
 - Corrections are new slips (`AW02-SIS-0213-C1`, `correctionOf` → original, original `status: "corrected"`); stock moves by the difference only. Cancel reverses the slip's net effect; refused if it would take an item below zero, or if the OGP's transfer was already received.
 - **Feed bags (client #26, 28 Nov 2026):** a line whose item `isFeed` needs `bags`, a whole number ≥ 1 (`checkBags` in `src/lib/validation.ts`: "Enter the number of bags" / "Bags: whole numbers only"); receive only when Qty Actual Received > 0. Bags on any other item are dropped (`feedBagsOnly`). Stored in `SlipLine.bags`; stock and balances stay in KG. A correction may send `lines[].bags` for a feed line.
@@ -109,12 +119,14 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 - "Today" and posted-on stamps are Pakistan time (`Asia/Karachi` in `src/lib/dates.ts`), whatever the server's time zone.
 
 ## Database (`prisma/schema.prisma`, PostgreSQL, Prisma 7)
-`Farm`, `Shed`, `Item`, `User`, `Session`, `Supplier` · `Slip` (header columns per type, `shedRows` JSON for old SIS) + `SlipLine` (by index) · `Transfer` · `Movement` · `SisReturn` + lines · `StockCount` + lines · `CorrectionRequest` · `ItemRequest` · `Counter` · `IdempotencyKey` · `AuditEntry`. Dates and times are text in the API's own format. `src/server/mappers.ts` turns rows into the domain types above.
+`Farm`, `Shed`, `Item`, `User`, `Session`, `Supplier` · `Slip` (header columns per type, `shedRows` JSON for old SIS, the Daily Report's seven counts as nullable Int columns — migration `20261128000002_daily_report`) + `SlipLine` (by index) · `Transfer` · `Movement` · `SisReturn` + lines · `StockCount` + lines · `CorrectionRequest` · `ItemRequest` · `Counter` · `IdempotencyKey` · `AuditEntry`. Dates and times are text in the API's own format. `src/server/mappers.ts` turns rows into the domain types above.
 
 ## Seed (`prisma/seed.ts` → `src/server/seed/base.ts`, `demo.ts`, `farms.json`, `items.json`)
 
 `npm run db:seed:base`: farms, sheds, items and one login per farm + the Admin with random passwords (printed once) — what a real install starts with. `npm run db:seed` (and `db:reset`): base + the demo history below, all logins `demo1234`. The demo goes through the real services, so it obeys the same rules. Deterministic, relative to today, ~250 slips. Seeded paper numbers use the same digits as the system number (`AW02-SIS-0203` → `SIS-0203`); seeded slips are posted on their own date.
 - **Farms:** the 11 sites, each with 3–6 sheds.
+- **Current Assets (T07):** `items.json` adds Eggs (No. 1971), Plastic Tray (1972), Eggs Box (1973), category "Current Assets", unit QTY; Gatta Tray is the client's existing No. 1687 (Packing Material). On a live database the migration inserts only the names not already there (case / outer spaces ignored), numbered after the highest Item No.; on a fresh one the seed adds them. **1,950 items** in the seed.
+- **Daily Reports (demo):** every layer / breeder farm, each of the 14 days (17:xx), with their own random sequence so the rest of the demo is unchanged; today missing at AW-05 and Layer-04.
 - **Items:** the client's full list, `docs/source/All Inventory Items By Names.xlsx` — **1,970 items in 18 categories** in the workbook, names exactly as the client wrote them (spelling variants kept). Item No. = position in that workbook (1–1,970). **Duplicates merged (T02, 28 Nov 2026):** 23 names were listed twice; the Stock in Store copy stays (else the lowest Item No.), so the seed has **1,947 items** and Item No. has gaps. Migration `20261128000000_dedupe_items` did the same on live data (references moved, audit row per merge) and added a unique index on `lower(btrim(name))`. Categories use the cleaned names from `requirements.md` (Shed Items, Generator Items, Oil Filter, Air Filter, Printing & Stationery, Discard & Scrap; the rest as written).
   - **Units are our guess** (the workbook has none): vaccines and injections VIAL, tablets QTY, powders KG, other medicines LTR; diesel, petrol, oils LTR; chips, husk, choona, cement BG; wire, cable, tape ROLL; sugar, salt, tea KG; everything else QTY. To be confirmed by the client.
   - **Urdu names / aliases** only on the ~60 everyday items the demo uses (Feed All, Diesel Stock, Fan Belt, Drill Machine, HCL…; their old demo ids are kept: `diesel`, `feed-all`, `fan-belt-88a`…). The others have `nameUr: ""`; screens show the category in its place. The admin must add Urdu when editing one (A9).

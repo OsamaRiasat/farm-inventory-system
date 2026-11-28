@@ -84,6 +84,8 @@ function SlipDetailView({
   const mine = (requests.data ?? []).filter((r) => r.slipId === s.id);
   const request = requestId ? mine.find((r) => r.id === requestId && r.status === "open") : undefined;
   const editable = s.status === "saved";
+  // Daily Report: no Correct / Request correction (its eggs line is worked out) — the Admin cancels and re-enters.
+  const correctable = editable && s.type !== "DR";
   const sisReturns = s.type === "SIS" ? (returns.data ?? []) : [];
   const returned = s.type === "SIS" ? returnedByLine(sisReturns, s.lines.length) : undefined;
   const returnable =
@@ -109,8 +111,8 @@ function SlipDetailView({
         {s.type === "SIS" && returnable && mode === "admin" && (
           <ReturnUnusedDialog slip={s} items={items} lines={returnable} by="Accounts Admin" onSaved={() => setNotice({ id: "ret.saved" })} />
         )}
-        {mode === "farm" && editable && <RequestCorrectionDialog slip={s} items={items} onSent={() => setNotice({ id: "detail.requestSent" })} />}
-        {mode === "admin" && editable && !correcting && (
+        {mode === "farm" && correctable && <RequestCorrectionDialog slip={s} items={items} onSent={() => setNotice({ id: "detail.requestSent" })} />}
+        {mode === "admin" && correctable && !correcting && (
           <button type="button" className="btn" onClick={() => setCorrecting(true)}>
             <PencilLine size={18} aria-hidden />
             <Bi id="detail.correct" inline />
@@ -168,7 +170,7 @@ function SlipDetailView({
         </Banner>
       ))}
 
-      {mode === "admin" && correcting && editable && (!requestId || requests.data) && (
+      {mode === "admin" && correcting && correctable && (!requestId || requests.data) && (
         <CorrectPanel
           // Opened from A6: start again once the request has loaded, so it is pre-filled.
           key={request?.id ?? "none"}

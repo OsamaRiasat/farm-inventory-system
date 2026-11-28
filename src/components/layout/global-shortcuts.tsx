@@ -17,7 +17,7 @@ const shortcuts: { keys: string[]; label: MsgId; area?: "farm" | "admin" }[] = [
   { keys: ["Ctrl", "S"], label: "keys.save" },
   { keys: ["Esc"], label: "keys.close" },
   { keys: ["/"], label: "keys.search" },
-  { keys: ["1", "2", "3"], label: "keys.slips123", area: "farm" },
+  { keys: ["1", "2", "3", "4"], label: "keys.slips123", area: "farm" },
   { keys: ["g h", "g s", "g k"], label: "keys.goTo", area: "farm" },
   { keys: ["↑", "↓", "Enter", "[", "]"], label: "keys.table", area: "admin" },
   { keys: ["?"], label: "keys.help" },

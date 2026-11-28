@@ -22,6 +22,8 @@ The app: the farm's one data-entry person fills in **the same three slips** on p
 | **Ledger Folio** | On an SIS line: the page number in the farm storekeeper's own ledger, typed by the farm (client, 30 Oct 2026). Not the item number — that is **Item No.** |
 | **No. (paper slip No.)** | The number printed in the farm's paper slip book, typed on every slip as `IGP-0123` / `OGP-0123` / `SIS-0123`. What the farm sees everywhere |
 | **System No.** | `AW02-IGP-1663`, automatic, unique across farms. Admin screens show it under the paper No.; farm screens and prints don't |
+| **Daily Report (DR)** | The farm's egg and tray counts for one date (T07, 28 Nov 2026): Total Eggs Received, Hatching Eggs, Market Eggs, Discarded Eggs, Gatta Tray, Plastic Tray, Eggs Box, Remarks. Only the eggs left over go into stock: **Eggs added to stock** = Total − Hatching − Market − Discarded. Trays and boxes are recorded only. Paper No. `DR-0123`, system number `AW02-DR-0001` |
+| **Current Assets** | Item category with Eggs, Gatta Tray, Plastic Tray, Eggs Box (unit QTY = "Nos" / عدد). Gatta Tray was already in the client's list (Packing Material) and is reused, not copied |
 | **Arrival / Dispatch / Issue date** | The slip's own date: when goods came in (IGP), went out (OGP) or were used (SIS). Today by default, changeable |
 | **Posted on** | When the slip was saved in the app, automatic |
 | **Purpose of Use** | Free text (Urdu or English) on SIS lines |
@@ -38,7 +40,7 @@ Never use accounting words in the Farm User UI (debit, credit, adjustment, vendo
 | --- | --- | --- |
 | Count | 1 per farm (11) | 1 |
 | Sees | Own farm only | All farms + All Farms totals |
-| Enters | IGP, OGP, SIS, receive transfers, stock counts | Same, for any farm |
+| Enters | IGP, OGP, SIS, Daily Report, receive transfers, stock counts | Same, for any farm |
 | Changes saved slip | No — "Request correction" with reason | Correct / Cancel (original kept) |
 | Return unused (SIS) | Yes, on own farm's saved SIS | Yes, any farm; also cancels a wrong return |
 | Manages | Nothing | Farms, sheds, items, units, users |
@@ -61,6 +63,8 @@ Possible 3rd role (not decided): view-only for Head Office / Purchase → reuses
 12. **Double save must not create two slips** (button disables + idempotency on the save call).
 13. **Return unused (SIS):** only on a saved SIS; per line qty > 0 and **≤ issued − already returned** ("Only 200 can be returned"); several partial returns allowed; return date not before the issue date ("Return date can't be before the issue date") and never after today. A wrong return is cancelled by the Admin with a reason (stock back down, never below zero). A correction can't set a line below what was returned ("200 already returned on this line…"). Cancelling the SIS reverses only issued − returned and closes its returns.
 
+14. **Daily Report (T07):** every count a whole number ≥ 0 (only Total Eggs Received must be typed; blanks are 0). Hatching + Market + Discarded **≤ Total Eggs Received** ("Hatching + Market + Discarded (1,100) is more than Total Eggs Received (1,000)"). **One per farm per date** ("A Daily Report for 28 Nov 2026 is already saved (DR-0003). Only one per day.") — a cancelled one doesn't count. Saving adds **one** movement, Eggs in = Total − Hatching − Market − Discarded (none when 0); trays and boxes never move stock. Not corrected — the Admin cancels it (eggs back out, never below zero) and the farm enters it again. Rules in `src/features/daily-report/schema.ts`, run in the browser before saving and again on the server.
+
 ## Transfers
 OGP (farm A → farm B) creates a Transfer `in_transit`. Farm B sees it under "Waiting to receive" → opens F3 (IGP pre-filled from the OGP; only Qty Actual Received is entered). Result: `received` or `short`. Admin resolves shortfalls (write off with reason, or keep open).
 
@@ -71,4 +75,4 @@ AW-01, AW-02 Patoki Farm, AW-04, AW-05, AW-06, AW-3A, AW-3B, AW-Hatchery, AW Lay
 `KG | LTR | QTY | BG | ROLL | VIAL | MAUND`. Urdu on slips: عدد (pieces), کلو, لیٹر, گڈی, من (Maund — Rice Husk, client #23). **Decimals for every unit** (0.5 ROLL, 0.5 Qty — client #21, 26 Nov 2026; up to 3 places).
 
 ## Out of scope (v1)
-Money/prices, data migration, approval step, low-stock alerts, POs, egg/bird sales, flock records (incl. mortality — removed from the SIS, 30 Oct 2026), HR, offline mode, native app, QuickBooks sync.
+Money/prices, data migration, approval step, low-stock alerts, POs, egg/bird sales (the Daily Report records eggs sent to market as a count only), flock records (incl. mortality — removed from the SIS, 30 Oct 2026), HR, offline mode, native app, QuickBooks sync.

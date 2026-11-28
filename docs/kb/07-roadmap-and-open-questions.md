@@ -38,6 +38,10 @@ Progress is tracked in `docs/progress.md`.
 | Phone models for testing | Test at 360 px |
 | View-only login for Head Office / Purchase? | Not built; keep actions role-gated so it's easy to add |
 | Return unused after an SIS: does the farm write a paper note for it? Can the Farm User do it without the Admin? | No paper note: system number `AW02-SIS-0484-R1`, no paper No. Farm User returns on their own SIS; only the Admin cancels a wrong return (21 Nov 2026) |
+| Daily Report (T07): only one per farm per date? | **Yes, one per date** (a cancelled one frees the date). Ask the client if a farm ever sends two (e.g. morning + evening collection) |
+| Daily Report: does the farm have a paper DR book (paper No. required)? | Paper No. `DR-…` required like every slip. If there's no book, make it optional |
+| Daily Report: should Gatta Tray / Plastic Tray / Eggs Box ever move stock, and should "Gatta Tray" move to Current Assets? | No stock effect, recorded only (as asked). Gatta Tray stays the existing item No. 1687 in Packing Material |
+| Daily Report: correction? | No Correct / Request correction: the Admin cancels and the farm re-enters |
 | Backend stack and hosting (not named in requirements or spec) | Decided 24 Nov 2026: Next.js route handlers + PostgreSQL (Prisma 7), built. Hosting default: one Docker container on AWS App Runner, RDS in Mumbai — see `09-backend-architecture.md` |
 
 ## Answered (client issue list, 29–30 Oct 2026)

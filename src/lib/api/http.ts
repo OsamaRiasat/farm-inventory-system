@@ -12,6 +12,7 @@ import type {
   OGP,
   SIS,
   SISReturn,
+  DR,
   Shed,
   Slip,
   StockCount,
@@ -95,6 +96,8 @@ export const httpApi = {
   saveIGP: (input: unknown) => post<IGP>("/slips/igp", input),
   saveOGP: (input: unknown) => post<OGP>("/slips/ogp", input),
   saveSIS: (input: unknown) => post<SIS>("/slips/sis", input),
+  /** Daily Report (T07): eggs and trays for one date; only the eggs left over go into stock. */
+  saveDR: (input: unknown) => post<DR>("/slips/dr", input),
 
   // ── return unused (SIS) ──
   /** Returns on this SIS (any version of it), oldest first, cancelled ones included. */

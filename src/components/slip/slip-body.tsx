@@ -6,7 +6,7 @@ import { Bi } from "@/components/layout/bi";
 import { fmtDate } from "@/lib/dates";
 import { fmtQty } from "@/lib/format";
 import { t, type MsgId } from "@/lib/i18n";
-import type { Farm, IGP, Item, OGP, SIS, Slip } from "@/types/domain";
+import type { DR, Farm, IGP, Item, OGP, SIS, Slip } from "@/types/domain";
 
 type Ctx = { items: Map<string, Item>; farms: Farm[] };
 
@@ -22,6 +22,8 @@ export function SlipBody({ slip, items, farms, returned }: { slip: Slip; /** SIS
       return <OgpBody slip={slip} items={items} farms={farms} />;
     case "SIS":
       return <SisBody slip={slip} items={items} farms={farms} returned={returned} />;
+    case "DR":
+      return <DrBody slip={slip} />;
   }
 }
 
@@ -280,6 +282,55 @@ function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: numbe
           <Bi id="sis.mortMale" inline /> {mortMale} · <Bi id="sis.mortFemale" inline /> {mortFemale}
         </p>
       )}
+    </>
+  );
+}
+
+/**
+ * Daily Report (T07): every count as typed, and the calculated "Eggs added to stock" (the only stock effect).
+ * Trays and boxes are recorded only.
+ */
+function DrBody({ slip }: { slip: DR }) {
+  const toStock = slip.lines.reduce((n, l) => n + l.qty, 0);
+  const row = (label: MsgId, n: number, strong?: boolean) => (
+    <tr key={label} className={clsx(strong && "font-semibold")} data-dr-row={label}>
+      <td>
+        <Bi id={label} inline />
+      </td>
+      <td className="num text-right">{fmtQty(n)}</td>
+    </tr>
+  );
+  return (
+    <>
+      <table>
+        <thead>
+          <tr>
+            <H id="dr.eggs" />
+            <H id="dr.nos" right />
+          </tr>
+        </thead>
+        <tbody>
+          {row("dr.eggsReceived", slip.eggsReceived)}
+          {row("dr.hatchingEggs", slip.hatchingEggs)}
+          {row("dr.marketEggs", slip.marketEggs)}
+          {row("dr.discardedEggs", slip.discardedEggs)}
+          {row("dr.toStock", toStock, true)}
+        </tbody>
+      </table>
+      <table className="mt-3">
+        <thead>
+          <tr>
+            <H id="dr.currentAssets" />
+            <H id="dr.nos" right />
+          </tr>
+        </thead>
+        <tbody>
+          {row("dr.gattaTray", slip.gattaTray)}
+          {row("dr.plasticTray", slip.plasticTray)}
+          {row("dr.eggsBox", slip.eggsBox)}
+        </tbody>
+      </table>
+      <Remarks text={slip.remarks} />
     </>
   );
 }

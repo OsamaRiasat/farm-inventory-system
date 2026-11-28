@@ -4,7 +4,7 @@
 import { daysBetween, today } from "@/lib/dates";
 import { allBalances, farmBalances, stockCard } from "@/lib/stock";
 import type { ReportFilters, ReportResult, ReportRow, ReportType } from "@/lib/api/types";
-import type { AuditEntry, Farm, Item, Movement, OGP, SISReturn, Slip, Transfer } from "@/types/domain";
+import type { AuditEntry, DR, Farm, Item, Movement, OGP, SISReturn, Slip, Transfer } from "@/types/domain";
 import { db } from "../db";
 import { farmInclude, returnInclude, slipInclude, toAudit, toFarm, toItem, toMovement, toReturn, toSlip, toTransfer } from "../mappers";
 
@@ -185,7 +185,7 @@ export function buildReport(s: Snapshot, type: ReportType, f: ReportFilters): Re
           { key: "status", label: "col.status", kind: "status" },
         ],
         rows: s.slips
-          .filter((x) => x.type !== "SIS" && !x.correctionOf && (!f.type || x.type === f.type) && inRange(x.date) && farmOk(x.farmId))
+          .filter((x) => (x.type === "IGP" || x.type === "OGP") && !x.correctionOf && (!f.type || x.type === f.type) && inRange(x.date) && farmOk(x.farmId))
           .filter((x) => !f.itemId || x.lines.some((l) => l.itemId === f.itemId))
           .sort(byTime)
           .map((x) => ({ date: x.date, time: x.time, no: x.id, type: x.type, farm: x.farmId, party: partyOf(s, x), lines: x.lines.length, status: x.status })),
@@ -268,6 +268,46 @@ export function buildReport(s: Snapshot, type: ReportType, f: ReportFilters): Re
             by: a.user,
           })),
       };
+
+    case "daily-reports": {
+      // T07: every Daily Report that counts (cancelled and corrected-away ones left out), oldest first.
+      const reports = effective.filter((x): x is DR => x.type === "DR" && farmOk(x.farmId) && inRange(x.date)).sort(byTime);
+      const counts = ["eggsReceived", "hatchingEggs", "marketEggs", "discardedEggs", "toStock", "gattaTray", "plasticTray", "eggsBox"] as const;
+      const rows = reports.map((x) => ({
+        date: x.date,
+        farm: x.farmId,
+        no: x.id,
+        eggsReceived: x.eggsReceived,
+        hatchingEggs: x.hatchingEggs,
+        marketEggs: x.marketEggs,
+        discardedEggs: x.discardedEggs,
+        toStock: x.lines.reduce((n, l) => n + l.qty, 0),
+        gattaTray: x.gattaTray,
+        plasticTray: x.plasticTray,
+        eggsBox: x.eggsBox,
+        remarks: x.remarks ?? "",
+      }));
+      const totals: ReportRow = {};
+      for (const k of counts) totals[k] = rows.reduce((n, r) => n + r[k], 0);
+      return {
+        columns: [
+          { key: "date", label: "slip.dateDR", kind: "date" },
+          { key: "farm", label: "col.farm", kind: "farm" },
+          { key: "no", label: "col.no", kind: "slip" },
+          { key: "eggsReceived", label: "dr.eggsReceived", kind: "qty" },
+          { key: "hatchingEggs", label: "dr.hatchingEggs", kind: "qty" },
+          { key: "marketEggs", label: "dr.marketEggs", kind: "qty" },
+          { key: "discardedEggs", label: "dr.discardedEggs", kind: "qty" },
+          { key: "toStock", label: "dr.toStock", kind: "qty" },
+          { key: "gattaTray", label: "dr.gattaTray", kind: "qty" },
+          { key: "plasticTray", label: "dr.plasticTray", kind: "qty" },
+          { key: "eggsBox", label: "dr.eggsBox", kind: "qty" },
+          { key: "remarks", label: "slip.remarks", kind: "text" },
+        ],
+        rows,
+        totals: rows.length ? totals : undefined,
+      };
+    }
   }
 }
 

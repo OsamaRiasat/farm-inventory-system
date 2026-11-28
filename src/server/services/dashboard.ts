@@ -37,6 +37,7 @@ export async function getDashboard(): Promise<Dashboard> {
         igp: mine.filter((x) => x.type === "IGP").length,
         ogp: mine.filter((x) => x.type === "OGP").length,
         sis: mine.filter((x) => x.type === "SIS").length,
+        dr: mine.filter((x) => x.type === "DR").length,
         lastSlipTime: mine.map((x) => x.time).sort().at(-1) ?? null,
       };
     }),

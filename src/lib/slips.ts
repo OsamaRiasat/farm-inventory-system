@@ -21,7 +21,7 @@ export function slipLineCount(slip: Slip) {
   return slip.lines.length + (slip.type === "SIS" ? slip.shedRows.length : 0);
 }
 
-/** IGP: who it came from. OGP: where it went. SIS: nothing. */
+/** IGP: who it came from. OGP: where it went. SIS / Daily Report: nothing. */
 export function slipParty(slip: Slip, farms: Farm[]) {
   const name = (id?: string) => farms.find((f) => f.id === id)?.name ?? "";
   if (slip.type === "IGP") return slip.source.kind === "farm" ? name(slip.source.farmId) : (slip.source.ms ?? "");
@@ -44,6 +44,9 @@ export function slipSearchFields(slip: Slip, farms: Farm[] = []) {
       break;
     case "SIS":
       for (const l of slip.lines) fields.push(l.purpose, l.ledgerFolio);
+      break;
+    case "DR":
+      fields.push(slip.remarks);
       break;
   }
   return [...new Set(fields.map((f) => f?.trim() ?? "").filter(Boolean))];

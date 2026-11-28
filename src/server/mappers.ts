@@ -5,6 +5,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type {
   AuditEntry,
   CorrectionRequest,
+  DR,
   Farm,
   IGP,
   Item,
@@ -137,6 +138,20 @@ export function toSlip(r: SlipRow): Slip {
           }),
         ),
       };
+    case "DR":
+      return clean<DR>({
+        ...base,
+        type: "DR",
+        eggsReceived: num(r.eggsReceived),
+        hatchingEggs: num(r.hatchingEggs),
+        marketEggs: num(r.marketEggs),
+        discardedEggs: num(r.discardedEggs),
+        gattaTray: num(r.gattaTray),
+        plasticTray: num(r.plasticTray),
+        eggsBox: num(r.eggsBox),
+        lines: r.lines.map((l) => ({ itemId: l.itemId, qty: num(l.qty) })),
+        remarks: opt(r.remarks),
+      });
   }
 }
 
@@ -187,6 +202,18 @@ export function slipData(s: Slip): Omit<Prisma.SlipUncheckedCreateInput, "lines"
       };
     case "SIS":
       return { ...common, shedRows: s.shedRows.length ? s.shedRows : undefined };
+    case "DR":
+      return {
+        ...common,
+        remarks: s.remarks ?? null,
+        eggsReceived: s.eggsReceived,
+        hatchingEggs: s.hatchingEggs,
+        marketEggs: s.marketEggs,
+        discardedEggs: s.discardedEggs,
+        gattaTray: s.gattaTray,
+        plasticTray: s.plasticTray,
+        eggsBox: s.eggsBox,
+      };
   }
 }
 
@@ -222,6 +249,8 @@ export function slipLineData(s: Slip): Prisma.SlipLineCreateManyInput[] {
         purpose: l.purpose ?? null,
         shedId: l.shedId ?? null,
       }));
+    case "DR":
+      return s.lines.map((l, index) => ({ slipId: s.id, index, itemId: l.itemId, qty: l.qty }));
   }
 }
 

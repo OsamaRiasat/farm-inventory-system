@@ -12,9 +12,10 @@ const slipButtons: { type: SlipType; href: string; key: string }[] = [
   { type: "IGP", href: "/farm/igp/new", key: "1" },
   { type: "OGP", href: "/farm/ogp/new", key: "2" },
   { type: "SIS", href: "/farm/sis/new", key: "3" },
+  { type: "DR", href: "/farm/dr/new", key: "4" },
 ];
 
-// F1 — Farm home: find, three slip buttons, waiting to receive, today's slips, export.
+// F1 — Farm home: find, four slip buttons (IGP, OGP, SIS, Daily Report), waiting to receive, today's slips, export.
 export default function FarmHomePage() {
   return (
     <FarmShell active="home">

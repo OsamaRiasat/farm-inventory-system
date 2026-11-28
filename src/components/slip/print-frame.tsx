@@ -95,7 +95,7 @@ export function PrintFrame({
           <Bi id="slip.preparedBy" inline />
         </div>
         <div className="min-w-40 border-t border-black pt-1 text-right">
-          <Bi id={type === "SIS" ? "print.approvedBy" : "print.projectManager"} inline />
+          <Bi id={type === "SIS" || type === "DR" ? "print.approvedBy" : "print.projectManager"} inline />
         </div>
       </footer>
     </article>

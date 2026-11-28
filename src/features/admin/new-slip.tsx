@@ -12,6 +12,7 @@ import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
 import { IgpForm } from "@/features/igp/igp-form";
 import { OgpForm } from "@/features/ogp/ogp-form";
 import { SisForm } from "@/features/sis/sis-form";
+import { DrForm } from "@/features/daily-report/dr-form";
 import { StockCountForm } from "@/features/stock-count/stock-count-form";
 import { useFarms } from "@/lib/api/queries";
 import { tInline, type MsgId } from "@/lib/i18n";
@@ -23,22 +24,23 @@ import type { Farm } from "@/types/domain";
 // The Accounts Admin enters a slip received from a farm, on that farm's behalf: the same forms and rules
 // as the farm's own screens, with the admin as "Prepared by".
 
-export type NewSlipType = "igp" | "ogp" | "sis" | "count";
+export type NewSlipType = "igp" | "ogp" | "sis" | "dr" | "count";
 
 const kinds: { type: NewSlipType; title: MsgId }[] = [
   { type: "igp", title: "slip.IGP" },
   { type: "ogp", title: "slip.OGP" },
   { type: "sis", title: "slip.SIS" },
+  { type: "dr", title: "slip.DR" },
   { type: "count", title: "count.title" },
 ];
 
-const forms = { igp: IgpForm, ogp: OgpForm, sis: SisForm, count: StockCountForm };
+const forms = { igp: IgpForm, ogp: OgpForm, sis: SisForm, dr: DrForm, count: StockCountForm };
 
 export function newSlipHref(type: NewSlipType) {
   return `/admin/slips/new/${type}`;
 }
 
-/** "New slip ▾" above the A2 table: IGP / OGP / SIS / Stock count. ↑/↓ move, Esc closes. */
+/** "New slip ▾" above the A2 table: IGP / OGP / SIS / Daily Report / Stock count. ↑/↓ move, Esc closes. */
 export function NewSlipMenu() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);

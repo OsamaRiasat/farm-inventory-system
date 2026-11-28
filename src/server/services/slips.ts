@@ -3,12 +3,13 @@
 import { igpSchema, receiveSchema } from "@/features/igp/schema";
 import { ogpSchema } from "@/features/ogp/schema";
 import { sisSchema } from "@/features/sis/schema";
+import { drSchema, eggsToStock } from "@/features/daily-report/schema";
 import { ApiError } from "@/lib/api/errors";
 import type { SlipFilters } from "@/lib/api/types";
 import { nowStamp } from "@/lib/dates";
 import { slipDeltas } from "@/lib/slip-rules";
 import { feedBagsOnly } from "@/lib/validation";
-import type { AuditEntry, IGP, OGP, SIS, Slip, Transfer } from "@/types/domain";
+import type { AuditEntry, DR, IGP, OGP, SIS, Slip, Transfer } from "@/types/domain";
 import type { Prisma } from "@/generated/prisma/client";
 import { db, type Tx } from "../db";
 import { slipInclude, toSlip } from "../mappers";
@@ -133,6 +134,52 @@ export function saveSIS(input: unknown, opts: SaveOpts = {}): Promise<SIS> {
       lines: v.lines.map((l) => feedBagsOnly(rules, l.itemId, l)),
     };
     return (await commitSlip(tx, slip, v.idempotencyKey, opts)) as SIS;
+  });
+}
+
+/** The stock item a Daily Report's eggs go into (category "Current Assets"; found by name, any case). */
+export const EGGS_ITEM_NAME = "Eggs";
+
+async function eggsItemId(tx: Tx) {
+  const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "Item" WHERE lower(btrim(name)) = lower(${EGGS_ITEM_NAME}) LIMIT 1`;
+  if (!rows[0]) throw new Error(`Item "${EGGS_ITEM_NAME}" is missing — run the T07 migration or the seed`);
+  return rows[0].id;
+}
+
+/**
+ * T07 Daily Report: one per farm per date (cancelled ones don't count). Only one stock movement:
+ * Eggs in = Total − Hatching − Market − Discarded (none when 0). Trays and boxes are recorded only.
+ */
+export function saveDR(input: unknown, opts: SaveOpts = {}): Promise<DR> {
+  return withFarmLock([farmIdOf(input)], async (tx) => {
+    const done = await remembered(tx, keyOf(input));
+    if (done) return (await getSlip(tx, done)) as DR;
+    const farmId = farmIdOf(input);
+    const date = (input as { date?: unknown })?.date;
+    const rules = await rulesFor(tx, farmId, { itemIds: [], paperNo: { type: "DR", value: paperOf(input) } }, opts.at);
+    const existing =
+      typeof date === "string" && date
+        ? await tx.slip.findFirst({
+            where: { farmId, type: "DR", date, correctionOf: null, status: { not: "cancelled" } },
+            select: { no: true, paperNo: true },
+          })
+        : null;
+    const v = parse(drSchema({ ...rules, reportOn: (d) => (existing && d === date ? existing.paperNo || existing.no : undefined) }), input);
+    const eggs = eggsToStock(v);
+    const slip: DR = {
+      ...(await base(tx, v, "DR", opts)),
+      type: "DR",
+      eggsReceived: v.eggsReceived,
+      hatchingEggs: v.hatchingEggs,
+      marketEggs: v.marketEggs,
+      discardedEggs: v.discardedEggs,
+      gattaTray: v.gattaTray,
+      plasticTray: v.plasticTray,
+      eggsBox: v.eggsBox,
+      lines: eggs > 0 ? [{ itemId: await eggsItemId(tx), qty: eggs }] : [],
+      remarks: v.remarks || undefined,
+    };
+    return (await commitSlip(tx, slip, v.idempotencyKey, opts)) as DR;
   });
 }
 

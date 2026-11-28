@@ -15,7 +15,7 @@ import { fmtDate } from "@/lib/dates";
 import { fmtQty, normalizeSearch } from "@/lib/format";
 import { t, tInline } from "@/lib/i18n";
 import { slipItemIds, slipLineCount, slipNo, slipSearchFields } from "@/lib/slips";
-import type { Item, Slip, SlipType } from "@/types/domain";
+import { SLIP_TYPES, type Item, type Slip, type SlipType } from "@/types/domain";
 
 const PAGE = 50;
 
@@ -25,7 +25,7 @@ export function MySlipsFromUrl() {
   return <MySlips key={params.toString()} initialQuery={params.get("q") ?? ""} initialDate={params.get("date") ?? ""} />;
 }
 
-/** How much of the item each slip moved: + in (IGP), − out (OGP, SIS). */
+/** How much of the item each slip moved: + in (IGP, Daily Report eggs), − out (OGP, SIS). */
 function qtyOf(slip: Slip, itemId: string) {
   switch (slip.type) {
     case "IGP":
@@ -37,6 +37,8 @@ function qtyOf(slip: Slip, itemId: string) {
         slip.lines.filter((l) => l.itemId === itemId).reduce((n, l) => n + l.qty, 0) +
         slip.shedRows.filter((r) => r.feedItemId === itemId).reduce((n, r) => n + r.feedKg, 0)
       );
+    case "DR":
+      return slip.lines.filter((l) => l.itemId === itemId).reduce((n, l) => n + l.qty, 0);
   }
 }
 
@@ -94,7 +96,7 @@ export function MySlips({ initialQuery = "", initialDate = "" }: { initialQuery?
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {(["", "IGP", "OGP", "SIS"] as const).map((t) => (
+        {(["", ...SLIP_TYPES] as const).map((t) => (
           <button
             key={t || "all"}
             type="button"

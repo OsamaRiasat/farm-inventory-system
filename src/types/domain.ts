@@ -3,7 +3,9 @@
 
 export const UNITS = ["KG", "LTR", "QTY", "BG", "ROLL", "VIAL", "MAUND"] as const;
 export type Unit = (typeof UNITS)[number];
-export type SlipType = "IGP" | "OGP" | "SIS";
+/** DR = Daily Report (eggs and trays, once a day per farm — T07). */
+export type SlipType = "IGP" | "OGP" | "SIS" | "DR";
+export const SLIP_TYPES = ["IGP", "OGP", "SIS", "DR"] as const satisfies readonly SlipType[];
 export type SlipStatus = "saved" | "corrected" | "cancelled";
 export type FarmType = "breeder" | "layer" | "hatchery";
 
@@ -88,7 +90,27 @@ export interface SIS extends SlipBase {
   lines: { itemId: string; qty: number; bags?: number; ledgerFolio?: string; purpose?: string; shedId?: string }[];
 }
 
-export type Slip = IGP | OGP | SIS;
+/**
+ * Daily Report (T07): the farm's egg and tray counts for one date — one per farm per date (cancelled ones don't count).
+ * Only the eggs left after hatching, market and discarded go into stock, as the one line
+ * `{ itemId: <Eggs>, qty: eggsReceived − hatchingEggs − marketEggs − discardedEggs }` (no line when that is 0).
+ * Trays and boxes are recorded only; they never change stock. All counts are whole numbers ≥ 0.
+ */
+export interface DR extends SlipBase {
+  type: "DR";
+  eggsReceived: number;
+  hatchingEggs: number;
+  marketEggs: number;
+  discardedEggs: number;
+  gattaTray: number;
+  plasticTray: number;
+  eggsBox: number;
+  /** Eggs added to stock (derived by the server, never typed). No bags: `never` keeps `line.bags` readable on any slip. */
+  lines: { itemId: string; qty: number; bags?: never }[];
+  remarks?: string;
+}
+
+export type Slip = IGP | OGP | SIS | DR;
 
 /**
  * Unused items brought back after an SIS ("Return unused"). The SIS stays as issued; stock goes up on the

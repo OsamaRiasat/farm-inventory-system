@@ -3,7 +3,8 @@
 // Includes the real examples from the screen recording (Hatchery OGP-46 → Patoki IGP-1662,
 // Patoki OGP-1366 drill machine, Patoki SIS-203) plus one transfer in transit, one in transit
 // for more than 2 days, one short transfer, one corrected slip, one cancelled slip, one
-// "return unused" and one open correction request.
+// "return unused" and one open correction request. Daily Reports (T07) at every layer / breeder farm,
+// except today at two farms (shown "Missing" on the admin dashboard).
 
 import { addDays, farmNow } from "@/lib/dates";
 import type { Farm, Item, Unit } from "@/types/domain";
@@ -12,7 +13,7 @@ import { balancesOf } from "../repo";
 import { cancelSlip, correctSlip, requestCorrection } from "../services/corrections";
 import { returnUnused } from "../services/returns";
 import { listFarms, listItems } from "../services/setup";
-import { receiveTransfer, saveIGP, saveOGP, saveSIS } from "../services/slips";
+import { receiveTransfer, saveDR, saveIGP, saveOGP, saveSIS } from "../services/slips";
 import { ADMIN_NAME } from "./base";
 
 const SUPPLIERS = {
@@ -154,7 +155,7 @@ export async function seedDemo(now = new Date()) {
   /** Feed lines carry bags (client #26): 50 KG a bag. */
   const bagsOf = (itemId: string, kg: number) => (itemById(itemId).isFeed && kg > 0 ? { bags: Math.max(1, Math.round(kg / 50)) } : {});
   /** The farm's paper slip number: the same digits as the system number the save will get. */
-  async function paper(farmId: string, kind: "IGP" | "OGP" | "SIS", no?: number) {
+  async function paper(farmId: string, kind: "IGP" | "OGP" | "SIS" | "DR", no?: number) {
     const last = no ? no - 1 : ((await db().counter.findUnique({ where: { farmId_kind: { farmId, kind } } }))?.last ?? 0);
     return `${kind}-${String(last + 1).padStart(4, "0")}`;
   }
@@ -394,5 +395,29 @@ export async function seedDemo(now = new Date()) {
       }
     }
   }
-}
 
+  // ── Daily Reports (T07) — own random sequence, so the slips above stay exactly as before ──
+  const drRand = mulberry32(20261128);
+  const drBetween = (min: number, max: number) => Math.round(min + drRand() * (max - min));
+  const drMissingToday = new Set(["aw05", "layer04"]);
+  for (let d = -13; d <= 0; d++) {
+    const date = addDays(todayIso, d);
+    for (const f of farms.filter((x) => x.type !== "hatchery")) {
+      if (d === 0 && drMissingToday.has(f.id)) continue;
+      const t = timeFor(date, `17:${String(drBetween(0, 59)).padStart(2, "0")}`);
+      if (!t) continue;
+      const eggsReceived = f.type === "layer" ? drBetween(9000, 14000) : drBetween(5000, 9000);
+      const hatchingEggs = f.type === "layer" ? 0 : Math.round(eggsReceived * (0.8 + drRand() * 0.1));
+      const discardedEggs = drBetween(10, 80);
+      const marketEggs = f.type === "layer" ? Math.round(eggsReceived * 0.9) : drBetween(100, 400);
+      await saveDR(
+        {
+          farmId: f.id, date, time: t, preparedBy: userOf(f.id), idempotencyKey: key(), paperNo: await paper(f.id, "DR"),
+          eggsReceived, hatchingEggs, marketEggs, discardedEggs,
+          gattaTray: Math.ceil(eggsReceived / 30), plasticTray: drBetween(0, 40), eggsBox: Math.ceil(hatchingEggs / 360),
+        },
+        { at: at(date, t) },
+      );
+    }
+  }
+}

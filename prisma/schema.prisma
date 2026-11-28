@@ -40,6 +40,8 @@ enum SlipType {
   IGP
   OGP
   SIS
+  /// Daily Report (eggs, trays) — T07
+  DR
 }
 
 enum SlipStatus {
@@ -179,6 +181,15 @@ model Slip {
   vehicleNo    String?
   // SIS: feed & mortality per shed (old slips only)
   shedRows     Json?
+  // DR (Daily Report): counts as typed. Only eggsReceived − hatching − market − discarded goes into stock
+  // (as the slip's one "Eggs" line); trays and boxes are recorded, never stock.
+  eggsReceived  Int?
+  hatchingEggs  Int?
+  marketEggs    Int?
+  discardedEggs Int?
+  gattaTray     Int?
+  plasticTray   Int?
+  eggsBox       Int?
 
   lines SlipLine[]
 
@@ -331,7 +342,7 @@ model ItemRequest {
 
 // ── control ──────────────────────────────────────────────────────────────
 
-/// Last slip number used per farm and kind (IGP, OGP, SIS, CNT).
+/// Last slip number used per farm and kind (IGP, OGP, SIS, DR, CNT).
 model Counter {
   farmId String
   kind   String

@@ -1945,5 +1945,8 @@
   {"id": "uniform-visitors", "number": 1967, "name": "Uniform Visitors", "nameUr": "", "aliases": [], "category": "Uniforms", "unit": "QTY", "isFeed": false},
   {"id": "uniform-worker", "number": 1968, "name": "Uniform Worker", "nameUr": "ورکر یونیفارم", "aliases": ["uniform", "worker uniform", "وردی"], "category": "Uniforms", "unit": "QTY", "isFeed": false},
   {"id": "visitor-shoes", "number": 1969, "name": "Visitor Shoes", "nameUr": "", "aliases": [], "category": "Uniforms", "unit": "QTY", "isFeed": false},
-  {"id": "visitor-uper", "number": 1970, "name": "Visitor Uper", "nameUr": "", "aliases": [], "category": "Uniforms", "unit": "QTY", "isFeed": false}
+  {"id": "visitor-uper", "number": 1970, "name": "Visitor Uper", "nameUr": "", "aliases": [], "category": "Uniforms", "unit": "QTY", "isFeed": false},
+  {"id": "eggs", "number": 1971, "name": "Eggs", "nameUr": "انڈے", "aliases": ["egg", "anday", "anda"], "category": "Current Assets", "unit": "QTY", "isFeed": false},
+  {"id": "plastic-tray", "number": 1972, "name": "Plastic Tray", "nameUr": "پلاسٹک ٹرے", "aliases": ["plastic egg tray"], "category": "Current Assets", "unit": "QTY", "isFeed": false},
+  {"id": "eggs-box", "number": 1973, "name": "Eggs Box", "nameUr": "انڈوں کا ڈبہ", "aliases": ["egg box"], "category": "Current Assets", "unit": "QTY", "isFeed": false}
 ]

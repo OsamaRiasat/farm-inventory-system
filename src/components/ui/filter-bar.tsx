@@ -82,6 +82,7 @@ export function FilterBar({
             <option value="IGP">IGP</option>
             <option value="OGP">OGP</option>
             <option value="SIS">SIS</option>
+            <option value="DR">DR — {tInline("slip.DR")}</option>
           </select>
         </label>
       )}

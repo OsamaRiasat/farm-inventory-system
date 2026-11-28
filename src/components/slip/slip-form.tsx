@@ -42,6 +42,7 @@ export function SlipForm({
   build,
   save,
   afterSave = "next",
+  validate,
   children,
 }: {
   slipType: SlipType;
@@ -49,6 +50,8 @@ export function SlipForm({
   build: (form: SlipFormData, base: BaseInput) => BuiltInput;
   save: (input: unknown) => Promise<Slip>;
   afterSave?: "next" | "detail";
+  /** The slip's Zod rules run in the browser before saving (same schema and messages as the server). */
+  validate?: (input: unknown) => FieldError[];
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -136,6 +139,13 @@ export function SlipForm({
     const { input, lineRows, shedRows } = build(form, base);
     setProblem(null);
     setErrors([]);
+    const invalid = validate?.(input) ?? [];
+    if (invalid.length) {
+      setErrors(toFormErrors(invalid, lineRows, shedRows));
+      setProblem("errors");
+      window.scrollTo({ top: 0 });
+      return;
+    }
     try {
       const slip = await mutation.mutateAsync(input);
       setDirty(false);

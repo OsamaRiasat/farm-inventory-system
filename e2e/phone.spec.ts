@@ -24,6 +24,7 @@ test("no horizontal scroll on slip screens", async ({ page }) => {
     "/farm/igp/new",
     "/farm/ogp/new",
     "/farm/sis/new",
+    "/farm/dr/new",
     "/farm/slips",
     "/farm/slips/AW02-SIS-0203",
     "/farm/stock",
@@ -64,3 +65,21 @@ test("Feed All on a phone: the Bags box shows on the line card and takes a numbe
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("Daily Report by touch on a 360 px phone: live eggs to stock, Save", async ({ page }) => {
+  await page.goto("/farm/dr/new");
+  const field = (name: string) => page.locator(`input[name="${name}"]:visible`);
+  await field("paperNo").tap();
+  await page.keyboard.type("9901");
+  await field("eggsReceived").tap();
+  await page.keyboard.type("1200");
+  await field("hatchingEggs").tap();
+  await page.keyboard.type("1000");
+  await field("gattaTray").tap();
+  await page.keyboard.type("40");
+  await expect(page.locator("[data-to-stock]:visible")).toContainText("200");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await expect(page.locator("button[data-save]:visible")).toBeInViewport();
+});
+

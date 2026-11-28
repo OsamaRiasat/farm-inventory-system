@@ -72,6 +72,9 @@ export function AdminDashboard() {
                 <th className="text-right">IGP</th>
                 <th className="text-right">OGP</th>
                 <th>SIS</th>
+                <th>
+                  <Bi id="dash.dr" inline />
+                </th>
                 <th className="text-right">
                   <Bi id="dash.lastSlip" />
                 </th>
@@ -84,17 +87,10 @@ export function AdminDashboard() {
                   <td className="num text-right">{row.igp}</td>
                   <td className="num text-right">{row.ogp}</td>
                   <td>
-                    {row.sis > 0 ? (
-                      <span className="flex items-center gap-1 text-primary">
-                        <Check size={16} aria-hidden />
-                        <Bi id="dash.saved" inline />
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2 font-medium text-warning">
-                        <TriangleAlert size={14} aria-hidden />
-                        <Bi id="dash.missing" inline />
-                      </span>
-                    )}
+                    <SavedOrMissing saved={row.sis > 0} />
+                  </td>
+                  <td data-dr>
+                    <SavedOrMissing saved={row.dr > 0} />
                   </td>
                   <td className="num text-right text-muted">{row.lastSlipTime ?? "—"}</td>
                 </tr>
@@ -165,4 +161,19 @@ function tileList(tiles: Dashboard["tiles"]): { label: MsgId; value: number; hre
     { label: "dash.corrections", value: tiles.corrections, href: "/admin/corrections", alert: true },
     { label: "dash.itemRequests", value: tiles.itemRequests, href: "/admin/setup/items?show=requested", alert: true },
   ];
+}
+
+/** "Saved" ✓ or amber "Missing" for one slip type in the Farms today table (SIS, Daily Report). */
+function SavedOrMissing({ saved }: { saved: boolean }) {
+  return saved ? (
+    <span className="flex items-center gap-1 text-primary">
+      <Check size={16} aria-hidden />
+      <Bi id="dash.saved" inline />
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full bg-warning-bg px-2 font-medium text-warning">
+      <TriangleAlert size={14} aria-hidden />
+      <Bi id="dash.missing" inline />
+    </span>
+  );
 }

@@ -7,7 +7,7 @@ import { returnedPerLine } from "@/lib/slip-rules";
 import { db } from "@/server/db";
 import { cancelSlip, correctSlip } from "@/server/services/corrections";
 import { cancelReturn, listReturns, returnUnused } from "@/server/services/returns";
-import { getSlipById, receiveTransfer, saveIGP, saveOGP, saveSIS } from "@/server/services/slips";
+import { getSlipById, receiveTransfer, saveDR, saveIGP, saveOGP, saveSIS } from "@/server/services/slips";
 import { approveItemRequest, listItemRequests, rejectItemRequest, requestItem, saveItem } from "@/server/services/setup";
 import { stock, testFarm, unique } from "./db";
 
@@ -423,3 +423,86 @@ test("item request (client #30): not an item until approved; duplicates refused;
   expect(await rejectItemRequest({ requestId: other.id, note: "Use Nylon Rope", by: "Admin" })).toMatchObject({ status: "rejected", note: "Use Nylon Rope" });
   expect(await db().auditEntry.count({ where: { farmId, action: { in: ["request_item", "approve_item", "reject_item"] } } })).toBe(4);
 });
+
+// ── Daily Report (T07) ──
+
+const EGGS = "eggs";
+const dr = (farmId: string, counts: Record<string, number>, extra: Record<string, unknown> = {}) =>
+  saveDR({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), ...counts, ...extra });
+
+test("Daily Report: Eggs into stock = Total − Hatching − Market − Discarded, one movement, numbered AW…-DR-0001", async () => {
+  const farmId = await testFarm();
+  const slip = await dr(farmId, { eggsReceived: 10000, hatchingEggs: 8000, marketEggs: 1200, discardedEggs: 50, gattaTray: 340, plasticTray: 12, eggsBox: 23 });
+  expect(slip.no).toBe(`${farmId.toUpperCase()}-DR-0001`);
+  expect(slip.lines).toEqual([{ itemId: EGGS, qty: 750 }]);
+  expect(await stock(farmId, EGGS)).toBe(750);
+  const moves = await db().movement.findMany({ where: { farmId } });
+  expect(moves.map((m) => [m.itemId, m.qtyIn, m.qtyOut])).toEqual([[EGGS, 750, 0]]);
+  // Everything typed is kept on the report, and it reads back the same.
+  const back = await getSlipById(slip.id);
+  expect(back).toMatchObject({ type: "DR", eggsReceived: 10000, hatchingEggs: 8000, marketEggs: 1200, discardedEggs: 50, gattaTray: 340, plasticTray: 12, eggsBox: 23 });
+  expect(await db().auditEntry.count({ where: { recordId: slip.id, action: "save" } })).toBe(1);
+});
+
+test("Daily Report: Gatta Tray, Plastic Tray and Eggs Box never change stock; 0 eggs left = no movement", async () => {
+  const farmId = await testFarm({ "egg-tray": 5 });
+  const slip = await dr(farmId, { eggsReceived: 500, hatchingEggs: 400, marketEggs: 100, discardedEggs: 0, gattaTray: 900, plasticTray: 70, eggsBox: 40 });
+  expect(slip.lines).toEqual([]);
+  expect(await db().movement.count({ where: { farmId, slipId: slip.id } })).toBe(0);
+  const trayIds = (await db().item.findMany({ where: { name: { in: ["Gatta Tray", "Plastic Tray", "Eggs Box"] } }, select: { id: true } })).map((i) => i.id);
+  expect(trayIds).toHaveLength(3);
+  for (const id of trayIds) expect(await stock(farmId, id)).toBe(id === "egg-tray" ? 5 : 0);
+  expect(await stock(farmId, EGGS)).toBe(0);
+});
+
+test("Daily Report: Hatching + Market + Discarded more than Total is refused, nothing saved", async () => {
+  const farmId = await testFarm();
+  const err = await errorOf(() => dr(farmId, { eggsReceived: 1000, hatchingEggs: 600, marketEggs: 300, discardedEggs: 101 }));
+  expect(err).toEqual({ id: "err.drEggsOver", values: { n: "1,001", total: "1,000" } });
+  expect(await db().slip.count({ where: { farmId } })).toBe(0);
+  // Whole numbers ≥ 0 only; Total is required, the rest default to 0.
+  expect((await errorOf(() => dr(farmId, { eggsReceived: 10.5 })))?.id).toBe("err.drWhole");
+  expect((await errorOf(() => dr(farmId, { eggsReceived: 10, plasticTray: -1 })))?.id).toBe("err.zeroOrMore");
+  expect((await errorOf(() => dr(farmId, { hatchingEggs: 1 })))?.id).toBe("err.required");
+  const ok = await dr(farmId, { eggsReceived: 30 });
+  expect(ok).toMatchObject({ hatchingEggs: 0, marketEggs: 0, discardedEggs: 0, gattaTray: 0, plasticTray: 0, eggsBox: 0 });
+  expect(await stock(farmId, EGGS)).toBe(30);
+});
+
+test("Daily Report: one per farm per date — a second one is refused until the first is cancelled", async () => {
+  const farmId = await testFarm();
+  const first = await dr(farmId, { eggsReceived: 100, marketEggs: 40 }, { paperNo: "DR-0007" });
+  const err = await errorOf(() => dr(farmId, { eggsReceived: 50 }));
+  expect(err?.id).toBe("err.drDateUsed");
+  expect(err?.values?.no).toBe("DR-0007");
+  // Another date is fine; another farm on the same date too.
+  await dr(farmId, { eggsReceived: 50 }, { date: addDays(today(), -1) });
+  await dr(await testFarm(), { eggsReceived: 50 });
+  // Admin cancels the first: its eggs come back out of stock, and the date is free again.
+  expect(await stock(farmId, EGGS)).toBe(110);
+  await cancelSlip({ slipId: first.id, reason: "Wrong counts", by: "Admin" });
+  expect(await stock(farmId, EGGS)).toBe(50);
+  await dr(farmId, { eggsReceived: 80 });
+  expect(await stock(farmId, EGGS)).toBe(130);
+  // A Daily Report can't be corrected (cancel and re-enter instead).
+  const again = await dr(farmId, { eggsReceived: 5 }, { date: addDays(today(), -2) });
+  expect((await errorOf(() => correctSlip({ slipId: again.id, lines: [{ index: 0, qty: 1 }], reason: "x", by: "Admin" })))?.id).toBe("err.drNoCorrection");
+});
+
+test("Current Assets items exist once each — Gatta Tray reused, the migration adds nothing a second time", async () => {
+  const names = ["Eggs", "Gatta Tray", "Plastic Tray", "Eggs Box"];
+  const rows = await db().$queryRaw<{ name: string; category: string; n: bigint }[]>`
+    SELECT min(name) AS name, min(category) AS category, count(*) AS n FROM "Item"
+    WHERE lower(btrim(name)) IN ('eggs', 'gatta tray', 'plastic tray', 'eggs box') GROUP BY lower(btrim(name))`;
+  expect(rows.map((r) => r.name).sort()).toEqual([...names].sort());
+  for (const r of rows) expect(Number(r.n), r.name).toBe(1);
+  // Gatta Tray was already in the client's list: kept where it was, not copied into Current Assets.
+  expect(rows.find((r) => r.name === "Gatta Tray")?.category).toBe("Packing Material");
+  for (const name of ["Eggs", "Plastic Tray", "Eggs Box"]) expect(rows.find((r) => r.name === name)?.category).toBe("Current Assets");
+  // The migration's insert is safe to run on a database that already has them (live): 0 rows.
+  const fs = await import("node:fs");
+  const sql = fs.readFileSync("prisma/migrations/20261128000002_daily_report/migration.sql", "utf8");
+  const insert = sql.slice(sql.indexOf('INSERT INTO "Item"')).trim().replace(/;$/, "");
+  expect(await db().$executeRawUnsafe(insert)).toBe(0);
+});
+

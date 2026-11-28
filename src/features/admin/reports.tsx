@@ -33,6 +33,7 @@ const FIELDS: Record<ReportType, ("dates" | "item" | "type" | "category")[]> = {
   transfers: ["dates"],
   "out-for-repair": ["dates", "item"],
   corrections: ["dates"],
+  "daily-reports": ["dates"],
 };
 
 /** Excel column width per cell kind. */

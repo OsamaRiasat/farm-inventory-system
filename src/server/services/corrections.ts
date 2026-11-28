@@ -37,6 +37,8 @@ export async function correctSlip(input: CorrectionInput, opts: SaveOpts = {}): 
   return withFarmLock(await farmsOfSlip(input.slipId), async (tx) => {
     const original = await getSlip(tx, input.slipId);
     if (original.status !== "saved") throw new ApiError("err.alreadyClosed");
+    // Daily Report: its one line is worked out from the counts, so a quantity can't be corrected — cancel and re-enter.
+    if (original.type === "DR") throw new ApiError("err.drNoCorrection");
     if (!input.reason.trim()) throw new ApiError("err.enterReason");
     if (original.type === "OGP" && original.transferId) {
       const transfer = await getTransfer(tx, original.transferId);
@@ -169,6 +171,7 @@ export async function cancelSlip(input: { slipId: string; reason: string; by: st
 export function requestCorrection(input: CorrectionRequestInput, opts: SaveOpts = {}): Promise<CorrectionRequest> {
   return inTx(async (tx) => {
     const slip = await getSlip(tx, input.slipId);
+    if (slip.type === "DR") throw new ApiError("err.drNoCorrection");
     if (!slip.lines[input.lineIndex]) throw new ApiError("err.notFound");
     if (!input.reason.trim()) throw new ApiError("err.enterReason");
     if (!(input.requestedQty >= 0)) throw new ApiError("err.required");

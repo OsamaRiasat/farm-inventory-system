@@ -6,6 +6,7 @@ import type { Movement, OGP, IGP, Slip, SlipStatus, SlipType, Transfer, Unit } f
 export type { IgpInput, ReceiveInput } from "@/features/igp/schema";
 export type { OgpInput } from "@/features/ogp/schema";
 export type { SisInput } from "@/features/sis/schema";
+export type { DrInput } from "@/features/daily-report/schema";
 export type { ReturnInput } from "@/features/sis/return-schema";
 export type { StockCountInput } from "@/features/stock-count/schema";
 
@@ -42,7 +43,7 @@ export type StockCardRow = Movement & {
 
 export type TransferView = { transfer: Transfer; ogp: OGP; igp?: IGP };
 
-export type FarmToday = { farmId: string; igp: number; ogp: number; sis: number; lastSlipTime: string | null };
+export type FarmToday = { farmId: string; igp: number; ogp: number; sis: number; dr: number; lastSlipTime: string | null };
 
 export type Dashboard = {
   tiles: { slipsToday: number; inTransit: number; inTransitOld: number; shortfalls: number; corrections: number; itemRequests: number };
@@ -79,7 +80,8 @@ export type ReportType =
   | "gate-register"
   | "transfers"
   | "out-for-repair"
-  | "corrections";
+  | "corrections"
+  | "daily-reports";
 
 export type ReportFilters = SlipFilters & { category?: string };
 

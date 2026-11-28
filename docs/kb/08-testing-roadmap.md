@@ -109,6 +109,7 @@ Still to do:
 | — | Item requests (client #30): not an item until approved; duplicates refused; reject needs a reason | Item request test | Farm requests → Admin approves on A9 → farm finds it; + only for the farm | ✓ |
 | — | Feed bags (client #26): Feed All lines need Bags (whole, ≥ 1) on IGP / OGP / SIS / receive; other items never keep bags; correction can fix bags | Feed bags + transfer of feed tests | IGP Enter through Bags; SIS refused without Bags, summary + print show them; phone Bags box | ✓ |
 | 13 | Return unused: ≤ issued − returned, date between issue date and today, once per key, saved SIS only; admin cancel never below zero; correction not below returned; SIS cancel reverses issued − returned | 4 return tests + seed example | `journeys.spec.ts`: keyboard return (over-limit message, stock preview, Used column, stock card row) → admin cancels; `phone.spec.ts`: sheet fits 360 px | ✓ |
+| 14 | Daily Report (T07): Eggs in = Total − Hatching − Market − Discarded (one movement, none at 0); trays / box never stock; sum > Total refused; one per farm per date (free again after cancel); no correction; Current Assets items not duplicated, migration insert re-runs as 0 rows | 5 DR tests in `rules.spec.ts` | `daily-report.spec.ts`: Home button + key 4, keyboard path No. → date → counts → Remarks → Save, live eggs to stock, same date refused, sum > Total refused in the browser, admin filter / detail (no Correct) / print; `phone.spec.ts`: 360 px by touch, no sideways scroll | ✓ |
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |
 | — | Find, Excel / PDF export, stock card date range | — | `farm-flow.spec.ts`: `/` Find by paper No. and item (+/− qty), .xlsx downloads, Last 7 days opening balance; `excel.spec.ts` opens the files: merged category rows, no Category column, item count = screen, stock card Bags + total, admin report grouped | ✓ |
@@ -126,6 +127,8 @@ Before that, 45 tests, all passing, 3 repeated runs with no flakes (135/135): 8 
 
 78 tests after Return unused (21 Nov 2026): +4 rules, +1 journey (farm by keyboard → admin cancels), +1 phone.
 87 tests after the backend (24 Nov 2026): rules on the real services, +9 backend (concurrency, idempotency, audit, sign-in, permissions), login test uses username + password + Sign out. 3 runs green.
+
+121 tests after the Daily Report (T07, 28 Nov 2026): +5 rules, +4 `daily-report.spec.ts`, +1 phone (and `/farm/dr/new` in the no-sideways-scroll list).
 
 Still to add: print/PDF page checks (`page.pdf()`), screenshot baselines, axe accessibility, performance budget, fixed test clock.
 

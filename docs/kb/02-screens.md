@@ -1,6 +1,6 @@
 # 02 · Screens
 
-23 screens. Farm User = phone first (360 px). Accounts Admin = desktop first (1366 × 768). Both share Login and Print. P1 = needed for first client demo.
+23 screens + the Daily Report form (T07). Farm User = phone first (360 px). Accounts Admin = desktop first (1366 × 768). Both share Login and Print. P1 = needed for first client demo.
 
 | ID | Screen | Route | Who | Purpose | P |
 | --- | --- | --- | --- | --- | --- |
@@ -11,6 +11,7 @@
 | F3 | Receive transfer | `/farm/igp/receive/[transferId]` | Farm | IGP pre-filled from sender's OGP | P1 |
 | F4 | New OGP | `/farm/ogp/new` | Farm | To another farm or outside party | P1 |
 | F5 | New SIS | `/farm/sis/new` | Farm | Feed & Mortality + items used | P1 |
+| F5b | New Daily Report | `/farm/dr/new` | Farm | Eggs received / hatching / market / discarded, trays, boxes (T07) | — |
 | F6 | My slips | `/farm/slips` | Farm | Search by No., item, remarks / M/s / Purpose of Use; date | P1 |
 | F7 | Slip detail | `/farm/slips/[id]` | Farm | Read-only, print, share, request correction | P1 |
 | F8 | Farm stock | `/farm/stock` | Farm | Items with qty on hand | P1 |
@@ -28,10 +29,10 @@
 | A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit; **Requested** tab (`?show=requested`) — farms' new-item requests: open one → edit → Approve and add / Reject with a reason | P2 |
 | A10 | Users | `/admin/setup/users` | Admin | List; Add user, edit (name, username, phone, role, farm, active), Set new password | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
-| A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
+| A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `dr` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
 
 ## Farm User details
-- **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Three full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی. "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = formatted .xlsx grouped by category, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
+- **F1:** top bar (farm name, user, language-order toggle). **Find** box first (gate pass No. or item + optional date → F6 with that search; `/` focuses it). Four full-width buttons with icon + EN + UR: Inward Gate Pass / آمد گیٹ پاس, Outward Gate Pass / روانگی گیٹ پاس, Stock Issue Slip / اشیاء جاری پرچی, Daily Report / روزانہ رپورٹ (keys 1–4). "Waiting to receive" card (hidden when empty). "Today's slips" = slips **posted** today (No., type chip, posting time, first item + "and 4 more"); each opens F7. **Export to Excel / PDF**: full stock report (Excel = formatted .xlsx grouped by category, PDF = F8 printed); one item's report is on its stock card (F9). Bottom nav: Home, Slips, Stock.
 - **Back:** every screen has a **Back** link (top left) except the two homes — F1 and A1 — and Login. Back returns to the page you came from (`router.back()`, history doesn't grow); a page opened directly (link, bookmark, QR) goes up instead and replaces itself: detail → its list (F7 → F6, F9 → F8, A3 → A2, A4 card → A4), anything else → Home / Dashboard. On a slip with typed data it asks "Leave without saving?" first. Receiving a transfer replaces the form in history; login replaces itself. Component: `BackLink` (`src/components/layout/back-link.tsx`); admin pages get it from the layout (`AdminBack`).
 - **Slip header/footer (F2–F5):** bilingual title. **No.** = `IGP-` / `OGP-` / `SIS-` + a box for the paper slip's number (required, first field). Farm (auto), **Posted on** (today, auto), the slip's **date** — "Arrival date" (IGP), "Dispatch date" (OGP), "Issue date" (SIS) — today by default, changeable to any earlier date (previous months too), never future; Time auto with "change". The date starts on the last slip saved in this tab (client #27; "Not today's date" in amber). Footer: Prepared by + sticky 56 px Save.
 - **Item search on a line (C1, client #20 #22 #30):** the highlighted option is solid green and stays in view while ↑ / ↓ move; Enter or Tab picks it. Typed text that isn't a picked item never moves on: Tab / Enter stay in the box (an empty box still moves on, so an empty last line → Remarks / Save). **Farm User only:** a **+** beside the box, and Enter on "No item found", open **Request a new item** (Name pre-filled, Urdu name, Category, Unit; Enter → next, Ctrl/⌘+S sends, Esc closes). It is *not* added to the list: "Request sent for … It will be in the list once the Admin approves it." The Admin sees a **New item requests** tile on A1 and approves on A9.
@@ -81,8 +82,20 @@ After save → a blank OGP with the green "OGP-0123 saved" banner: **Print** (th
 
 Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line (feed adds "50 bags"). Back to edit / Confirm and save.
 
+### F5b New Daily Report (T07, 28 Nov 2026)
+Header C4 like every slip: **No.** `DR-` + paper number (required), Farm, Posted on, **Report date** (today by default, any past date, never future), Time.
+| Field | Control | Req | Rule |
+| --- | --- | --- | --- |
+| Total Eggs Received | C2, whole number, "Nos" | Yes | ≥ 0 |
+| Hatching Eggs, Market Eggs, Discarded Eggs | C2, whole number | No (blank = 0) | ≥ 0; together ≤ Total |
+| **Eggs added to stock** | Live, read-only: Total − Hatching − Market − Discarded | — | Red with the rule's message when the three are more than Total |
+| Current Assets: Gatta Tray, Plastic Tray, Eggs Box | C2, whole number | No (blank = 0) | Recorded only — never stock |
+| Remarks | Text, Urdu ok, ≤ 200 | No | |
+
+Enter → next field (No. → date → the seven counts → Remarks → Save), Ctrl/⌘+S or Ctrl/⌘+Enter saves. The rules run in the browser before the save (same Zod schema as the server), including "already saved for this date". After save: green "DR-0123 saved" + Print / View / New slip, form clears. Detail (F7 / A3) and print show every count and "Eggs added to stock"; footer "Approved By". No Request correction / Correct on a Daily Report — the Admin cancels it and the farm enters it again.
+
 ### F6–F10
-- **F6:** search (paper or system No., item, or what's written on the slip: remarks, M/s, other farm, Bilty / truck / driver / demand / challan No., vehicle No., SIS Purpose of Use and Ledger Folio — `slipSearchFields` in `src/lib/slips.ts`; a text match shows that text under the slip), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
+- **F6:** search (paper or system No., item, or what's written on the slip: remarks, M/s, other farm, Bilty / truck / driver / demand / challan No., vehicle No., SIS Purpose of Use and Ledger Folio — `slipSearchFields` in `src/lib/slips.ts`; a text match shows that text under the slip), chips IGP/OGP/SIS/DR + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
 - **F7:** paper-like read-only; Print, Share PDF, Request correction. Corrected/cancelled → banner linking the correction.
 - **Return unused (F7 / A3, SIS only, 21 Nov 2026):** button "Return unused / بچا ہوا واپس" on a saved SIS with something left to return. Sheet: per line Item · Issued · Returned so far · "Can return n" · **Qty returned** (empty), live "Stock: 2,465 → 2,665"; **Return date** (today, min = issue date, max = today); **Remarks** (optional). Enter → next box, Ctrl/⌘+S or Ctrl/⌘+Enter saves, Esc closes. After saving: banner "Return saved", the SIS table gains **Returned** and **Used** columns and a "Returned unused" list (date, item, +qty, by, remarks); cancelled returns stay struck through with the reason. Same on the print. Stock card row: "SIS-0123 Returned +200" opening the SIS. Admin (A3) gets **Cancel return** per return (reason required, focus on Keep it).
 - **F8:** search, category filter, list (EN + UR name — the category when there is no Urdu name yet — qty, unit). Items at 0 greyed at bottom; with ~1,950 items they show only when searching, picking a category or pressing "Show N items at 0". **Excel** (what's listed) and **PDF / Print**; `?print=1` prints once loaded (Home's PDF button).
@@ -92,12 +105,12 @@ Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line (
 ## Accounts Admin details
 Layout: left sidebar (Dashboard, Slips, Stock, Transfers, Corrections, Reports, Setup → Farms / Items / Users, Audit log; icons-only < 1024 px). Top bar farm filter (All farms / one) applies to every screen. Dense tables.
 
-- **A1:** five clickable tiles — Slips today, In transit, In transit > 2 days, Open shortfalls, Correction requests. "Farms today" table (11 rows: IGP, OGP, SIS ✓ or amber "missing", last slip time). Latest 20 slips (time, farm, No., type, first item).
-- **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No. **New slip ▾** above the table: Inward Gate Pass / Outward Gate Pass / Stock Issue Slip / Stock count (↑ ↓ Enter, Esc closes) → A12.
+- **A1:** five clickable tiles — Slips today, In transit, In transit > 2 days, Open shortfalls, Correction requests. "Farms today" table (11 rows: IGP, OGP, SIS and DR (Daily Report) ✓ or amber "missing", last slip time). Latest 20 slips (time, farm, No., type, first item).
+- **A2:** columns No., Type, Farm, Date, From/To, Lines, Prepared by, Status. Filters type, farm, date range, item, status; search by No. Type filter has DR (Daily Report). **New slip ▾** above the table: Inward Gate Pass / Outward Gate Pass / Stock Issue Slip / Daily Report / Stock count (↑ ↓ Enter, Esc closes) → A12.
 - **A12:** the admin types in a paper slip received from a farm. Farm picked in the top bar → used straight away; "All farms" → "Which farm is this slip from?" first (Enter continues). Then the farm's own form (same fields, paper No. required, same rules and messages) with an "Entering slip for AW-05 · Change farm" bar; the farm is fixed once the form opens, Change farm asks "Leave without saving?" and clears it. Prepared by = the admin's name (the audit log shows the admin). After saving, View opens A3; New slip on the saved banner starts another. Receiving a transfer stays with the farm (not in A12).
 - **A3:** F7 + **Correct** (editable qtys + required reason → before/after diff) + **Cancel** (reason; warns/blocks for received transfers) + Return unused / Cancel return on an SIS. Original ↔ correction linked both ways.
 - **A4:** all-farms matrix (items × 11 farms + All Farms + In transit), sticky first column + header, category filter, search. One farm → F8 list with stock card links.
 - **A5:** OGP No., From, To, Sent, Received, Status, Shortfall, Age (days). Row opens sent vs received side by side + **Resolve** (write off with reason / keep open).
 - **A6:** farm, slip No., line, requested qty, reason, date. Approve → A3 Correct pre-filled; Reject → note shown on F7.
-- **A7:** Stock on hand, Item stock card, Consumption, Feed & mortality (+ small line chart per shed), Gate register, Transfers, Out for repair, Corrections. Filter bar + table + Print / PDF / Excel (Excel not wired in phase 1).
+- **A7:** Stock on hand, Item stock card, Consumption, Feed & mortality (+ small line chart per shed), Gate register (IGP / OGP only), Transfers, Out for repair, Corrections, **Daily reports** (T07: date, farm, No., the seven counts + Eggs added to stock, remarks; totals row). Filter bar + table + Print / PDF / Excel (Excel not wired in phase 1).
 - **A8–A11:** see table above. Farms/sheds/items are deactivated, never deleted.
