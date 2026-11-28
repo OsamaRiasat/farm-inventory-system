@@ -52,10 +52,10 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 |---|---|---|---|---|---|---|---|---|---|
 | T01 | High | committed | s-t01-igp-request | 2026-11-28 07:37 | 34b380a | pass 11-28 07:37 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
 | T02 | High | committed | s-batch1 | 2026-11-28 07:45 | 241e6ee | pass 11-28 07:45 | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
-| T03 | High | working | s-t03t06 | 2026-11-28 07:41 | — | — | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
+| T03 | High | committed | s-t03t06 | 2026-11-28 08:04 | cc34e39 | pass 11-28 07:52 | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
 | T04 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
 | T05 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
-| T06 | Normal | working | s-t03t06 | 2026-11-28 07:41 | — | — | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
+| T06 | Normal | committed | s-t03t06 | 2026-11-28 08:04 | 61e8201 | pass 11-28 08:02 | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
 
 **Overlap to watch**
 - T02 and T03 both add a Prisma migration. Whoever lands second rebases and gives theirs the later timestamp folder name.
@@ -82,3 +82,10 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 07:45 · T02 · worked → committed · by s-batch1 · commit 241e6ee · local commit on main, not pushed. Deploy needs prisma migrate deploy on Neon
 - 2026-11-28 07:45 · T03 · note · by s-batch1 · FYI from T02: main has migration 20261128000000_dedupe_items, give T03's migration a later folder name; seed now 1,947 items so the random demo history changed, tests must not hard-code the hatchery's OGP-0047 (use /OGP-\d{4}/, see e2e/data.spec.ts + keyboard.spec.ts)
 - 2026-11-28 07:45 · T04 · note · by s-batch1 · FYI from T02: rebase on main before merging, seed is now 1,947 items and OGP-0047 is no longer fixed in the demo data
+- 2026-11-28 07:52 · T03 · working → worked · by s-t03t06 · branch t03-t06-bags-xlsx @ 9927e02; migration 20261128000001_slip_line_bags (after T02's 20261128000000); lint + e2e 99/100 (journeys return-unused diesel race on aw02, passes alone)
+- 2026-11-28 07:52 · T03 · verify pass · by s-t03t06 · Playwright Chrome vs local build: IGP Enter Qty Received → Bags → Weight → new line; SIS refused without bags, summary '2 bags', print Bags column; phone 360px Bags box
+- 2026-11-28 08:02 · T06 · working → worked · by s-t03t06 · branch t03-t06-bags-xlsx @ 13a29d5 (on top of T03 9927e02); exceljs 4.4.0 → main needs npm install after merge; lint + e2e 102/103 (same journeys diesel race, passes alone)
+- 2026-11-28 08:02 · T06 · verify pass · by s-t03t06 · files opened in LibreOffice (PDF render): stock grouped with merged category rows, Urdu rows readable; card with Bags + bold total. Developer still to open in Excel
+- 2026-11-28 08:02 · T03 · note · by s-t03t06 · not merged to main / not pushed: main checkout has T02 uncommitted, push deploys. Merge branch t03-t06-bags-xlsx after T02; migration then needs migrate deploy on Neon
+- 2026-11-28 08:04 · T03 · worked → committed · by s-t03t06 · commit cc34e39 · ff-merged to main (local, not pushed); rebased on T02, e2e 105/105; deploy needs prisma migrate deploy (slip_line_bags)
+- 2026-11-28 08:04 · T06 · worked → committed · by s-t03t06 · commit 61e8201 · ff-merged to main (local, not pushed); npm install needed for exceljs; e2e 105/105
