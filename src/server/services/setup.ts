@@ -8,7 +8,9 @@ import { nowStamp } from "@/lib/dates";
 import { UNITS, type Farm, type Item, type ItemRequest } from "@/types/domain";
 import { db, type Tx } from "../db";
 import { farmInclude, toFarm, toItem, toItemRequest, toUser } from "../mappers";
-import { audit, getFarm, inTx } from "../repo";
+import { passwordSchema, userSchema, type UserInput } from "@/features/admin/user-schema";
+import { hashPassword } from "../password";
+import { audit, getFarm, inTx, parse } from "../repo";
 
 export type FarmPatch = { id: string; name: string; type: Farm["type"]; active: boolean; by: string };
 export type ItemInput = Omit<Item, "id" | "number"> & { id?: string; by: string };
@@ -197,5 +199,59 @@ export function rejectItemRequest(input: { requestId: string; note: string; by: 
     const row = await tx.itemRequest.update({ where: { id: request.id }, data: { status: "rejected", note: input.note.trim() } });
     await audit(tx, { user: input.by, farmId: request.farmId, action: "reject_item", recordId: request.id, recordNo: request.name, reason: row.note ?? "" });
     return toItemRequest(row);
+  });
+}
+
+// ── users (A10) ──
+// The Admin adds and edits logins and sets new passwords. Never returns or audits a password (hash included).
+
+/** Who is making the change: their name for the audit, their id for the "not yourself" guard. */
+type Actor = { by: string; byUserId: string };
+
+const userSummary = (u: { name: string; username: string; role: string; farmId: string | null; active: boolean }) =>
+  `${u.name} · ${u.username} · ${u.role}${u.farmId ? ` ${u.farmId}` : ""}${u.active ? "" : " (inactive)"}`;
+
+/** Adds a user (no id) or edits one. Deactivating signs the user out everywhere. */
+export function saveUser(input: UserInput & Actor) {
+  const v = parse(userSchema, input);
+  return inTx(async (tx) => {
+    const taken = await tx.user.findFirst({ where: { username: v.username, ...(v.id ? { NOT: { id: v.id } } : {}) }, select: { id: true } });
+    if (taken) throw new ApiError("err.usernameTaken", undefined, [{ path: ["username"], id: "err.usernameTaken" }]);
+    if (v.farmId) await getFarm(tx, v.farmId);
+    const fields = { name: v.name, username: v.username, phone: v.phone, role: v.role, farmId: v.farmId ?? null, active: v.active };
+
+    if (!v.id) {
+      const saved = await tx.user.create({
+        data: { id: `u-${crypto.randomUUID().slice(0, 8)}`, ...fields, passwordHash: await hashPassword(v.password!) },
+      });
+      await audit(tx, { user: input.by, farmId: saved.farmId ?? undefined, action: "add_user", recordId: saved.id, recordNo: saved.username, new: userSummary(saved) });
+      return toUser(saved);
+    }
+
+    const row = await tx.user.findUnique({ where: { id: v.id } });
+    if (!row) throw new ApiError("err.notFound");
+    const losesAdmin = row.role === "admin" && row.active && (fields.role !== "admin" || !fields.active);
+    if (losesAdmin && row.id === input.byUserId) throw new ApiError("err.notYourself");
+    if (losesAdmin && !(await tx.user.count({ where: { role: "admin", active: true, NOT: { id: row.id } } }))) throw new ApiError("err.lastAdmin");
+    const saved = await tx.user.update({ where: { id: row.id }, data: fields });
+    if (row.active && !saved.active) await tx.session.deleteMany({ where: { userId: row.id } });
+    await audit(tx, {
+      user: input.by, farmId: saved.farmId ?? row.farmId ?? undefined, action: "edit_user", recordId: saved.id, recordNo: saved.username,
+      old: userSummary(row), new: userSummary(saved),
+    });
+    return toUser(saved);
+  });
+}
+
+/** Sets a new password and signs the user out everywhere (except the Admin's own current session). */
+export function setUserPassword(input: { id: string; password: string; by: string; keepSessionId?: string }) {
+  const { password } = parse(passwordSchema, input);
+  return inTx(async (tx) => {
+    const row = await tx.user.findUnique({ where: { id: input.id } });
+    if (!row) throw new ApiError("err.notFound");
+    await tx.user.update({ where: { id: row.id }, data: { passwordHash: await hashPassword(password) } });
+    await tx.session.deleteMany({ where: { userId: row.id, ...(input.keepSessionId ? { NOT: { id: input.keepSessionId } } : {}) } });
+    await audit(tx, { user: input.by, farmId: row.farmId ?? undefined, action: "set_password", recordId: row.id, recordNo: row.username });
+    return toUser(row);
   });
 }

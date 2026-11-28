@@ -28,3 +28,23 @@ export function slipParty(slip: Slip, farms: Farm[]) {
   if (slip.type === "OGP") return slip.to.kind === "farm" ? name(slip.to.farmId) : (slip.to.ms ?? "");
   return "";
 }
+
+/**
+ * The free text written on a slip, for search: remarks, M/s, Bilty / truck / driver…, SIS Purpose of Use and
+ * Ledger Folio, and the other farm's name on a transfer. Empty values left out.
+ */
+export function slipSearchFields(slip: Slip, farms: Farm[] = []) {
+  const fields: (string | undefined)[] = [slipParty(slip, farms)];
+  switch (slip.type) {
+    case "IGP":
+      fields.push(slip.remarks, slip.biltyNo, slip.truckNo, slip.driverName, slip.demandNo, slip.challanNo);
+      break;
+    case "OGP":
+      fields.push(slip.remarks, slip.vehicleNo, slip.driverName);
+      break;
+    case "SIS":
+      for (const l of slip.lines) fields.push(l.purpose, l.ledgerFolio);
+      break;
+  }
+  return [...new Set(fields.map((f) => f?.trim() ?? "").filter(Boolean))];
+}

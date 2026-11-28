@@ -38,6 +38,8 @@ import type {
 
 export type FarmPatch = { id: string; name: string; type: Farm["type"]; active: boolean; by?: string };
 export type ItemInput = Omit<Item, "id" | "number"> & { id?: string; by?: string };
+/** A10: add (no id, with password) or edit (id; the password is set with setUserPassword). */
+export type UserInput = Omit<User, "id"> & { id?: string; password?: string };
 
 /** Fired when the server says the session is gone, so the gates send the user to the login. */
 export const SIGNED_OUT_EVENT = "awfarms-signed-out";
@@ -137,6 +139,8 @@ export const httpApi = {
   addShed: (input: { farmId: string; name: string; by?: string }) => post<Shed>("/sheds", input),
   updateShed: (input: { id: string; name: string; active: boolean; by?: string }) => post<Shed>(`/sheds/${enc(input.id)}`, input),
   saveItem: (input: ItemInput) => post<Item>("/items", input),
+  saveUser: (input: UserInput) => post<User>(input.id ? `/users/${enc(input.id)}` : "/users", input),
+  setUserPassword: (input: { id: string; password: string }) => post<User>(`/users/${enc(input.id)}/password`, { password: input.password }),
 
   listAudit: (filters: { farmId?: string } = {}) => get<AuditEntry[]>(`/audit${qs(filters)}`),
 };

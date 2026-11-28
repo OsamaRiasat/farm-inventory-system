@@ -143,6 +143,6 @@ The app runs on Vercel project `farm-inventory-system` with a free-plan **Neon**
 - ~~Confirm stack vs FastAPI~~ — TypeScript + Prisma, 24 Nov 2026.
 - Confirm AWS region and App Runner vs Lightsail (cost vs control).
 - Lists (`listSlips`, reports) load everything matching the filter; add paging / date limits once a year of data makes them slow.
-- Password change / reset: not built. Today the Admin re-runs a seed script or sets a hash by hand; an A10 "reset password" is the next auth feature.
+- Users (A10, 28 Nov 2026): the Admin adds / edits users and sets a new password (`saveUser`, `setUserPassword` in `services/setup.ts`, rules in `src/features/admin/user-schema.ts`). A new password or deactivation deletes the user's `Session` rows (signed out everywhere; the Admin's own current session stays when changing their own password). The Admin can't deactivate / demote themselves; the last active Admin stays. Audit `add_user` / `edit_user` / `set_password`, never the password. Self-service "forgot password" not built.
 - Review the types added in week 2 that are not in the spec (`03-data-and-api.md`).
 - Live updates: polling first; decide if server-sent events are worth it.

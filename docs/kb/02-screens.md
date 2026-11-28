@@ -11,7 +11,7 @@
 | F3 | Receive transfer | `/farm/igp/receive/[transferId]` | Farm | IGP pre-filled from sender's OGP | P1 |
 | F4 | New OGP | `/farm/ogp/new` | Farm | To another farm or outside party | P1 |
 | F5 | New SIS | `/farm/sis/new` | Farm | Feed & Mortality + items used | P1 |
-| F6 | My slips | `/farm/slips` | Farm | Search by No., date, item | P1 |
+| F6 | My slips | `/farm/slips` | Farm | Search by No., item, remarks / M/s / Purpose of Use; date | P1 |
 | F7 | Slip detail | `/farm/slips/[id]` | Farm | Read-only, print, share, request correction | P1 |
 | F8 | Farm stock | `/farm/stock` | Farm | Items with qty on hand | P1 |
 | F9 | Item stock card | `/farm/stock/[itemId]` | Farm | Movements + running balance | P2 |
@@ -26,7 +26,7 @@
 | A7 | Reports | `/admin/reports/[type]` | Admin | The 8 reports | P2 |
 | A8 | Farms | `/admin/setup/farms` | Admin | Edit/deactivate (sheds hidden for now — not handled separately) | P2 |
 | A9 | Items | `/admin/setup/items` | Admin | Name, Urdu, aliases, category, unit; **Requested** tab (`?show=requested`) — farms' new-item requests: open one → edit → Approve and add / Reject with a reason | P2 |
-| A10 | Users | `/admin/setup/users` | Admin | Read-only list (password reset not built yet) | P2 |
+| A10 | Users | `/admin/setup/users` | Admin | List; Add user, edit (name, username, phone, role, farm, active), Set new password | P2 |
 | A11 | Audit log | `/admin/audit` | Admin | Who, what, when, old → new, reason | P2 |
 | A12 | New slip for a farm | `/admin/slips/new/igp` · `ogp` · `sis` · `count` | Admin | F2 / F4 / F5 / F10 entered by the admin from a farm's paper slip | — |
 
@@ -82,7 +82,7 @@ After save → a blank OGP with the green "OGP-0123 saved" banner: **Print** (th
 Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line (feed adds "50 bags"). Back to edit / Confirm and save.
 
 ### F6–F10
-- **F6:** search (paper or system No., item), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
+- **F6:** search (paper or system No., item, or what's written on the slip: remarks, M/s, other farm, Bilty / truck / driver / demand / challan No., vehicle No., SIS Purpose of Use and Ledger Folio — `slipSearchFields` in `src/lib/slips.ts`; a text match shows that text under the slip), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).
 - **F7:** paper-like read-only; Print, Share PDF, Request correction. Corrected/cancelled → banner linking the correction.
 - **Return unused (F7 / A3, SIS only, 21 Nov 2026):** button "Return unused / بچا ہوا واپس" on a saved SIS with something left to return. Sheet: per line Item · Issued · Returned so far · "Can return n" · **Qty returned** (empty), live "Stock: 2,465 → 2,665"; **Return date** (today, min = issue date, max = today); **Remarks** (optional). Enter → next box, Ctrl/⌘+S or Ctrl/⌘+Enter saves, Esc closes. After saving: banner "Return saved", the SIS table gains **Returned** and **Used** columns and a "Returned unused" list (date, item, +qty, by, remarks); cancelled returns stay struck through with the reason. Same on the print. Stock card row: "SIS-0123 Returned +200" opening the SIS. Admin (A3) gets **Cancel return** per return (reason required, focus on Keep it).
 - **F8:** search, category filter, list (EN + UR name — the category when there is no Urdu name yet — qty, unit). Items at 0 greyed at bottom; with ~1,950 items they show only when searching, picking a category or pressing "Show N items at 0". **Excel** (what's listed) and **PDF / Print**; `?print=1` prints once loaded (Home's PDF button).

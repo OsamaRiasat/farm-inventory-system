@@ -12,6 +12,9 @@ export type SessionUser = { id: string; name: string; role: "farm" | "admin"; fa
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
 
+/** The Session row id for a cookie token. */
+export const sessionIdOf = hash;
+
 /** Returns a new session token, or null for a wrong username / password or an inactive user. */
 export async function login(username: string, password: string) {
   const user = await db().user.findUnique({ where: { username: username.trim().toLowerCase() } });

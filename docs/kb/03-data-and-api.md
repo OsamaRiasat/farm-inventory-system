@@ -87,6 +87,7 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 | saveIGP · saveOGP · saveSIS · saveStockCount · receiveTransfer | `POST /api/slips/{igp,ogp,sis}` · `/api/stock-counts` · `/api/transfers/receive` | own farm / Admin (any farm) |
 | returnUnused · requestCorrection | `POST /api/returns` · `/api/corrections` | own farm's slip / Admin |
 | requestItem · listItemRequests | `POST /api/item-requests` (Farm User; farm + name from the session) · `GET /api/item-requests?farmId&status` | own farm / Admin |
+| saveUser · setUserPassword | `POST /api/users` (add) · `/api/users/[id]` (edit; password ignored) · `/api/users/[id]/password` | Admin |
 | approveItemRequest · rejectItemRequest | `POST /api/item-requests/[id]/approve` (body = the final item fields) · `/api/item-requests/[id]/reject` (`note`) | Admin |
 | correctSlip · cancelSlip · cancelReturn · rejectCorrection · resolveShortfall | `POST /api/slips/[id]/{correct,cancel}` · `/api/returns/[id]/cancel` · `/api/corrections/[id]/reject` · `/api/transfers/[id]/resolve` | Admin |
 | updateFarm · addShed · updateShed · saveItem | `POST /api/farms/[id]` · `/api/sheds` · `/api/sheds/[id]` · `/api/items` | Admin |

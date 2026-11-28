@@ -1,6 +1,8 @@
 // Direct database helpers for the rules / backend tests (Node side, the test database).
 import { db } from "@/server/db";
+import { hashPassword } from "@/server/password";
 import { balancesOf } from "@/server/repo";
+import { DEMO_PASSWORD } from "./helpers";
 
 let n = 0;
 
@@ -23,4 +25,11 @@ export async function stock(farmId: string, itemId: string) {
 /** Unique per call and per run, for idempotency keys and paper numbers. */
 export function unique(prefix = "k") {
   return `${prefix}-${Date.now().toString(36)}-${process.pid}-${n++}`;
+}
+
+/** A Farm User for a test farm: username = the farm id, password = the demo password (sign in with signIn). */
+export async function testFarmUser(farmId: string) {
+  await db().user.create({
+    data: { id: `u-${farmId}`, name: `${farmId} keeper`, username: farmId, role: "farm", farmId, passwordHash: await hashPassword(DEMO_PASSWORD) },
+  });
 }

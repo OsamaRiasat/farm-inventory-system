@@ -22,6 +22,8 @@ How the app is tested from now (end of week 2) to client sign-off, and after the
 | 6. Phone | 360 px: cards, full-screen search, no horizontal scroll, touch targets ≥ 48 px | Playwright (phone project) | `e2e/phone.spec.ts` | Every change |
 | 6a. Navigation | Back on every page but the two homes; Back = history back, direct open → up without stacking; forms (IGP, stock count) empty after Back / forward / same link; OGP Remarks saved + printed | Playwright (desktop) | `e2e/navigation.spec.ts` | Every change |
 | 6b. Client issues 20–30 | Item search ↑/↓ highlight + Enter; Tab can't leave an unpicked item; 0.5 of a Qty item; over-challan warning; next slip keeps the last date; item request → approve → searchable; + farm-only | Playwright (desktop) | `e2e/client-issues.spec.ts` | Every change |
+| 6c. Users (A10) | Add user → signs in; duplicate username, bad username, no farm, short password refused; new password / deactivate → signed out; not yourself, last Admin; Farm User → 404; keyboard add + Ctrl+S | Playwright (desktop; HTTP + services) | `e2e/users.spec.ts` | Every change |
+| 6d. Slip search | F6 finds slips by remarks, Purpose of Use, M/s; ی/ي variants; shows the matched text | Playwright (desktop) | `e2e/slip-search.spec.ts` | Every change |
 | 6b. Qty widths | Big numbers fit every slip qty box at 360 / 768 / 1024 / 1280 px (1,000,000; 100,000 on phone and for weight) | Playwright (desktop) | `e2e/qty-width.spec.ts` | Every change |
 | 7. Visual | Screenshot baselines of key screens, EN-first and UR-first | `toHaveScreenshot` | `e2e/visual.spec.ts` (week 4) | Before each client demo |
 | 8. Accessibility | Labels, focus order, contrast, dialogs | `@axe-core/playwright` + manual keyboard pass | `e2e/a11y.spec.ts` (week 5) | Weekly |

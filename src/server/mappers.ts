@@ -59,7 +59,7 @@ export function toItem(r: Prisma.ItemModel): Item {
 }
 
 export function toUser(r: Prisma.UserModel): User {
-  return clean({ id: r.id, name: r.name, role: r.role, farmId: opt(r.farmId), phone: r.phone, active: r.active });
+  return clean({ id: r.id, name: r.name, username: r.username, role: r.role, farmId: opt(r.farmId), phone: r.phone, active: r.active });
 }
 
 // ── slips ──

@@ -84,6 +84,10 @@ Update this file at the end of each work session: what's done, what's next, deci
   - T02 (client #28): migration `20261128000000_dedupe_items` merges the 23 same-name items (Stock in Store copy kept, else lowest Item No.; Liquid Soap → QTY copy). Slip lines, movements, returns, counts and item requests move to the kept item; aliases merged; one audit row per merge (user "System"); unique index on `lower(btrim(name))`. Wrapped in BEGIN / COMMIT (Prisma runs migration statements one by one). Verified on a scratch copy of the demo DB with movements on both copies: 1,947 items, no orphans, every per-name balance unchanged. Seed `items.json` 1,970 → 1,947. `saveItem` / approve map the index's P2002 to `err.duplicateName`. Seed changed the random demo history, so tests no longer hard-code the hatchery's OGP-0047. 97 pass.
 - 2026-11-28 — **T03 Feed bags (client #26)** — `SlipLine.bags` (migration `20261128000001_slip_line_bags`). Feed All lines (`isFeed`) take a whole number of **Bags** next to the KG on IGP, OGP, SIS and receive (pre-filled from the OGP); required, "Enter the number of bags". Other items never keep bags. Stock stays KG. Bags show on the SIS summary, slip detail / print (column only when a line has bags), admin correction (editable), stock card rows "(50 bags)". Enter order per row (Qty Received → Bags → Weight). Playwright port via `PW_PORT` for parallel sessions.
 - 2026-11-28 — **T06 Excel .xlsx** — `exceljs` 4.4.0 (dynamic import on click). Farm stock report (Home + F8) grouped by category with merged shaded rows, no Category column; stock card with header block, opening row, bold total, Bags for feed; Admin reports' Excel button wired (stock on hand grouped too). CSV export removed. Tests: `e2e/excel.spec.ts` opens the files. 103 pass.
+- 2026-11-28 — **T04 + T05** (tracker)
+  - T04: F6 My slips search also matches remarks, M/s / other farm, Bilty / truck / driver / demand / challan No., vehicle No., SIS Purpose of Use and Ledger Folio (`slipSearchFields` in `src/lib/slips.ts`); the matching text shows under the slip. Placeholder "Search by No., item or remarks".
+  - T05: A10 Users — Add user, edit (name, username, phone, role, farm, active), Set new password (separate block). `POST /api/users`, `/api/users/[id]`, `/api/users/[id]/password`; rules in `src/features/admin/user-schema.ts`. New password / deactivate signs the user out everywhere; can't deactivate / demote yourself; last active Admin stays; audit `add_user` / `edit_user` / `set_password`. `User` now carries `username`.
+  - Tests: `e2e/slip-search.spec.ts` (1), `e2e/users.spec.ts` (5); `testFarmUser()` in `e2e/db.ts`. 100 tests green.
 
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`) — #26 / #28 in `client-issues.md`
@@ -100,7 +104,6 @@ Update this file at the end of each work session: what's done, what's next, deci
 - [ ] **Hosting**: Dockerfile (`output: "standalone"`), AWS App Runner + RDS + Secrets Manager, `prisma migrate deploy` on release. The Vercel demo stops working without a database — point it at a hosted Postgres or move the demo to AWS
 - [ ] Next.js reported a security advisory for 16.4.3 during `next build`: upgrade Next.js
 - [ ] Opening balances: import the client's counts (CSV → movements `slipId: "opening"`), then the two-week pilot
-- [ ] Users: change / reset password (A10), add / deactivate users; today only the seed creates logins
 - [ ] Paging or date limits for `listSlips` and reports once there's a year of data
 - [ ] Optional: server-sent events instead of 30 s polling
 

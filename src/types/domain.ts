@@ -142,6 +142,8 @@ export interface Movement {
 export interface User {
   id: string;
   name: string;
+  /** Sign-in name: small letters, digits, . _ - */
+  username: string;
   role: "farm" | "admin";
   farmId?: string;
   phone: string;
@@ -211,6 +213,9 @@ export interface AuditEntry {
     | "approve_item"
     | "reject_item"
     | "setup"
+    | "add_user"
+    | "edit_user"
+    | "set_password"
     | "reset_demo";
   recordId: string;
   recordNo: string;

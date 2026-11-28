@@ -10,11 +10,11 @@ import { useCurrentFarm } from "@/components/layout/farm-gate";
 import { StatusChip } from "@/components/layout/status-chip";
 import { TypeChip } from "@/components/layout/type-chip";
 import { LoadError, SkeletonRows } from "@/components/ui/skeleton";
-import { useItemMap, useSlips } from "@/lib/api/queries";
+import { useFarms, useItemMap, useSlips } from "@/lib/api/queries";
 import { fmtDate } from "@/lib/dates";
 import { fmtQty, normalizeSearch } from "@/lib/format";
 import { t, tInline } from "@/lib/i18n";
-import { slipItemIds, slipLineCount, slipNo } from "@/lib/slips";
+import { slipItemIds, slipLineCount, slipNo, slipSearchFields } from "@/lib/slips";
 import type { Item, Slip, SlipType } from "@/types/domain";
 
 const PAGE = 50;
@@ -41,13 +41,16 @@ function qtyOf(slip: Slip, itemId: string) {
 }
 
 /**
- * F6 — every slip of this farm: search by No. (paper or system) or item, type chips, date.
- * Searching an item shows how much of it each slip brought in (IGP), sent out (OGP) or issued (SIS).
+ * F6 — every slip of this farm: search by No. (paper or system), item or what's written on the slip (remarks,
+ * M/s, driver, Purpose of Use…), type chips, date.
+ * Searching an item shows how much of it each slip brought in (IGP), sent out (OGP) or issued (SIS);
+ * a match in the written text shows that text, so the user sees why the slip is listed.
  */
 export function MySlips({ initialQuery = "", initialDate = "" }: { initialQuery?: string; initialDate?: string }) {
   const { farm } = useCurrentFarm();
   const slips = useSlips({ farmId: farm.id });
   const items = useItemMap();
+  const farms = useFarms().data ?? [];
   const [query, setQuery] = useState(initialQuery);
   const [type, setType] = useState<SlipType | "">("");
   const [date, setDate] = useState(initialDate);
@@ -61,8 +64,13 @@ export function MySlips({ initialQuery = "", initialDate = "" }: { initialQuery?
     if (date && s.date !== date) return false;
     if (!q) return true;
     if (normalizeSearch(`${s.no} ${s.paperNo}`).includes(q)) return true;
+    if (textMatch(s)) return true;
     return slipItemIds(s).some((id) => matchesItem(items.get(id)));
   });
+  /** The first piece of written text on the slip that matches the search, if any. */
+  function textMatch(s: Slip) {
+    return q ? slipSearchFields(s, farms).find((f) => normalizeSearch(f).includes(q)) : undefined;
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -120,6 +128,7 @@ export function MySlips({ initialQuery = "", initialDate = "" }: { initialQuery?
             {filtered.slice(0, limit).map((s) => {
               const ids = slipItemIds(s);
               const found = q ? ids.map((id) => items.get(id)).filter((i): i is Item => matchesItem(i)) : [];
+              const text = textMatch(s);
               return (
                 <li key={s.id}>
                   <Link href={`/farm/slips/${encodeURIComponent(s.id)}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2">
@@ -135,6 +144,11 @@ export function MySlips({ initialQuery = "", initialDate = "" }: { initialQuery?
                           </>
                         )}
                       </div>
+                      {text && (
+                        <div className="truncate text-sm text-muted" dir="auto" data-match>
+                          {text}
+                        </div>
+                      )}
                       {found.map((item) => {
                         const n = qtyOf(s, item.id);
                         return (
