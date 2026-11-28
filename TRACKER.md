@@ -63,7 +63,7 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 | T04 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 7b831ed | pass 11-28 08:21 | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
 | T05 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 7b831ed | pass 11-28 08:21 | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
 | T06 | Normal | deployed | s-batch1 | 2026-11-28 08:21 | 61e8201 | pass 11-28 08:21 | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
-| T07 | High | worked | s-t07-dr | 2026-11-28 08:40 | — | pass 11-28 08:40 | Daily Report slip (DR) + Current Assets items | docs/plans/T07-daily-report.md | — |
+| T07 | High | deployed | s-t07-dr | 2026-11-28 08:52 | a6a18d5 | pass 11-28 08:40 | Daily Report slip (DR) + Current Assets items | docs/plans/T07-daily-report.md | — |
 
 **Overlap to watch**
 - T02 and T03 both add a Prisma migration. Whoever lands second rebases and gives theirs the later timestamp folder name.
@@ -133,3 +133,5 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 08:25 · T07 · pending → working · by s-t07-dr
 - 2026-11-28 08:40 · T07 · working → worked · by s-t07-dr · DR slip + Current Assets items, migration 20261128000002_daily_report; lint + build + e2e 121 (DR tests all green; only T01 item-request test flaked in the full run, passes alone)
 - 2026-11-28 08:40 · T07 · verify pass · by s-t07-dr · Playwright Chrome vs local build: F1 4th button + key 4, keyboard No.→date→counts→Remarks→Save, live eggs 750, same date refused, admin filter/detail/print; screenshots of form + print checked; 360px by touch
+- 2026-11-28 08:52 · T07 · worked → committed · by s-t07-dr · commit a6a18d5 · pushed to main
+- 2026-11-28 08:52 · T07 · committed → deployed · by s-t07-dr · Neon backup farm-inventory-backups/neon-before-t07-20261128.dump (pg_dump 18), migrate deploy 20261128000002_daily_report OK; Vercel prod Ready; live /api/slips/dr route present. Not yet clicked through signed in (live = client data)
