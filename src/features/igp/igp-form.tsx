@@ -45,7 +45,7 @@ export function IgpForm() {
           <input type="date" name="challanDate" className="input num" />
         </Field>
       </section>
-      <SlipLines cols={cols} rules={{ shortfall: true }} />
+      <SlipLines cols={cols} rules={{ shortfall: true }} allowRequest />
       <RemarksField />
     </SlipForm>
   );

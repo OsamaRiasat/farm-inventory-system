@@ -79,6 +79,8 @@ Update this file at the end of each work session: what's done, what's next, deci
   - Skipped (developer): #25, #31. Waiting for the client: #26 (bag ↔ kg for feed), #28 (duplicate items).
   - Tests: `e2e/client-issues.spec.ts` (6) + item-request service test; whole-number test now a decimal test; OGP tests follow the banner's Print link; F8 count test reads the item count from the API. 94 pass, 3 runs green (one earlier run had 2 admin-entry saves time out once; not reproduced).
   - Deploy needs `prisma migrate deploy` on Neon (3 migrations).
+- 2026-11-28 — **Tracker + T01** — `TRACKER.md` + `scripts/tracker.sh` for parallel sessions, one plan per task in `docs/plans/` (T01–T06 from the developer's list).
+  - T01: "Request a new item" ("+" and Enter on "No item found") only on the IGP; `SlipLines` takes `allowRequest` (default off), only `igp-form.tsx` passes it. OGP / SIS / receive-transfer / admin entry don't offer it. Test: `e2e/client-issues.spec.ts` "T01 …"; the #30 farm-only test now uses the IGP. 95 pass.
 ## Next
 - [ ] Client to confirm item units, Urdu names, duplicates / spelling variants, Discard & Scrap (open questions in `07`) — #26 / #28 in `client-issues.md`
 - [ ] Item requests: show the farm its rejected requests + the Admin's note (now only the audit log has it)

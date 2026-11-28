@@ -44,6 +44,8 @@ type Props = {
   showStock?: boolean;
   rules?: LineRules;
   receivedAll?: boolean;
+  /** Farm User may ask for an item that isn't in the list ("+" / Enter on "No item found"). IGP only: OGP and SIS can only move what the farm already has. */
+  allowRequest?: boolean;
 };
 
 const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "folio"]);
@@ -53,7 +55,7 @@ const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "fol
  * Keys: Enter on a line's last field adds a line; Enter in an empty new line jumps to Save;
  * Alt+N adds, Alt+Backspace removes.
  */
-export function SlipLines({ cols, title = "line.items", initial, fixed, showStock, rules = {}, receivedAll }: Props) {
+export function SlipLines({ cols, title = "line.items", initial, fixed, showStock, rules = {}, receivedAll, allowRequest = false }: Props) {
   const uid = useId();
   const { farm, area } = useCurrentFarm();
   const saveErrors = useSlipErrors();
@@ -195,7 +197,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
                     invalid={check.invalid.has(c.key)}
                     farmId={farm.id}
                     stock={showStock ? stock : undefined}
-                    allowRequest={area === "farm"}
+                    allowRequest={allowRequest && area === "farm"}
                     onItem={(picked) => update(row.id, { itemId: picked?.id ?? "" })}
                     onValue={(v) => setValue(row, c.key, v)}
                   />

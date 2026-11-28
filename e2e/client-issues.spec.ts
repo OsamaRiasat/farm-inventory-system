@@ -123,14 +123,27 @@ test("#30 farm requests a new item from IGP; it appears only after the Admin app
 });
 
 test("#30 the + beside item search is for the farm only", async ({ page, browser, baseURL }) => {
-  await page.goto("/farm/ogp/new");
+  await page.goto("/farm/igp/new");
   await expect(page.getByRole("button", { name: "Request a new item" }).first()).toBeVisible();
   const admin = await userPage(browser, baseURL, { role: "admin" });
-  await admin.goto("/admin/slips/new/ogp");
+  await admin.goto("/admin/slips/new/igp");
   const farm = admin.locator('select[name="entryFarm"]');
   await farm.selectOption("aw02");
   await farm.press("Enter");
   await expect(admin.getByTestId("entry-farm")).toContainText("AW-02");
   await expect(admin.locator('[data-kind="item"]:visible').first()).toBeVisible();
   await expect(admin.getByRole("button", { name: "Request a new item" })).toHaveCount(0);
+});
+
+test("T01 Request a new item is on the IGP only, not on OGP or SIS", async ({ page }) => {
+  for (const slip of ["ogp", "sis"]) {
+    await page.goto(`/farm/${slip}/new`);
+    await expect(itemBox(page)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Request a new item" })).toHaveCount(0);
+    await itemBox(page).fill(unique("Qzvx"));
+    await expect(page.getByText("No item found")).toBeVisible();
+    await expect(page.getByText("Press Enter to request it")).toHaveCount(0);
+    await page.keyboard.press("Enter");
+    await expect(page.locator("dialog[open]")).toHaveCount(0);
+  }
 });
