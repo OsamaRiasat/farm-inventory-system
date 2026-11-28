@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/errors";
 import type { SlipFilters } from "@/lib/api/types";
 import { nowStamp } from "@/lib/dates";
 import { slipDeltas } from "@/lib/slip-rules";
+import { feedBagsOnly } from "@/lib/validation";
 import type { AuditEntry, IGP, OGP, SIS, Slip, Transfer } from "@/types/domain";
 import type { Prisma } from "@/generated/prisma/client";
 import { db, type Tx } from "../db";
@@ -77,7 +78,7 @@ export function saveIGP(input: unknown, opts: SaveOpts = {}): Promise<IGP> {
       demandNo: v.demandNo,
       challanNo: v.challanNo,
       challanDate: v.challanDate,
-      lines: v.lines,
+      lines: v.lines.map((l) => feedBagsOnly(rules, l.itemId, l)),
       remarks: v.remarks || undefined,
     };
     if (v.source.kind === "supplier") await tx.supplier.createMany({ data: [{ name: v.source.ms }], skipDuplicates: true });
@@ -98,7 +99,7 @@ export function saveOGP(input: unknown, opts: SaveOpts = {}): Promise<OGP> {
       to: v.to,
       driverName: v.driverName,
       vehicleNo: v.vehicleNo,
-      lines: v.lines,
+      lines: v.lines.map((l) => feedBagsOnly(rules, l.itemId, l)),
       remarks: v.remarks || undefined,
     };
     let transfer: Transfer | undefined;
@@ -125,7 +126,12 @@ export function saveSIS(input: unknown, opts: SaveOpts = {}): Promise<SIS> {
     if (done) return (await getSlip(tx, done)) as SIS;
     const rules = await rulesFor(tx, farmIdOf(input), { itemIds: itemIdsOf(input), paperNo: { type: "SIS", value: paperOf(input) } }, opts.at);
     const v = parse(sisSchema(rules), input);
-    const slip: SIS = { ...(await base(tx, v, "SIS", opts)), type: "SIS", shedRows: v.shedRows, lines: v.lines };
+    const slip: SIS = {
+      ...(await base(tx, v, "SIS", opts)),
+      type: "SIS",
+      shedRows: v.shedRows,
+      lines: v.lines.map((l) => feedBagsOnly(rules, l.itemId, l)),
+    };
     return (await commitSlip(tx, slip, v.idempotencyKey, opts)) as SIS;
   });
 }
@@ -167,6 +173,7 @@ export async function receiveTransfer(input: unknown, opts: SaveOpts = {}): Prom
         qtyChallan: s.qty,
         qtyReceived: v.lines[i].qtyReceived,
         weightKg: v.lines[i].weightKg,
+        bags: rules.item(s.itemId)?.isFeed ? v.lines[i].bags : undefined,
       })),
       remarks: v.remarks || undefined,
     };

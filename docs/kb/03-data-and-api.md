@@ -28,14 +28,14 @@ interface IGP extends SlipBase {
   source: { kind: 'supplier' | 'farm' | 'other'; farmId?: string; ms?: string };
   transferId?: string; biltyNo?: string; truckNo?: string; driverName?: string;
   demandNo?: string; challanNo?: string; challanDate?: string;
-  lines: { itemId: string; qtyChallan: number; qtyReceived: number; weightKg?: number }[];
+  lines: { itemId: string; qtyChallan: number; qtyReceived: number; weightKg?: number; bags?: number }[]; // bags: feed items only
 }
 
 interface OGP extends SlipBase {
   type: 'OGP';
   to: { kind: 'farm' | 'outside'; farmId?: string; ms?: string; reason?: 'repair' | 'return' | 'other' };
   transferId?: string; driverName?: string; vehicleNo?: string;
-  lines: { itemId: string; qty: number; weightKg?: number }[];
+  lines: { itemId: string; qty: number; weightKg?: number; bags?: number }[];
 }
 
 interface SIS extends SlipBase {
@@ -43,7 +43,7 @@ interface SIS extends SlipBase {
   // Feed & mortality per shed: no longer entered (client, 30 Oct 2026) — feed is a normal line. Optional on input
   // (defaults to []), kept on old slips and in the Feed & mortality report. The backend may drop it once old data is migrated.
   shedRows: { shedId: string; feedItemId: string; feedKg: number; mortMale: number; mortFemale: number }[];
-  lines: { itemId: string; qty: number; ledgerFolio?: string; purpose?: string; shedId?: string }[]; // ledgerFolio: storekeeper's ledger page, typed
+  lines: { itemId: string; qty: number; bags?: number; ledgerFolio?: string; purpose?: string; shedId?: string }[]; // ledgerFolio: storekeeper's ledger page, typed
 }
 
 interface Transfer { id: string; ogpId: string; igpId?: string; fromFarmId: string; toFarmId: string; status: 'in_transit' | 'received' | 'short'; sentAt: string; receivedAt?: string }
@@ -103,6 +103,7 @@ Thin handlers: session → permission → service → JSON (`handler()` in `src/
 - Numbers from `Counter` (farm × IGP / OGP / SIS / CNT), inside the farm lock.
 - Slip date any day up to today (no lower limit); paper No. unique per farm + type (`checkSlipBase`; plus a partial unique index as a backstop).
 - Corrections are new slips (`AW02-SIS-0213-C1`, `correctionOf` → original, original `status: "corrected"`); stock moves by the difference only. Cancel reverses the slip's net effect; refused if it would take an item below zero, or if the OGP's transfer was already received.
+- **Feed bags (client #26, 28 Nov 2026):** a line whose item `isFeed` needs `bags`, a whole number ≥ 1 (`checkBags` in `src/lib/validation.ts`: "Enter the number of bags" / "Bags: whole numbers only"); receive only when Qty Actual Received > 0. Bags on any other item are dropped (`feedBagsOnly`). Stored in `SlipLine.bags`; stock and balances stay in KG. A correction may send `lines[].bags` for a feed line.
 - `AuditEntry` is append-only: a database trigger refuses UPDATE / DELETE / TRUNCATE.
 - "Today" and posted-on stamps are Pakistan time (`Asia/Karachi` in `src/lib/dates.ts`), whatever the server's time zone.
 

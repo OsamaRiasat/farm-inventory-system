@@ -72,11 +72,16 @@ function ItemName({ item }: { item?: Item }) {
   );
 }
 
+/** A Bags column only when a line has bags (feed, client #26): other slips keep the paper's columns. */
+const anyBags = (lines: { bags?: number }[]) => lines.some((l) => l.bags);
+const bagsText = (bags?: number) => (bags ? fmtQty(bags) : "");
+
 const unitOf = (item?: Item) => (item ? t(`unit.${item.unit}`).en : "");
 const farmName = (farms: Farm[], id?: string) => farms.find((f) => f.id === id)?.name ?? id ?? "";
 
 function IgpBody({ slip, items, farms }: { slip: IGP } & Ctx) {
   const from = slip.source.kind === "farm" ? farmName(farms, slip.source.farmId) : slip.source.ms;
+  const bags = anyBags(slip.lines);
   return (
     <>
       <Facts
@@ -107,6 +112,7 @@ function IgpBody({ slip, items, farms }: { slip: IGP } & Ctx) {
             <H id="line.unit" />
             <H id="line.qtyChallan" right />
             <H id="line.qtyReceived" right />
+            {bags && <H id="line.bags" right />}
             <H id="line.weight" right />
           </tr>
         </thead>
@@ -130,6 +136,7 @@ function IgpBody({ slip, items, farms }: { slip: IGP } & Ctx) {
                     </div>
                   )}
                 </td>
+                {bags && <td className="num text-right">{bagsText(l.bags)}</td>}
                 <td className="num text-right">{l.weightKg ? `${fmtQty(l.weightKg)} kg` : ""}</td>
               </tr>
             );
@@ -145,6 +152,7 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
   const to = slip.to.kind === "farm" ? farmName(farms, slip.to.farmId) : slip.to.ms;
   const reason: MsgId | null =
     slip.to.kind === "outside" ? (({ repair: "ogp.repair", return: "ogp.return", other: "ogp.otherReason" }) as const)[slip.to.reason ?? "other"] : null;
+  const bags = anyBags(slip.lines);
   return (
     <>
       <p className="mb-2">
@@ -170,6 +178,7 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
             <H id="line.description" />
             <H id="line.unit" />
             <H id="line.qty" right />
+            {bags && <H id="line.bags" right />}
             <H id="line.weight" right />
           </tr>
         </thead>
@@ -184,6 +193,7 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
                 </td>
                 <td>{unitOf(item)}</td>
                 <td className="num text-right">{fmtQty(l.qty)}</td>
+                {bags && <td className="num text-right">{bagsText(l.bags)}</td>}
                 <td className="num text-right">{l.weightKg ? `${fmtQty(l.weightKg)} kg` : ""}</td>
               </tr>
             );
@@ -198,6 +208,7 @@ function OgpBody({ slip, items, farms }: { slip: OGP } & Ctx) {
 function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: number[] } & Ctx) {
   // Once something came back: Quantity (as issued) · Returned · Used.
   const hasReturns = !!returned?.some((n) => n > 0);
+  const bags = anyBags(slip.lines);
   const farm = farms.find((f) => f.id === slip.farmId);
   const shedName = (id?: string) => farm?.sheds.find((s) => s.id === id)?.name ?? "";
   const mortMale = slip.shedRows.reduce((n, r) => n + r.mortMale, 0);
@@ -211,6 +222,7 @@ function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: numbe
             <H id="line.srNo" />
             <H id="line.nameOfItem" />
             <H id="line.quantity" right />
+            {bags && <H id="line.bags" right />}
             {hasReturns && <H id="ret.returned" right />}
             {hasReturns && <H id="ret.used" right />}
             <H id="line.ledgerFolio" />
@@ -225,6 +237,7 @@ function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: numbe
                 {items.get(r.feedItemId)?.name} — {shedName(r.shedId)}
               </td>
               <td className="num text-right">{fmtQty(r.feedKg)} KG</td>
+              {bags && <td />}
               {hasReturns && <td />}
               {hasReturns && <td />}
               <td className="num">{items.get(r.feedItemId)?.number}</td>
@@ -244,6 +257,7 @@ function SisBody({ slip, items, farms, returned }: { slip: SIS; returned?: numbe
                 <td className="num text-right">
                   {fmtQty(l.qty)} {unitOf(item)}
                 </td>
+                {bags && <td className="num text-right">{bagsText(l.bags)}</td>}
                 {hasReturns && <td className="num text-right">{returned![i] ? `${fmtQty(returned![i])} ${unitOf(item)}` : ""}</td>}
                 {hasReturns && (
                   <td className="num text-right font-semibold" data-used={i}>

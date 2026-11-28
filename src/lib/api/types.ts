@@ -50,8 +50,8 @@ export type Dashboard = {
 
 export type CorrectionInput = {
   slipId: string;
-  /** New quantity per line index: IGP → Qty Actual Received, OGP / SIS → Qty. */
-  lines: { index: number; qty: number }[];
+  /** New quantity per line index: IGP → Qty Actual Received, OGP / SIS → Qty. Feed lines may also change Bags. */
+  lines: { index: number; qty: number; bags?: number }[];
   reason: string;
   by: string;
   /** The farm's request this correction answers, if any. */

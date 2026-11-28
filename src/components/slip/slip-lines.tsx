@@ -17,7 +17,7 @@ export type LineCol = {
   /** Form field key; quantity rules look for "qty", "qtyChallan" and "qtyReceived". */
   key: string;
   label: MsgId;
-  kind: "item" | "unit" | "qty" | "weight" | "text" | "folio";
+  kind: "item" | "unit" | "qty" | "weight" | "text" | "folio" | "bags";
   /** Grid track on tablet/desktop, e.g. "2fr" or "6rem". */
   width: string;
   required?: boolean;
@@ -48,7 +48,12 @@ type Props = {
   allowRequest?: boolean;
 };
 
-const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "folio"]);
+const EDITABLE = new Set<LineCol["kind"]>(["item", "qty", "weight", "text", "folio", "bags"]);
+
+/** Bags only exist on feed lines (client #26): elsewhere the cell is empty and skipped by Enter. */
+function hasField(c: LineCol, item: Item | null) {
+  return EDITABLE.has(c.kind) && !c.readOnly && (c.kind !== "bags" || !!item?.isFeed);
+}
 
 /**
  * C3 slip lines: card per line on phone, table row from 768px (wide quantity columns need the room).
@@ -73,7 +78,6 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
     focusRowId.current = null;
   }, [rows, uid]);
 
-  const lastEditable = [...cols].reverse().find((c) => EDITABLE.has(c.kind) && !c.readOnly)?.key;
   const hasUnitCol = cols.some((c) => c.kind === "unit");
   const gridCols = ["2.5rem", ...cols.map((c) => c.width), ...(fixed ? [] : ["2.5rem"])].join(" ");
 
@@ -143,7 +147,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
         <div className="hidden gap-2 border-b border-line px-2 pb-2 text-xs text-muted md:grid md:[grid-template-columns:var(--line-cols)]">
           <Bi id="line.srNo" />
           {cols.map((c) => (
-            <span key={c.key} className={clsx("flex gap-1", (c.kind === "qty" || c.kind === "weight") && "justify-end")}>
+            <span key={c.key} className={clsx("flex gap-1", (c.kind === "qty" || c.kind === "weight" || c.kind === "bags") && "justify-end")}>
               <Bi id={c.label} />
               {c.required && !c.readOnly && (
                 <span className="text-danger" aria-hidden>
@@ -164,6 +168,7 @@ export function SlipLines({ cols, title = "line.items", initial, fixed, showStoc
               .reduce((sum, r) => sum + (parseQty(r.values.qty ?? "") ?? 0), 0);
             const available = item && stock ? (stock.get(item.id) ?? 0) - usedBefore : null;
             const check = checkRow(row, available, rules);
+            const lastEditable = [...cols].reverse().find((c) => hasField(c, item))?.key;
             // Errors from the last save that the live checks didn't already show.
             const fromSave = rowErrors(saveErrors, "lines", index);
             for (const key of fromSave.keys) check.invalid.add(key);
@@ -337,6 +342,28 @@ function Cell({
             tabIndex={col.readOnly ? -1 : undefined}
             required={col.required && !col.readOnly}
             invalid={invalid}
+            aria-labelledby={labelId}
+            {...lastProps}
+          />
+        </div>
+      );
+    case "bags":
+      // Feed only: a whole number of bags next to the KG. Other items: an empty cell (no gap on the phone card).
+      if (!item?.isFeed) return <div className="hidden md:block" />;
+      return (
+        <div>
+          {phoneLabel}
+          <input
+            type="text"
+            name={name}
+            inputMode="numeric"
+            autoComplete="off"
+            enterKeyHint="next"
+            className={clsx("input input-num", invalid && "border-2 border-danger")}
+            aria-invalid={invalid || undefined}
+            required
+            value={value}
+            onChange={(e) => onValue(e.target.value.replace(/[^\d]/g, ""))}
             aria-labelledby={labelId}
             {...lastProps}
           />

@@ -50,11 +50,12 @@
 | Line: Unit | From item | — | Not editable |
 | Line: Qty As Per Delivery Challan | C2 | Yes | > 0 |
 | Line: Qty Actual Received | C2 | Yes | ≥ 0; less than challan → amber row "Short by 3" |
+| Line: Bags | Whole number, **Feed All only** (`isFeed`) | Feed: Yes | ≥ 1, "Enter the number of bags". Stock stays in KG; bags are recorded, not converted (client #26). Other items: empty cell, not focusable |
 | Line: Weight | Number + kg | No | |
 | Remarks | Text, Urdu ok, ≤ 200 characters, after the lines | No | One note for the whole slip |
 
 ### F3 Receive transfer
-Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-filled (Item, Unit, Qty As Per Delivery Challan = sent). Only **Qty Actual Received** editable (plus optional **Remarks**, e.g. "2 bags torn"). "Received all" fills every row. More than sent → blocked: "Cannot receive more than 9,000. Extra items need a separate IGP."
+Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-filled (Item, Unit, Qty As Per Delivery Challan = sent). Only **Qty Actual Received** editable, and **Bags** on a feed line (pre-filled from the OGP, required when something arrived), plus optional **Remarks**, e.g. "2 bags torn". "Received all" fills every row. More than sent → blocked: "Cannot receive more than 9,000. Extra items need a separate IGP."
 
 ### F4 New OGP
 | Field | Control | Req |
@@ -67,17 +68,18 @@ Header read-only (From farm, OGP No., Date sent, Driver, Vehicle). Lines pre-fil
 | Line: Description (item) | C1, shows "in stock: 6" | Yes |
 | Line: Unit | From item | — |
 | Line: Qty | C2, > 0 and ≤ stock, else "Only 6 in stock" | Yes |
+| Line: Bags | Whole number, Feed All only (client #26) | Feed: Yes |
 | Line: Weight | Number + kg | No |
 | Remarks | Text, Urdu ok, ≤ 200 characters, after the lines | No |
 
 After save → a blank OGP with the green "OGP-0123 saved" banner: **Print** (the driver's pass) / View / New slip — like IGP and SIS (client #29, 25 Nov 2026; it used to jump to the print view).
 
 ### F5 New SIS
-**Items** only: S. No. auto, Name of Item (C1 with in-stock; feed is picked here like any item), Quantity used (≤ stock; 9 rem wide so "15,413 KG" shows), Ledger Folio (**typed** — the storekeeper's own ledger page), Purpose of Use (wide text). Lines are a table from 768 px, cards below.
+**Items** only: S. No. auto, Name of Item (C1 with in-stock; feed is picked here like any item), Quantity used (≤ stock; 9 rem wide so "15,413 KG" shows), **Bags** (feed lines only, whole number, required — client #26), Ledger Folio (**typed** — the storekeeper's own ledger page), Purpose of Use (wide text). Lines are a table from 768 px, cards below.
 
 ~~Feed & Mortality per shed~~ — removed at the client's request (30 Oct 2026): mortality doesn't touch stock, and feed goes in as an item. Old slips still show their shed rows.
 
-Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line. Back to edit / Confirm and save.
+Before save → **Summary sheet (C9)**: "Diesel: 2,550 → 2,465 LTR" per line (feed adds "50 bags"). Back to edit / Confirm and save.
 
 ### F6–F10
 - **F6:** search (paper or system No., item), chips IGP/OGP/SIS + date, cards (No., type, date, line count). Opened from Home's Find with `?q=` / `?date=`. When the search matches an item, each card shows that item's quantity: `+12` in (IGP), `−1` out (OGP / SIS).

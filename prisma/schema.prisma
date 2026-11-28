@@ -198,6 +198,8 @@ model SlipLine {
   qtyChallan  Float?
   qtyReceived Float?
   weightKg    Float?
+  /// Feed items only (Item.isFeed): number of bags. Stock stays in KG; bags are recorded, not converted.
+  bags        Int?
   /// SIS
   ledgerFolio String?
   purpose     String?

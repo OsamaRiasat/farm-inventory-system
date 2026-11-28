@@ -95,3 +95,62 @@ test("home keys: 3 opens SIS, ? lists shortcuts, g s goes to Slips", async ({ pa
   await page.keyboard.press("s");
   await expect(page).toHaveURL(/\/farm\/slips$/);
 });
+
+test("IGP: Feed All gets a Bags box after Qty Received (Enter goes through it); other items have none", async ({ page }) => {
+  await page.goto("/farm/igp/new");
+  await page.locator('[data-kind="item"]').first().focus();
+  await page.keyboard.type("gloves");
+  await expect(page.locator('li[role="option"]').first()).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('input[name="lines.0.bags"]')).toHaveCount(0);
+  await page.keyboard.type("5");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("5");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("lines.0.weight");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("item");
+
+  await page.keyboard.type("feed all");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Feed All");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('input[name="lines.1.item"]')).toHaveValue("feed-all");
+  await page.keyboard.type("2500");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("2500");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("lines.1.bags");
+  await page.keyboard.type("5x0");
+  await expect(page.locator('input[name="lines.1.bags"]')).toHaveValue("50");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("lines.1.weight");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('input[name$=".item"]')).toHaveCount(3);
+});
+
+test("SIS: Feed All without Bags is refused under the box; with Bags the summary and the print show them", async ({ page }) => {
+  await page.goto("/farm/sis/new");
+  await page.locator('input[name="paperNo"]').fill(`B${Date.now().toString().slice(-6)}`);
+  await page.locator('[data-kind="item"]').first().focus();
+  await page.keyboard.type("feed all");
+  await expect(page.locator('li[role="option"]').first()).toContainText("Feed All");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("100");
+  await page.keyboard.press("Enter");
+  expect(await focused(page)).toBe("lines.0.bags");
+  await page.keyboard.press("Control+s");
+  await page.locator("dialog[open]").getByRole("button", { name: /Confirm and save/ }).click();
+  await expect(page.getByText("Enter the number of bags").first()).toBeVisible();
+  await expect(page.locator('input[name="lines.0.bags"]')).toHaveAttribute("aria-invalid", "true");
+
+  await page.locator('input[name="lines.0.bags"]').fill("2");
+  await page.keyboard.press("Control+s");
+  const sheet = page.locator("dialog[open]");
+  await expect(sheet).toContainText("2 bags");
+  await sheet.getByRole("button", { name: /Confirm and save/ }).click();
+  await page.getByRole("link", { name: /^Print/ }).click();
+  const frame = page.locator(".print-frame");
+  await expect(frame.getByRole("columnheader", { name: /Bags/ })).toBeVisible();
+  await expect(frame.locator("tbody tr").first()).toContainText("100 KG");
+  await expect(frame.locator("tbody tr").first().locator("td").nth(3)).toHaveText("2");
+});

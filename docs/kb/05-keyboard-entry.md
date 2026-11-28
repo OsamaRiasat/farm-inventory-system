@@ -8,7 +8,7 @@
 | `Tab` / `Shift+Tab` | Natural order = paper order (header → lines → footer). Never a positive `tabIndex`. In item search, Tab picks the highlighted option and won't leave typed text that isn't an item (client #22) |
 | — | On desktop the slip opens with focus in **No.** (the paper slip's number), then the slip's date |
 | `Enter` in a text/number field | Move to the next field (like Tab). Item search: Enter picks; on "No item found" a Farm User's Enter opens Request a new item (client #30). Never submits the form by accident. Skips buttons marked `data-enter-skip` (Time "change"), which `Tab` still reaches |
-| `Enter` in the **last field of a line** | Add a new empty line and focus its Item search |
+| `Enter` in the **last field of a line** | Add a new empty line and focus its Item search. "Last" is per line: a feed line's **Bags** box only exists on Feed All lines, and Enter passes through it (IGP: Qty Received → Bags → Weight) |
 | `Enter` in an **empty** Item search on a new line | Leave the lines: IGP / OGP / receive → **Remarks**, then `Enter` → Save; SIS → Save |
 | `Ctrl/⌘ + Enter` or `Ctrl/⌘ + S` | Save (opens the Summary sheet on SIS) |
 | `Alt + N` | Add line |

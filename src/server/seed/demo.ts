@@ -151,6 +151,8 @@ export async function seedDemo(now = new Date()) {
     return item.unit === "KG" || item.unit === "LTR" ? Math.floor(qty * 10) / 10 : Math.floor(qty);
   }
   const itemById = (id: string) => items.find((i) => i.id === id)!;
+  /** Feed lines carry bags (client #26): 50 KG a bag. */
+  const bagsOf = (itemId: string, kg: number) => (itemById(itemId).isFeed && kg > 0 ? { bags: Math.max(1, Math.round(kg / 50)) } : {});
   /** The farm's paper slip number: the same digits as the system number the save will get. */
   async function paper(farmId: string, kind: "IGP" | "OGP" | "SIS", no?: number) {
     const last = no ? no - 1 : ((await db().counter.findUnique({ where: { farmId_kind: { farmId, kind } } }))?.last ?? 0);
@@ -167,7 +169,7 @@ export async function seedDemo(now = new Date()) {
         biltyNo: String(between(1000, 9999)),
         truckNo: `LES-${between(1000, 9999)}`,
         challanNo: String(between(100, 999)),
-        lines: lines.map(([itemId, qty, received]) => ({ itemId, qtyChallan: qty, qtyReceived: received ?? qty })),
+        lines: lines.map(([itemId, qty, received]) => ({ itemId, qtyChallan: qty, qtyReceived: received ?? qty, ...bagsOf(itemId, received ?? qty) })),
       },
       { no, at: at(date, t) },
     );
@@ -180,14 +182,14 @@ export async function seedDemo(now = new Date()) {
       {
         farmId: fromId, date, time: t, preparedBy: userOf(fromId), idempotencyKey: key(), paperNo: await paper(fromId, "OGP", no),
         to: { kind: "farm", farmId: toId }, driverName: driver, vehicleNo: vehicle,
-        lines: lines.map(([itemId, qty]) => ({ itemId, qty })),
+        lines: lines.map(([itemId, qty]) => ({ itemId, qty, ...bagsOf(itemId, qty) })),
       },
       { no, at: at(date, t) },
     );
-    return { id: ogp.transferId!, toFarmId: toId };
+    return { id: ogp.transferId!, toFarmId: toId, itemIds: lines.map(([itemId]) => itemId) };
   }
 
-  async function receive(tr: { id: string; toFarmId: string } | null, date: string, time: string, received: number[], no?: number) {
+  async function receive(tr: { id: string; toFarmId: string; itemIds: string[] } | null, date: string, time: string, received: number[], no?: number) {
     if (!tr) return;
     const t = timeFor(date, time);
     if (!t) return;
@@ -195,7 +197,7 @@ export async function seedDemo(now = new Date()) {
       {
         farmId: tr.toFarmId, date, time: t, preparedBy: userOf(tr.toFarmId), idempotencyKey: key(), transferId: tr.id,
         paperNo: await paper(tr.toFarmId, "IGP", no),
-        lines: received.map((qtyReceived) => ({ qtyReceived })),
+        lines: received.map((qtyReceived, i) => ({ qtyReceived, ...bagsOf(tr.itemIds[i], qtyReceived) })),
       },
       { no, at: at(date, t) },
     );
@@ -208,7 +210,7 @@ export async function seedDemo(now = new Date()) {
       {
         farmId: farm.id, date, time: t, preparedBy: userOf(farm.id), idempotencyKey: key(), paperNo: await paper(farm.id, "SIS", no),
         shedRows: shedRows.map((r, i) => ({ shedId: farm.sheds[i].id, feedItemId: r.feed, feedKg: r.kg, mortMale: r.male, mortFemale: r.female })),
-        lines: lines.map(([itemId, qty, purpose]) => ({ itemId, qty, purpose })),
+        lines: lines.map(([itemId, qty, purpose]) => ({ itemId, qty, purpose, ...bagsOf(itemId, qty) })),
       },
       { no, at: at(date, t) },
     );

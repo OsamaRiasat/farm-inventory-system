@@ -214,13 +214,58 @@ test("SIS: no feed rows needed, Ledger Folio typed per line; a correction keeps 
   const farmId = await testFarm({ "feed-all": 100 });
   const sis = await saveSIS({
     ...base(), farmId, idempotencyKey: key(), paperNo: "SIS-5001",
-    lines: [{ itemId: "feed-all", qty: 50, ledgerFolio: "23/4", purpose: "Shed 1" }],
+    lines: [{ itemId: "feed-all", qty: 50, bags: 1, ledgerFolio: "23/4", purpose: "Shed 1" }],
   });
   expect(sis.shedRows).toEqual([]);
   expect(sis.lines[0].ledgerFolio).toBe("23/4");
-  expect((await getSlipById(sis.id)).lines[0]).toEqual({ itemId: "feed-all", qty: 50, ledgerFolio: "23/4", purpose: "Shed 1" });
+  expect((await getSlipById(sis.id)).lines[0]).toEqual({ itemId: "feed-all", qty: 50, bags: 1, ledgerFolio: "23/4", purpose: "Shed 1" });
   const corrected = await correctSlip({ slipId: sis.id, lines: [{ index: 0, qty: 40 }], reason: "x", by: "Admin" });
   expect(corrected.paperNo).toBe("SIS-5001");
+});
+
+test("Feed All lines need Bags (whole number) next to the KG; other items never keep bags (client #26)", async () => {
+  const farmId = await testFarm({ "feed-all": 5000, gloves: 10 });
+  const igp = (lines: unknown[]) =>
+    saveIGP({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), source: { kind: "supplier", ms: "Feed Mill" }, lines });
+
+  const missing = await errorOf(() => igp([{ itemId: "feed-all", qtyChallan: 2500, qtyReceived: 2500 }]));
+  expect(missing).toEqual({ id: "err.bagsRequired", values: undefined });
+  const half = await errorOf(() => igp([{ itemId: "feed-all", qtyChallan: 2500, qtyReceived: 2500, bags: 49.5 }]));
+  expect(half?.id).toBe("err.bagsWhole");
+  const zero = await errorOf(() => igp([{ itemId: "feed-all", qtyChallan: 2500, qtyReceived: 2500, bags: 0 }]));
+  expect(zero?.id).toBe("err.bagsRequired");
+
+  const saved = await igp([
+    { itemId: "feed-all", qtyChallan: 2500, qtyReceived: 2500, bags: 50 },
+    { itemId: "gloves", qtyChallan: 5, qtyReceived: 5, bags: 3 },
+  ]);
+  expect(saved.lines.map((l) => l.bags)).toEqual([50, undefined]);
+  expect((await getSlipById(saved.id)).lines.map((l) => l.bags)).toEqual([50, undefined]);
+  expect(await stock(farmId, "feed-all")).toBe(7500); // stock stays in KG
+
+  const ogpMissing = await errorOf(() =>
+    saveOGP({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), to: { kind: "outside", ms: "X", reason: "other" }, lines: [{ itemId: "feed-all", qty: 100 }] }),
+  );
+  expect(ogpMissing?.id).toBe("err.bagsRequired");
+  const sisMissing = await errorOf(() => saveSIS({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "feed-all", qty: 100 }] }));
+  expect(sisMissing?.id).toBe("err.bagsRequired");
+
+  // A correction can fix the bags on a feed line.
+  const corrected = await correctSlip({ slipId: saved.id, lines: [{ index: 0, qty: 2450, bags: 49 }], reason: "1 bag torn", by: "Admin" });
+  expect(corrected.lines[0]).toMatchObject({ qtyReceived: 2450, bags: 49 });
+});
+
+test("Transfer of feed: Bags on the OGP, the receiving IGP types its own bags", async () => {
+  const from = await testFarm({ "feed-all": 3000 });
+  const to = await testFarm();
+  const ogp = await saveOGP({
+    ...base(), farmId: from, idempotencyKey: key(), paperNo: key(), to: { kind: "farm", farmId: to },
+    lines: [{ itemId: "feed-all", qty: 1000, bags: 20 }],
+  });
+  const receive = (lines: unknown[]) => receiveTransfer({ ...base(), farmId: to, idempotencyKey: key(), paperNo: key(), transferId: ogp.transferId, lines });
+  expect((await errorOf(() => receive([{ qtyReceived: 1000 }])))?.id).toBe("err.bagsRequired");
+  const igp = await receive([{ qtyReceived: 950, bags: 19 }]);
+  expect(igp.lines[0]).toMatchObject({ qtyChallan: 1000, qtyReceived: 950, bags: 19 });
 });
 
 test("IGP / OGP Remarks are optional, kept as typed (Urdu too), at most 200 characters", async () => {

@@ -6,6 +6,8 @@ import { defineConfig, devices } from "@playwright/test";
 // (e2e/global-setup.ts). Rules tests call the server services directly against the same database.
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? "postgresql://awfarms:awfarms@localhost:5433/awfarms_test";
 process.env.DATABASE_URL = TEST_DATABASE_URL;
+// Another session testing at the same time: give it its own PW_PORT (and TEST_DATABASE_URL).
+const PORT = process.env.PW_PORT ?? "3123";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,7 +15,7 @@ export default defineConfig({
   reporter: "list",
   globalSetup: "./e2e/global-setup.ts",
   use: {
-    baseURL: "http://localhost:3123",
+    baseURL: `http://localhost:${PORT}`,
     channel: "chrome",
     trace: "retain-on-failure",
   },
@@ -36,8 +38,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npx next start -p 3123",
-    url: "http://localhost:3123/login",
+    command: `npx next start -p ${PORT}`,
+    url: `http://localhost:${PORT}/login`,
     reuseExistingServer: false,
     timeout: 60_000,
     env: { DATABASE_URL: TEST_DATABASE_URL },

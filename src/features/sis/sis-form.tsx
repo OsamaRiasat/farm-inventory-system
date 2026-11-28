@@ -10,6 +10,7 @@ import { isBlank, num, opt } from "../form-data";
 const cols: LineCol[] = [
   { key: "item", label: "line.nameOfItem", kind: "item", width: "minmax(9rem, 2fr)", required: true },
   { key: "qty", label: "line.quantity", kind: "qty", width: "9rem", required: true },
+  { key: "bags", label: "line.bags", kind: "bags", width: "minmax(5rem, 0.6fr)" },
   { key: "folio", label: "line.ledgerFolio", kind: "folio", width: "6rem" },
   { key: "purpose", label: "line.purpose", kind: "text", width: "minmax(9rem, 2fr)" },
 ];
@@ -25,13 +26,14 @@ export function SisForm() {
 }
 
 function buildSis({ lines }: SlipFormData, base: BaseInput): BuiltInput {
-  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qty", "folio", "purpose"]));
+  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qty", "bags", "folio", "purpose"]));
   return {
     input: {
       ...base,
       lines: filled.map(([, r]) => ({
         itemId: r.item ?? "",
         qty: num(r.qty),
+        bags: num(r.bags),
         ledgerFolio: opt(r.folio),
         purpose: opt(r.purpose),
       })),

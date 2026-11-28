@@ -14,6 +14,7 @@ const cols: LineCol[] = [
   { key: "unit", label: "line.unit", kind: "unit", width: "4.5rem" },
   { key: "qtyChallan", label: "line.qtyChallan", kind: "qty", width: "minmax(6.5rem, 1fr)", required: true },
   { key: "qtyReceived", label: "line.qtyReceived", kind: "qty", width: "minmax(6.5rem, 1fr)", required: true },
+  { key: "bags", label: "line.bags", kind: "bags", width: "minmax(5rem, 0.6fr)" },
   { key: "weight", label: "line.weight", kind: "weight", width: "minmax(7rem, 0.8fr)" },
 ];
 
@@ -52,7 +53,7 @@ export function IgpForm() {
 }
 
 function buildIgp({ fields, lines }: SlipFormData, base: BaseInput): BuiltInput {
-  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qtyChallan", "qtyReceived", "weight"]));
+  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qtyChallan", "qtyReceived", "bags", "weight"]));
   return {
     input: {
       ...base,
@@ -68,6 +69,7 @@ function buildIgp({ fields, lines }: SlipFormData, base: BaseInput): BuiltInput 
         qtyChallan: num(r.qtyChallan),
         qtyReceived: num(r.qtyReceived),
         weightKg: num(r.weight),
+        bags: num(r.bags),
       })),
       remarks: opt(fields.remarks),
     },

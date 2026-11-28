@@ -44,9 +44,17 @@ export async function correctSlip(input: CorrectionInput, opts: SaveOpts = {}): 
     }
 
     const corrected = structuredClone(original) as Slip;
-    for (const { index, qty } of input.lines) {
+    const feed = await tx.item.findMany({ where: { id: { in: corrected.lines.map((l) => l.itemId) }, isFeed: true }, select: { id: true } });
+    const feedIds = new Set(feed.map((i) => i.id));
+    for (const { index, qty, bags } of input.lines) {
       const line = corrected.lines[index];
       if (!line || qty < 0 || (corrected.type !== "IGP" && qty === 0)) throw new ApiError("err.qtyAboveZero");
+      // Feed lines carry Bags next to the KG (client #26); a correction may fix them too.
+      if (bags !== undefined && feedIds.has(line.itemId)) {
+        if (!Number.isInteger(bags)) throw new ApiError("err.bagsWhole");
+        if (bags < 1 && qty > 0) throw new ApiError("err.bagsRequired");
+        line.bags = bags > 0 ? bags : undefined;
+      }
       if ("qtyReceived" in line) {
         if (qty > line.qtyChallan && transferIdOf(corrected)) {
           throw new ApiError("err.cannotReceiveMore", { n: fmtQty(line.qtyChallan) });

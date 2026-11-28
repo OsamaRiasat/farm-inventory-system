@@ -26,7 +26,7 @@ export type BaseInput = { farmId: string; paperNo: string; date: string; time: s
 /** The API input, plus which screen row each input line / shed row came from. */
 export type BuiltInput = { input: unknown; lineRows: number[]; shedRows?: number[] };
 
-type Summary = { rows: { item: Item; before: number; used: number }[]; mortMale: number; mortFemale: number };
+type Summary = { rows: { item: Item; before: number; used: number; bags: number }[]; mortMale: number; mortFemale: number };
 
 /**
  * Wraps a slip's fields: Enter moves to the next field, Ctrl/⌘+S saves, sticky Save + Prepared by,
@@ -265,7 +265,7 @@ export function SlipForm({
               </p>
             )}
             <ul className="mt-3 divide-y divide-line">
-              {summary?.rows.map(({ item, before, used }) => {
+              {summary?.rows.map(({ item, before, used, bags }) => {
                 const after = before - used;
                 return (
                   <li key={item.id} className="flex items-start justify-between gap-3 py-2">
@@ -277,6 +277,11 @@ export function SlipForm({
                     </span>
                     <span className={clsx("num pt-0.5 text-right whitespace-nowrap", after < 0 && "font-semibold text-danger")}>
                       {fmtQty(before)} → {fmtQty(after)} {t(`unit.${item.unit}`).en}
+                      {bags > 0 && (
+                        <span className="block text-sm text-muted">
+                          <Bi id="line.nBags" values={{ n: fmtQty(bags) }} inline />
+                        </span>
+                      )}
                     </span>
                   </li>
                 );
@@ -332,11 +337,16 @@ function buildSummary(form: SlipFormData, items: Map<string, Item>, stock: Map<s
     mortMale += parseQty(row.mortMale ?? "") ?? 0;
     mortFemale += parseQty(row.mortFemale ?? "") ?? 0;
   }
-  for (const [, row] of form.lines) add(row.item, row.qty);
+  const bags = new Map<string, number>();
+  for (const [, row] of form.lines) {
+    add(row.item, row.qty);
+    const n = parseQty(row.bags ?? "");
+    if (row.item && n) bags.set(row.item, (bags.get(row.item) ?? 0) + n);
+  }
 
   const rows = [...used].flatMap(([id, n]) => {
     const item = items.get(id);
-    return item ? [{ item, before: stock.get(id) ?? 0, used: n }] : [];
+    return item ? [{ item, before: stock.get(id) ?? 0, used: n, bags: bags.get(id) ?? 0 }] : [];
   });
   return { rows, mortMale, mortFemale };
 }

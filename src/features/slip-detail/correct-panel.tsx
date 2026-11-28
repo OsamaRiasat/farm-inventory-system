@@ -34,13 +34,20 @@ export function CorrectPanel({
   const [values, setValues] = useState(() =>
     slip.lines.map((_, i) => fmtQty(request && request.lineIndex === i ? request.requestedQty : lineQty(slip, i))),
   );
+  // Feed lines: Bags can be corrected too (client #26).
+  const isFeed = (i: number) => !!items.get(slip.lines[i].itemId)?.isFeed;
+  const hasFeed = slip.lines.some((_, i) => isFeed(i));
+  const bagsOf = (i: number) => slip.lines[i].bags ?? 0;
+  const [bags, setBags] = useState(() => slip.lines.map((_, i) => (bagsOf(i) ? String(bagsOf(i)) : "")));
   const [reason, setReason] = useState(request?.reason ?? "");
   const [error, setError] = useState<{ id: MsgId; values?: MsgValues } | null>(null);
   const mutation = useApiMutation(api.correctSlip);
 
   const changes = slip.lines.flatMap((_, i) => {
     const next = parseQty(values[i]);
-    return next !== null && next !== lineQty(slip, i) ? [{ index: i, qty: next }] : [];
+    const nextBags = isFeed(i) ? (parseQty(bags[i]) ?? 0) : bagsOf(i);
+    if (next === null || (next === lineQty(slip, i) && nextBags === bagsOf(i))) return [];
+    return [{ index: i, qty: next, ...(nextBags !== bagsOf(i) ? { bags: nextBags } : {}) }];
   });
 
   async function save() {
@@ -85,6 +92,11 @@ export function CorrectPanel({
               <th className="text-right">
                 <Bi id="detail.difference" />
               </th>
+              {hasFeed && (
+                <th className="text-right">
+                  <Bi id="line.bags" />
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -111,6 +123,25 @@ export function CorrectPanel({
                     />
                   </td>
                   <td className="num text-right font-semibold">{diff === 0 ? "" : `${diff > 0 ? "+" : ""}${fmtQty(diff)}`}</td>
+                  {hasFeed && (
+                    <td className="w-28">
+                      {isFeed(i) && (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="off"
+                          className="input input-num"
+                          value={bags[i]}
+                          onChange={(e) => {
+                            const v = e.target.value.replace(/[^\d]/g, "");
+                            setBags((bs) => bs.map((x, k) => (k === i ? v : x)));
+                            setError(null);
+                          }}
+                          aria-label={`${i + 1}. ${t("line.bags").en}`}
+                        />
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}

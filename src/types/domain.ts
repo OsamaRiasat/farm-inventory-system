@@ -63,7 +63,8 @@ export interface IGP extends SlipBase {
   demandNo?: string;
   challanNo?: string;
   challanDate?: string;
-  lines: { itemId: string; qtyChallan: number; qtyReceived: number; weightKg?: number }[];
+  /** bags: feed items only (`Item.isFeed`), typed next to the KG — client #26. */
+  lines: { itemId: string; qtyChallan: number; qtyReceived: number; weightKg?: number; bags?: number }[];
   /** Optional free note for the whole slip (Urdu or English, ≤ 200 characters). Kept as first saved. */
   remarks?: string;
 }
@@ -74,7 +75,7 @@ export interface OGP extends SlipBase {
   transferId?: string;
   driverName?: string;
   vehicleNo?: string;
-  lines: { itemId: string; qty: number; weightKg?: number }[];
+  lines: { itemId: string; qty: number; weightKg?: number; bags?: number }[];
   /** Optional free note for the whole slip (Urdu or English, ≤ 200 characters). Kept as first saved. */
   remarks?: string;
 }
@@ -84,7 +85,7 @@ export interface SIS extends SlipBase {
   /** Feed & mortality per shed. No longer entered (client, 30 Oct 2026): feed is a normal item line. Kept for old slips. */
   shedRows: { shedId: string; feedItemId: string; feedKg: number; mortMale: number; mortFemale: number }[];
   /** ledgerFolio: the page in the farm storekeeper's own ledger, typed per line. */
-  lines: { itemId: string; qty: number; ledgerFolio?: string; purpose?: string; shedId?: string }[];
+  lines: { itemId: string; qty: number; bags?: number; ledgerFolio?: string; purpose?: string; shedId?: string }[];
 }
 
 export type Slip = IGP | OGP | SIS;

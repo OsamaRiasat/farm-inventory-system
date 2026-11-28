@@ -13,6 +13,7 @@ const cols: LineCol[] = [
   { key: "item", label: "line.description", kind: "item", width: "minmax(9rem, 2fr)", required: true },
   { key: "unit", label: "line.unit", kind: "unit", width: "4.5rem" },
   { key: "qty", label: "line.qty", kind: "qty", width: "minmax(6.5rem, 1fr)", required: true },
+  { key: "bags", label: "line.bags", kind: "bags", width: "minmax(5rem, 0.6fr)" },
   { key: "weight", label: "line.weight", kind: "weight", width: "minmax(7rem, 0.8fr)" },
 ];
 
@@ -39,7 +40,7 @@ export function OgpForm() {
 }
 
 function buildOgp({ fields, lines }: SlipFormData, base: BaseInput): BuiltInput {
-  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qty", "weight"]));
+  const filled = lines.filter(([, r]) => !isBlank(r, ["item", "qty", "bags", "weight"]));
   const to =
     fields.toKind === "outside"
       ? { kind: "outside", ms: fields.ms ?? "", reason: fields.reason }
@@ -52,7 +53,7 @@ function buildOgp({ fields, lines }: SlipFormData, base: BaseInput): BuiltInput 
       to,
       driverName: opt(fields.driverName),
       vehicleNo: opt(fields.vehicleNo),
-      lines: filled.map(([, r]) => ({ itemId: r.item ?? "", qty: num(r.qty), weightKg: num(r.weight) })),
+      lines: filled.map(([, r]) => ({ itemId: r.item ?? "", qty: num(r.qty), weightKg: num(r.weight), bags: num(r.bags) })),
       remarks: opt(fields.remarks),
     },
     lineRows: filled.map(([row]) => row),

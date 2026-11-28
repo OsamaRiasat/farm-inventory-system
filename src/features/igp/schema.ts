@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { fmtQty } from "@/lib/format";
-import { checkItem, checkSlipBase, optionalText, positiveQty, remarks, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
+import { bags, checkBags, checkItem, checkSlipBase, optionalText, positiveQty, remarks, slipBase, text, zeroOrMore, type RuleContext } from "@/lib/validation";
 
 const igpLine = z.object({
   itemId: z.string(),
   qtyChallan: positiveQty,
   qtyReceived: z.number({ error: "err.enterQtyReceived" }).min(0, "err.enterQtyReceived"),
   weightKg: z.number().min(0).optional(),
+  bags,
 });
 
 /** F2 New IGP. Stock goes up by Qty Actual Received; less than the challan is a shortfall, not an error. */
@@ -29,7 +30,10 @@ export function igpSchema(rules: RuleContext) {
     })
     .superRefine((v, ctx) => {
       checkSlipBase(rules, "IGP", v, ctx);
-      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
+      v.lines.forEach((l, i) => {
+        checkItem(rules, l.itemId, ["lines", i], ctx);
+        checkBags(rules, l.itemId, l.bags, ["lines", i], ctx);
+      });
     });
 }
 
@@ -41,7 +45,7 @@ export function receiveSchema(rules: RuleContext, sent: { itemId: string; qty: n
     .extend({
       transferId: z.string().min(1),
       lines: z
-        .array(z.object({ qtyReceived: zeroOrMore, weightKg: z.number().min(0).optional() }))
+        .array(z.object({ qtyReceived: zeroOrMore, weightKg: z.number().min(0).optional(), bags }))
         .length(sent.length, "err.required"),
       remarks,
     })
@@ -59,6 +63,8 @@ export function receiveSchema(rules: RuleContext, sent: { itemId: string; qty: n
           });
         }
         checkItem(rules, line.itemId, ["lines", i], ctx);
+        // Nothing arrived → no bags to count.
+        if (l.qtyReceived > 0) checkBags(rules, line.itemId, l.bags, ["lines", i], ctx);
       });
     });
 }

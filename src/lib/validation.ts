@@ -43,6 +43,24 @@ export const zeroOrMore = z.number({ error: "err.required" }).min(0, "err.requir
 
 type Ctx = z.RefinementCtx;
 
+/** Number of bags on a feed line (client #26): a whole number, at least 1. Stock stays in KG. */
+export const bags = z.number({ error: "err.bagsRequired" }).int("err.bagsWhole").min(1, "err.bagsRequired").optional();
+
+/** Feed items (`isFeed`) need the number of bags next to the KG. */
+export function checkBags(rules: RuleContext, itemId: string, bags: number | undefined, path: (string | number)[], ctx: Ctx) {
+  if (rules.item(itemId)?.isFeed && bags === undefined) {
+    ctx.addIssue({ code: "custom", message: "err.bagsRequired", path: [...path, "bags"] });
+  }
+}
+
+/** Bags are kept on feed lines only; anything typed on another item is dropped. */
+export function feedBagsOnly<L extends { bags?: number }>(rules: RuleContext, itemId: string, line: L): L {
+  if (line.bags === undefined || rules.item(itemId)?.isFeed) return line;
+  const rest = { ...line };
+  delete rest.bags;
+  return rest;
+}
+
 /** The line must name a known item. Any quantity may have decimals (client #21: 0.5 ROLL, 0.5 Qty). */
 export function checkItem(rules: RuleContext, itemId: string, path: (string | number)[], ctx: Ctx) {
   if (!rules.item(itemId)) {

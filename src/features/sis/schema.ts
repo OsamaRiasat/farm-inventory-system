@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkItem, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
+import { bags, checkBags, checkItem, checkSlipBase, checkStock, optionalText, positiveQty, slipBase, type RuleContext } from "@/lib/validation";
 
 const count = z.number({ error: "err.required" }).int("err.wholeNumber").min(0, "err.required");
 
@@ -25,6 +25,7 @@ export function sisSchema(rules: RuleContext) {
         z.object({
           itemId: z.string(),
           qty: positiveQty,
+          bags,
           ledgerFolio: optionalText,
           purpose: optionalText,
           shedId: z.string().optional(),
@@ -41,7 +42,10 @@ export function sisSchema(rules: RuleContext) {
           ctx.addIssue({ code: "custom", message: "err.pickItem", path: ["shedRows", i, "feedItemId"] });
         }
       });
-      v.lines.forEach((l, i) => checkItem(rules, l.itemId, ["lines", i], ctx));
+      v.lines.forEach((l, i) => {
+        checkItem(rules, l.itemId, ["lines", i], ctx);
+        checkBags(rules, l.itemId, l.bags, ["lines", i], ctx);
+      });
       checkStock(
         rules,
         [

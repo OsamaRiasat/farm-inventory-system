@@ -105,6 +105,7 @@ Still to do:
 | 12 | Double save → one slip | Idempotency test | Save button disabled while saving; key per slip | Engine ✓ |
 | — | Decimals for every unit (client #21; was whole numbers for Qty) | Decimal test | `client-issues.spec.ts` 0.5 Qty | ✓ |
 | — | Item requests (client #30): not an item until approved; duplicates refused; reject needs a reason | Item request test | Farm requests → Admin approves on A9 → farm finds it; + only for the farm | ✓ |
+| — | Feed bags (client #26): Feed All lines need Bags (whole, ≥ 1) on IGP / OGP / SIS / receive; other items never keep bags; correction can fix bags | Feed bags + transfer of feed tests | IGP Enter through Bags; SIS refused without Bags, summary + print show them; phone Bags box | ✓ |
 | 13 | Return unused: ≤ issued − returned, date between issue date and today, once per key, saved SIS only; admin cancel never below zero; correction not below returned; SIS cancel reverses issued − returned | 4 return tests + seed example | `journeys.spec.ts`: keyboard return (over-limit message, stock preview, Used column, stock card row) → admin cancels; `phone.spec.ts`: sheet fits 360 px | ✓ |
 | — | SIS: no feed rows; Ledger Folio typed; correction keeps paper No. | SIS test | SIS journey (no Feed & Mortality, folio printed) | ✓ |
 | — | Every visit opens an empty slip; Home is the end of Back | — | `farm-flow.spec.ts`: leave + return, OGP → New slip → Back → Home, IGP + SIS Back | ✓ |

@@ -49,3 +49,18 @@ test("return unused sheet fits a 360 px phone and works by touch", async ({ page
   await sheet.getByRole("button", { name: /Close/ }).tap();
   await expect(page.locator("dialog[open]")).toHaveCount(0);
 });
+
+test("Feed All on a phone: the Bags box shows on the line card and takes a number", async ({ page }) => {
+  await page.goto("/farm/ogp/new");
+  const input = page.locator('[data-kind="item"]').first();
+  await input.tap();
+  await input.fill("feed all");
+  await page.locator('li[role="option"]').first().tap();
+  const bags = page.locator('input[name="lines.0.bags"]');
+  await expect(bags).toBeVisible();
+  await bags.tap();
+  await bags.fill("12");
+  await expect(bags).toHaveValue("12");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});

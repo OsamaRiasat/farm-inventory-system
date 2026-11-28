@@ -95,7 +95,13 @@ export function toSlip(r: SlipRow): Slip {
         challanNo: opt(r.challanNo),
         challanDate: opt(r.challanDate),
         lines: r.lines.map((l) =>
-          clean({ itemId: l.itemId, qtyChallan: num(l.qtyChallan), qtyReceived: num(l.qtyReceived), weightKg: opt(l.weightKg) }),
+          clean({
+            itemId: l.itemId,
+            qtyChallan: num(l.qtyChallan),
+            qtyReceived: num(l.qtyReceived),
+            weightKg: opt(l.weightKg),
+            bags: opt(l.bags),
+          }),
         ),
         remarks: opt(r.remarks),
       });
@@ -112,7 +118,7 @@ export function toSlip(r: SlipRow): Slip {
         transferId: opt(r.transferId),
         driverName: opt(r.driverName),
         vehicleNo: opt(r.vehicleNo),
-        lines: r.lines.map((l) => clean({ itemId: l.itemId, qty: num(l.qty), weightKg: opt(l.weightKg) })),
+        lines: r.lines.map((l) => clean({ itemId: l.itemId, qty: num(l.qty), weightKg: opt(l.weightKg), bags: opt(l.bags) })),
         remarks: opt(r.remarks),
       });
     case "SIS":
@@ -121,7 +127,14 @@ export function toSlip(r: SlipRow): Slip {
         type: "SIS",
         shedRows: (r.shedRows as SIS["shedRows"] | null) ?? [],
         lines: r.lines.map((l) =>
-          clean({ itemId: l.itemId, qty: num(l.qty), ledgerFolio: opt(l.ledgerFolio), purpose: opt(l.purpose), shedId: opt(l.shedId) }),
+          clean({
+            itemId: l.itemId,
+            qty: num(l.qty),
+            bags: opt(l.bags),
+            ledgerFolio: opt(l.ledgerFolio),
+            purpose: opt(l.purpose),
+            shedId: opt(l.shedId),
+          }),
         ),
       };
   }
@@ -187,15 +200,24 @@ export function slipLineData(s: Slip): Prisma.SlipLineCreateManyInput[] {
         qtyChallan: l.qtyChallan,
         qtyReceived: l.qtyReceived,
         weightKg: l.weightKg ?? null,
+        bags: l.bags ?? null,
       }));
     case "OGP":
-      return s.lines.map((l, index) => ({ slipId: s.id, index, itemId: l.itemId, qty: l.qty, weightKg: l.weightKg ?? null }));
+      return s.lines.map((l, index) => ({
+        slipId: s.id,
+        index,
+        itemId: l.itemId,
+        qty: l.qty,
+        weightKg: l.weightKg ?? null,
+        bags: l.bags ?? null,
+      }));
     case "SIS":
       return s.lines.map((l, index) => ({
         slipId: s.id,
         index,
         itemId: l.itemId,
         qty: l.qty,
+        bags: l.bags ?? null,
         ledgerFolio: l.ledgerFolio ?? null,
         purpose: l.purpose ?? null,
         shedId: l.shedId ?? null,
