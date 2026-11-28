@@ -145,7 +145,7 @@ test("a paper No. already used is refused under the No. box", async ({ page }) =
   await expect(page.getByText("No. SIS-0203 is already saved. Check the number.").first()).toBeVisible();
 });
 
-test("farm stock: items at 0 stay hidden until searched for or asked for (1,970 items)", async ({ page }) => {
+test("farm stock: items at 0 stay hidden until searched for or asked for (1,947 items)", async ({ page }) => {
   await page.goto("/farm/stock");
   const rows = page.locator("ul.card li:visible");
   const showZero = page.getByRole("button", { name: /Show [\d,]+ items at 0/ });
@@ -157,8 +157,8 @@ test("farm stock: items at 0 stay hidden until searched for or asked for (1,970 
   await expect(rows.first()).toContainText("Generator Items"); // no Urdu name yet: the category shows instead
   await page.locator("[data-search]").fill("");
   await showZero.click();
-  // Every active item (1,970 seeded, plus any an approved item request added meanwhile — client #30 test).
+  // Every active item (1,947 seeded, plus any an approved item request added meanwhile — client #30 test).
   const items = (await (await page.request.get("/api/items")).json()) as { active: boolean }[];
-  expect(items.length).toBeGreaterThanOrEqual(1970);
+  expect(items.length).toBeGreaterThanOrEqual(1947);
   await expect(rows).toHaveCount(items.filter((i) => i.active).length);
 });

@@ -1,5 +1,5 @@
 // Reference data (farms, items, suppliers, users) and A8 / A9 setup changes.
-// Nothing is deleted: farms, sheds and items are deactivated. Every change is in the audit log.
+// Nothing is deleted: farms, sheds and items are deactivated (only duplicate items were merged once, client #28). Every change is in the audit log.
 
 import { ApiError } from "@/lib/api/errors";
 import { createItemSearch } from "@/lib/item-search";
@@ -85,9 +85,15 @@ export function updateShed(input: { id: string; name: string; active: boolean; b
 
 /** Adds an item (id omitted) or edits one. The unit can't change once the item has stock movements. */
 export async function saveItem(input: ItemInput): Promise<Item> {
-  const item = await inTx((tx) => writeItem(tx, input));
+  const item = await inTx((tx) => writeItem(tx, input)).catch(duplicateNameError);
   search = null;
   return item;
+}
+
+/** Two saves of the same name at once: the unique name index (migration 20261128000000_dedupe_items) refuses the second. */
+function duplicateNameError(e: unknown): never {
+  if ((e as { code?: string })?.code === "P2002") throw new ApiError("err.duplicateName");
+  throw e;
 }
 
 async function writeItem(tx: Tx, input: ItemInput): Promise<Item> {
@@ -178,7 +184,7 @@ export async function approveItemRequest(input: { requestId: string; item: Omit<
     await tx.itemRequest.update({ where: { id: request.id }, data: { status: "approved", itemId: created.id } });
     await audit(tx, { user: input.by, farmId: request.farmId, action: "approve_item", recordId: request.id, recordNo: created.name });
     return created;
-  });
+  }).catch(duplicateNameError);
   search = null;
   return item;
 }

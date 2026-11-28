@@ -1,4 +1,4 @@
-// Base data every database starts with: 11 farms with sheds, the client's 1,970 items, and one login per
+// Base data every database starts with: 11 farms with sheds, the client's 1,947 items, and one login per
 // farm plus the Accounts Admin. No stock: opening balances are loaded from the client's counts.
 
 import { randomBytes } from "node:crypto";

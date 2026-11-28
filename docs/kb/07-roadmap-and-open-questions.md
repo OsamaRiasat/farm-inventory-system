@@ -29,7 +29,7 @@ Progress is tracked in `docs/progress.md`.
 | Feed: one item ("Feed All") or feed types? | One item, Feed All (as in the client's item list) |
 | Units for the 1,970 items (the workbook has none) | Our guess by name — see `03-data-and-api.md` → Mock seed → Items |
 | Urdu names / aliases for the items | Only the ~60 everyday items; the rest show the category |
-| Duplicates and spelling variants ("Chain Lock No. 60(half)" / "Chian Lock No.60(half)"; 23 names in two categories) | Kept as separate items until the client merges them |
+| Duplicates and spelling variants ("Chain Lock No. 60(half)" / "Chian Lock No.60(half)"; 23 names in two categories) | **Decided 28 Nov 2026 (developer, T02):** the 23 same-name pairs are merged (Stock in Store copy kept, else lowest Item No.). Spelling variants are still separate items |
 | "Discard & Scrap": items or a status? | Items in their own category, as in the workbook |
 | Mortality: same Male/Female columns for layer farms & hatchery? Culls? | Male / Female everywhere |
 | Shed names and count per farm | 3–6 mock sheds ("Shed 1"…) |

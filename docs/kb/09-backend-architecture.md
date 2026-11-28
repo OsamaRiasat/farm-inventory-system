@@ -110,7 +110,7 @@ src/
 The app runs on Vercel project `farm-inventory-system` with a free-plan **Neon** Postgres (`awfarms-db`, Singapore `ap-southeast-1`), added through the Vercel Marketplace. `vercel.json` pins functions to `sin1` next to the database.
 - Env vars come from the integration: `DATABASE_URL` = pooled (`-pooler` host) for the app; `DATABASE_URL_UNPOOLED` = direct, for migrations and seeds. The farm lock is `pg_advisory_xact_lock` (transaction-scoped), so the pooler is safe.
 - Schema changes are applied by hand, not in the build (previews share the same database): `vercel env pull` to a file outside the repo, then `DATABASE_URL=<unpooled> npx prisma migrate deploy`.
-- Seeded once with `db:seed:base` (11 farms + sheds, 1,970 items, one login per farm + `admin`, random passwords). Never run `db:reset` / `db:seed` (demo) against it.
+- Seeded once with `db:seed:base` (11 farms + sheds, 1,947 items, one login per farm + `admin`, random passwords). Never run `db:reset` / `db:seed` (demo) against it.
 - Preview deployments use the production database too. Give previews their own Neon branch before testing writes on them.
 
 ## AWS (earlier plan, not used yet)

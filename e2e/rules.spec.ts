@@ -8,7 +8,7 @@ import { db } from "@/server/db";
 import { cancelSlip, correctSlip } from "@/server/services/corrections";
 import { cancelReturn, listReturns, returnUnused } from "@/server/services/returns";
 import { getSlipById, receiveTransfer, saveIGP, saveOGP, saveSIS } from "@/server/services/slips";
-import { approveItemRequest, listItemRequests, rejectItemRequest, requestItem } from "@/server/services/setup";
+import { approveItemRequest, listItemRequests, rejectItemRequest, requestItem, saveItem } from "@/server/services/setup";
 import { stock, testFarm, unique } from "./db";
 
 // Saves without a seed time happen "now", so the slip date is today (any past date is allowed).
@@ -335,6 +335,22 @@ test("return unused: a cancelled return that would take stock below zero is refu
   const r = await giveBack(sis.id, [{ lineIndex: 0, qty: 5 }]);
   await saveSIS({ ...base(), farmId, idempotencyKey: key(), paperNo: key(), lines: [{ itemId: "diesel", qty: 5 }] });
   expect((await errorOf(() => cancelReturn({ returnId: r.id, reason: "x", by: "Admin" })))?.id).toBe("err.wouldGoNegative");
+});
+
+test("T02 / client #28: one item per name; the Stock in Store copy of a duplicate is the one kept", async () => {
+  const names = (await db().item.findMany({ select: { name: true } })).map((i) => i.name.trim().toLowerCase());
+  expect(names.length - new Set(names).size).toBe(0);
+  const kept = await db().item.findMany({ where: { name: { in: ["Regulator", "Liquid Soap", "Thermameter Digital"], mode: "insensitive" } } });
+  expect(kept.map((i) => i.category)).toEqual(["Stock in Store", "Stock in Store", "Stock in Store"]);
+  expect(kept.find((i) => /liquid soap/i.test(i.name))?.unit).toBe("QTY");
+});
+
+test("T02: saving an item with a name already in the list is refused, whatever the case or spaces", async () => {
+  const item = { nameUr: "ریگولیٹر", aliases: [], category: "Shed Items", unit: "QTY" as const, isFeed: false, active: true, by: "Admin" };
+  expect((await errorOf(() => saveItem({ ...item, name: "Regulator" })))?.id).toBe("err.duplicateName");
+  expect((await errorOf(() => saveItem({ ...item, name: "  REGULATOR " })))?.id).toBe("err.duplicateName");
+  // The database refuses it too (two saves at once).
+  await expect(db().item.create({ data: { id: unique("dup"), number: 999_000 + Math.floor(Math.random() * 999), name: " regulator", category: "Shed Items", unit: "QTY" } })).rejects.toThrow();
 });
 
 test("item request (client #30): not an item until approved; duplicates refused; approve creates it, reject needs a reason", async () => {

@@ -41,7 +41,7 @@ export function stockRows(items: Item[], stock: Map<string, number> | undefined)
 }
 
 /**
- * F8 — items with quantity on hand; items at 0 greyed at the bottom. With 1,970 items, the ones at 0 show only
+ * F8 — items with quantity on hand; items at 0 greyed at the bottom. With ~1,950 items, the ones at 0 show only
  * when searching, picking a category or asking for them. Rows open the stock card.
  * Excel downloads what's on screen; PDF prints it (opened with ?print=1 from Home, it prints straight away).
  */

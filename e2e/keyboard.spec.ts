@@ -71,7 +71,7 @@ test("SIS: Ctrl+S shows before → after from live stock, focus on Confirm, Esc 
 
 test("Receive transfer: Received all, more than sent is blocked, less is amber", async ({ page }) => {
   await page.goto("/farm");
-  await page.getByRole("link", { name: /AW-Hatchery · OGP-0047/ }).click();
+  await page.getByRole("link", { name: /AW-Hatchery · OGP-\d{4}/ }).click(); // number depends on the random demo history
   await page.getByRole("button", { name: /Received all/ }).click();
   const trays = page.locator('input[name="lines.0.qtyReceived"]');
   await expect(trays).toHaveValue("9,000");

@@ -55,7 +55,7 @@ export async function seedDemo(now = new Date()) {
 
   // ── opening balances, 14 days ago ──
   // The demo's everyday items (the ones with Urdu names) are at every farm; each farm also holds a few
-  // of the other items, so stock lists look real without every farm carrying all 1,970.
+  // of the other items, so stock lists look real without every farm carrying all 1,947.
   const openingDate = addDays(todayIso, -14);
   const opening = new Map<string, number>();
   for (const farm of farms) {

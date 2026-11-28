@@ -45,7 +45,7 @@ This Next.js version is newer than training data — check `node_modules/next/di
 - **Saves**: `withFarmLock` (`src/server/repo.ts`) = one transaction + a Postgres advisory lock per farm touched; then idempotency key, `rulesFor()` builds the `RuleContext` from the DB, the same Zod schema runs, number from `Counter`, insert slip + movements + audit. Port any new rule the same way.
 - **Session**: httpOnly cookie, `Session` table (`src/server/auth.ts`); `useSession()` in `src/lib/session.ts` reads `GET /api/me`. `FarmGate` / `AdminGate` guard the areas; below `FarmGate` use `useCurrentFarm()` for the farm and user name. `src/proxy.ts` only redirects when there's no cookie.
 - **Rules**: Zod schemas in `src/features/*/schema.ts` + helpers in `src/lib/validation.ts` and `src/lib/slip-rules.ts`; messages are message ids.
-- **Seed**: `src/server/seed/base.ts` (farms, 1,970 items, logins) + `demo.ts` (two weeks of history through the services). Demo logins: farm id (`aw02`…) or `admin`, password `demo1234`.
+- **Seed**: `src/server/seed/base.ts` (farms, 1,947 items, logins) + `demo.ts` (two weeks of history through the services). Demo logins: farm id (`aw02`…) or `admin`, password `demo1234`.
 - **Live data**: no push yet — refetch on window focus and every 30 s on live screens (`LIVE` in `queries.ts`).
 - **Component review**: `/dev` shows C1–C12 on live data (sign in first). It replaces Storybook for now.
 

@@ -32,7 +32,8 @@ test("Patoki home: hatchery transfer waiting, today's slips listed", async ({ pa
   await signIn(page, { role: "farm", farmId: "aw02" });
   await page.goto("/farm");
   await expect(page.getByText("Waiting to receive")).toBeVisible();
-  await expect(page.getByRole("link", { name: /AW-Hatchery · OGP-0047/ })).toBeVisible();
+  // The number depends on the random demo history (how many OGPs the hatchery made); the transfer itself is scripted.
+  await expect(page.getByRole("link", { name: /AW-Hatchery · OGP-\d{4}/ })).toBeVisible();
 });
 
 test("admin dashboard shows the seeded follow-ups", async ({ page }) => {
