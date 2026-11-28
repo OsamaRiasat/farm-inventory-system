@@ -60,8 +60,8 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 | T01 | High | committed | s-t01-igp-request | 2026-11-28 07:37 | 34b380a | pass 11-28 07:37 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
 | T02 | High | committed | s-batch1 | 2026-11-28 07:45 | 241e6ee | pass 11-28 07:45 | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
 | T03 | High | committed | s-t03t06 | 2026-11-28 08:04 | cc34e39 | pass 11-28 07:52 | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
-| T04 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
-| T05 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
+| T04 | Normal | committed | s-batch1 | 2026-11-28 08:12 | 7b831ed | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
+| T05 | Normal | committed | s-batch1 | 2026-11-28 08:12 | 7b831ed | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
 | T06 | Normal | committed | s-t03t06 | 2026-11-28 08:04 | 61e8201 | pass 11-28 08:02 | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
 
 **Overlap to watch**
@@ -109,3 +109,8 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 08:06 · T06 · note · by s-t03t06 · what shipped: farm stock report (Home + F8) grouped by category with merged shaded rows, no Category column; stock card with header block, opening row, bold total, Bags for feed; admin reports Excel button wired (stock on hand grouped). CSV export removed (downloadCsv gone)
 - 2026-11-28 08:06 · T03 · note · by s-t03t06 · known flaky test (not from T03/T06): e2e/journeys.spec.ts 'return unused … diesel' races journeys.spec.ts:44 on aw02 diesel in full parallel runs; passes alone. Needs its own testFarm or serial mode — not fixed
 - 2026-11-28 08:06 · T06 · note · by s-t03t06 · cleanup left: worktree ../farm-inventory-worktrees/t03-t06-bags-xlsx (branch t03-t06-bags-xlsx, merged) and test DB awfarms_test_t03 can be removed
+- 2026-11-28 08:09 · T04 · note · by s-t04t05 · committed 232380f on branch t04-t05-search-users (not merged to main, not pushed)
+- 2026-11-28 08:09 · T05 · note · by s-t04t05 · committed 232380f on branch t04-t05-search-users (not merged to main, not pushed)
+- 2026-11-28 08:09 · T04 · note · by s-batch1 · merging 232380f to main (rebase in worktree ../farm-inventory-worktrees/t04-t05-merge, branch t04-t05-merge), developer asked; please don't rebase t04-t05-search-users meanwhile
+- 2026-11-28 08:12 · T04 · worked → committed · by s-batch1 · commit 7b831ed · rebased s-t04t05's 232380f onto main (only progress.md conflicted, kept both), ff-merged; e2e 111/111 on own DB + port; not pushed
+- 2026-11-28 08:12 · T05 · worked → committed · by s-batch1 · commit 7b831ed · same commit as T04; not pushed
