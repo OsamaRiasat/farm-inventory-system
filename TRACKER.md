@@ -26,8 +26,15 @@ already taken, so nobody re-asks. Client sheet rows stay in `docs/client-issues.
    before taking it with `--force`.
 7. Put context in the Log with `--note` (or `scripts/tracker.sh log T03 <who> --note "…"`). The script appends; never rewrite past lines.
 8. **Two sessions coding at once → one git worktree each**, in `../farm-inventory-worktrees/<id>-<slug>`
-   (`git worktree add -b t03-feed-bags ../farm-inventory-worktrees/t03-feed-bags main`, then `ln -s ../../farm-inventory-system/node_modules node_modules`
-   and copy `.env`). Only commit `TRACKER.md` from the main checkout, never from a worktree branch.
+   (`git worktree add -b t03-feed-bags ../farm-inventory-worktrees/t03-feed-bags main`, copy `.env`, then
+   `cp -cR ../../farm-inventory-system/node_modules node_modules` and `npx prisma generate` —
+   a **symlinked** `node_modules` breaks `next build` (Turbopack won't read outside the worktree). Only commit `TRACKER.md`
+   from the main checkout, never from a worktree branch.
+   **Testing in parallel:** give each session its own test database and port, or runs wipe each other's data:
+   in the worktree's `.env` set `TEST_DATABASE_URL=…/awfarms_test_<id>`, and run `PW_PORT=31xx npx playwright test`.
+   The global setup runs `prisma migrate reset`, which Prisma refuses from an agent until the user consents
+   (env `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` = their exact words) — ask once, name the database.
+   `next build` sometimes stops on a "security vulnerability" notice: run it again until it succeeds, or the tests run an old build.
 9. Commits: author Usama Riasat, **no** Claude co-author line. At session end update `docs/progress.md`, and if the
    task closes a client row, set it in `docs/client-issues.md` too.
 
@@ -64,6 +71,13 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - T02 and T05 both edit `src/server/services/setup.ts` (items vs users) — different functions.
 - T02 + T03 deploy: both need `prisma migrate deploy` on Neon before (or with) the Vercel deploy.
 
+**Deploy checklist (batch 1)** — nothing is pushed yet; T01, T02, T03, T06 are committed on local `main`, T04 / T05 on branch `t04-t05-search-users`.
+1. Merge T04 / T05 (rebase on main first: seed is 1,947 items, slip lines have `bags`), `npm install` (exceljs), `npm run lint` + `npm run test:e2e` green.
+2. Push `main` (this deploys to Vercel).
+3. `prisma migrate deploy` on Neon, before or with the deploy: `20261128000000_dedupe_items` (T02), `20261128000001_slip_line_bags` (T03).
+4. Check on the live URL (ask the developer before writing to live data): Regulator once in item search (T02); Feed All IGP has a Bags box (T03); slip search by remarks (T04); Admin → Users add / edit / password (T05); Excel downloads open in Excel, grouped by category (T06).
+5. Each row: `scripts/tracker.sh set Txx deployed <who> --note "…"`, and `verify` with what was checked live.
+
 ## Log
 - 2026-11-28 07:30 · T01–T06 · added as pending · plan approved by the developer (feed bags = Bags + KG both typed; dedupe keeps Stock in Store, Liquid Soap → QTY; users = add + edit + password; Excel = .xlsx for stock, stock card, admin reports)
 - 2026-11-28 07:35 · T01 · pending → working · by s-t01-igp-request
@@ -89,3 +103,9 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 08:02 · T03 · note · by s-t03t06 · not merged to main / not pushed: main checkout has T02 uncommitted, push deploys. Merge branch t03-t06-bags-xlsx after T02; migration then needs migrate deploy on Neon
 - 2026-11-28 08:04 · T03 · worked → committed · by s-t03t06 · commit cc34e39 · ff-merged to main (local, not pushed); rebased on T02, e2e 105/105; deploy needs prisma migrate deploy (slip_line_bags)
 - 2026-11-28 08:04 · T06 · worked → committed · by s-t03t06 · commit 61e8201 · ff-merged to main (local, not pushed); npm install needed for exceljs; e2e 105/105
+- 2026-11-28 08:06 · T03 · note · by s-t03t06 · supersedes the 08:02 note: now merged to main (cc34e39), still NOT pushed. To finish (→ deployed): 1) push main 2) prisma migrate deploy on Neon (20261128000000_dedupe_items + 20261128000001_slip_line_bags) before / with the Vercel deploy 3) on the live URL check a Feed All IGP shows a Bags box (ask the developer first: live is the client's data) 4) scripts/tracker.sh set T03 deployed
+- 2026-11-28 08:06 · T03 · note · by s-t03t06 · what shipped: Bags (whole number >= 1, required) on Feed All lines of IGP / OGP / SIS / receive (pre-filled from OGP, required only if qty received > 0); other items never keep bags; stock stays KG; bags on SIS summary, slip detail + print, admin correction (editable), stock card rows. Client #26 set done in docs/client-issues.md
+- 2026-11-28 08:06 · T06 · note · by s-t03t06 · to finish: 1) npm install on every checkout / Vercel build (new dependency exceljs 4.4.0) 2) developer opens a stock report, a stock card and an admin report .xlsx in real Excel and confirms the layout (only LibreOffice checked so far) → then scripts/tracker.sh verify T06 ... with what was checked 3) push + scripts/tracker.sh set T06 deployed (no migration)
+- 2026-11-28 08:06 · T06 · note · by s-t03t06 · what shipped: farm stock report (Home + F8) grouped by category with merged shaded rows, no Category column; stock card with header block, opening row, bold total, Bags for feed; admin reports Excel button wired (stock on hand grouped). CSV export removed (downloadCsv gone)
+- 2026-11-28 08:06 · T03 · note · by s-t03t06 · known flaky test (not from T03/T06): e2e/journeys.spec.ts 'return unused … diesel' races journeys.spec.ts:44 on aw02 diesel in full parallel runs; passes alone. Needs its own testFarm or serial mode — not fixed
+- 2026-11-28 08:06 · T06 · note · by s-t03t06 · cleanup left: worktree ../farm-inventory-worktrees/t03-t06-bags-xlsx (branch t03-t06-bags-xlsx, merged) and test DB awfarms_test_t03 can be removed
