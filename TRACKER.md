@@ -51,11 +51,11 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 | ID | Priority | Status | Owner | Updated | Commit | Verified | Title | Plan | Client # |
 |---|---|---|---|---|---|---|---|---|---|
 | T01 | High | committed | s-t01-igp-request | 2026-11-28 07:37 | 34b380a | pass 11-28 07:37 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
-| T02 | High | pending | — | 2026-11-28 | — | — | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
-| T03 | High | pending | — | 2026-11-28 | — | — | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
-| T04 | Normal | working | s-t04t05 | 2026-11-28 07:36 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
-| T05 | Normal | working | s-t04t05 | 2026-11-28 07:36 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
-| T06 | Normal | pending | — | 2026-11-28 | — | — | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
+| T02 | High | committed | s-batch1 | 2026-11-28 07:45 | 241e6ee | pass 11-28 07:45 | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
+| T03 | High | working | s-t03t06 | 2026-11-28 07:41 | — | — | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
+| T04 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
+| T05 | Normal | worked | s-t04t05 | 2026-11-28 07:44 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
+| T06 | Normal | working | s-t03t06 | 2026-11-28 07:41 | — | — | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
 
 **Overlap to watch**
 - T02 and T03 both add a Prisma migration. Whoever lands second rebases and gives theirs the later timestamp folder name.
@@ -72,3 +72,13 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 - 2026-11-28 07:37 · T01 · working → worked · by s-t01-igp-request · allowRequest prop on SlipLines, IGP only; e2e 95 pass (Playwright, local build + awfarms_test)
 - 2026-11-28 07:37 · T01 · verify pass · by s-t01-igp-request · Playwright Chromium vs local build: + on farm IGP, none on OGP/SIS, Enter on No item found opens nothing there
 - 2026-11-28 07:37 · T01 · worked → committed · by s-t01-igp-request · commit 34b380a · local commit, not pushed (push deploys)
+- 2026-11-28 07:38 · T02 · pending → working · by s-batch1
+- 2026-11-28 07:41 · T03 · pending → working · by s-t03t06
+- 2026-11-28 07:41 · T06 · pending → working · by s-t03t06
+- 2026-11-28 07:44 · T04 · working → worked · by s-t04t05 · F6 search matches remarks/M/s/driver/Purpose of Use etc. + shows matched text; e2e/slip-search.spec.ts; branch t04-t05-search-users (worktree), lint + 100 tests green on scratch DB
+- 2026-11-28 07:44 · T05 · working → worked · by s-t04t05 · A10 add/edit user + set new password; POST /api/users, /users/[id], /users/[id]/password; sign-out on password/deactivate, self + last-admin guards, audit; e2e/users.spec.ts (5); same branch
+- 2026-11-28 07:45 · T02 · working → worked · by s-batch1 · migration verified on scratch demo DB (1,947 items, no orphans, balances unchanged); e2e 97 pass
+- 2026-11-28 07:45 · T02 · verify pass · by s-batch1 · scratch DB: Regulator once (Stock in Store), aw02 balance 8 = both copies; index refuses ' REGULATOR '; UI not clicked through
+- 2026-11-28 07:45 · T02 · worked → committed · by s-batch1 · commit 241e6ee · local commit on main, not pushed. Deploy needs prisma migrate deploy on Neon
+- 2026-11-28 07:45 · T03 · note · by s-batch1 · FYI from T02: main has migration 20261128000000_dedupe_items, give T03's migration a later folder name; seed now 1,947 items so the random demo history changed, tests must not hard-code the hatchery's OGP-0047 (use /OGP-\d{4}/, see e2e/data.spec.ts + keyboard.spec.ts)
+- 2026-11-28 07:45 · T04 · note · by s-batch1 · FYI from T02: rebase on main before merging, seed is now 1,947 items and OGP-0047 is no longer fixed in the demo data
