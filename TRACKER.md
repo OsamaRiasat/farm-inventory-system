@@ -50,11 +50,11 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 
 | ID | Priority | Status | Owner | Updated | Commit | Verified | Title | Plan | Client # |
 |---|---|---|---|---|---|---|---|---|---|
-| T01 | High | pending | — | 2026-11-28 | — | — | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
+| T01 | High | committed | s-t01-igp-request | 2026-11-28 07:37 | 34b380a | pass 11-28 07:37 | Request-new-item "+" only on IGP (not OGP / SIS) | docs/plans/T01-request-item-igp-only.md | #30 |
 | T02 | High | pending | — | 2026-11-28 | — | — | Remove duplicate items (keep the Stock in Store copy), live DB via migration | docs/plans/T02-dedupe-items.md | #28 |
 | T03 | High | pending | — | 2026-11-28 | — | — | Feed All: Bags + KG on slip lines | docs/plans/T03-feed-bags.md | #26 |
-| T04 | Normal | pending | — | 2026-11-28 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
-| T05 | Normal | pending | — | 2026-11-28 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
+| T04 | Normal | working | s-t04t05 | 2026-11-28 07:36 | — | — | Farm slip search also matches remarks / purpose / M/s / driver… | docs/plans/T04-search-remarks.md | — |
+| T05 | Normal | working | s-t04t05 | 2026-11-28 07:36 | — | — | Admin: add users, edit users, set a new password | docs/plans/T05-admin-users.md | — |
 | T06 | Normal | pending | — | 2026-11-28 | — | — | Excel: formatted .xlsx, items grouped by category (merged rows) | docs/plans/T06-excel-xlsx.md | — |
 
 **Overlap to watch**
@@ -66,3 +66,9 @@ Batch 1 — developer's list of 28 Nov 2026. Decisions in each plan doc.
 
 ## Log
 - 2026-11-28 07:30 · T01–T06 · added as pending · plan approved by the developer (feed bags = Bags + KG both typed; dedupe keeps Stock in Store, Liquid Soap → QTY; users = add + edit + password; Excel = .xlsx for stock, stock card, admin reports)
+- 2026-11-28 07:35 · T01 · pending → working · by s-t01-igp-request
+- 2026-11-28 07:36 · T04 · pending → working · by s-t04t05
+- 2026-11-28 07:36 · T05 · pending → working · by s-t04t05
+- 2026-11-28 07:37 · T01 · working → worked · by s-t01-igp-request · allowRequest prop on SlipLines, IGP only; e2e 95 pass (Playwright, local build + awfarms_test)
+- 2026-11-28 07:37 · T01 · verify pass · by s-t01-igp-request · Playwright Chromium vs local build: + on farm IGP, none on OGP/SIS, Enter on No item found opens nothing there
+- 2026-11-28 07:37 · T01 · worked → committed · by s-t01-igp-request · commit 34b380a · local commit, not pushed (push deploys)
