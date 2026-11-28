@@ -14,6 +14,8 @@ Read the file you need; you rarely need all of them.
 | [kb/08-testing-roadmap.md](kb/08-testing-roadmap.md) | Test layers, week-by-week test plan, rule → test map, performance budget, demo and sign-off checklists |
 | [kb/09-backend-architecture.md](kb/09-backend-architecture.md) | Backend: Next.js route handlers + PostgreSQL (Prisma) — code layout, save flow, auth, AWS hosting plan, build order |
 | [progress.md](progress.md) | What's done, what's next, decision log |
+| [../TRACKER.md](../TRACKER.md) | Task board for parallel sessions (status, owner, commit, log) — change it only with `scripts/tracker.sh` |
+| [plans/](plans/) | One plan doc per tracker task (`T01-…md`): decisions, files, tests |
 
 ## Sources (originals — the KB summarises these)
 - `source/requirements.md` — AW Farms Inventory System — Requirements (Oct 26, 2026)

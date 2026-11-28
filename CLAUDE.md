@@ -18,6 +18,7 @@ Web app replacing paper slips + QuickBooks re-typing for 11 poultry farms. Each 
 - `docs/kb/08-testing-roadmap.md` — what to test each week; update its rule map and coverage when tests land
 - `docs/kb/09-backend-architecture.md` — backend: code layout, save flow (locks, idempotency), auth, AWS plan, build order
 - `docs/progress.md` — **update at the end of every session** (done / next / decisions)
+- `TRACKER.md` — **shared task board for parallel sessions**: claim a row with `scripts/tracker.sh` before coding, never edit status cells by hand; each row's plan doc is in `docs/plans/`
 
 Originals in `docs/source/` (requirements.md, design spec PDF with paper slip photos). Source wins over KB.
 
